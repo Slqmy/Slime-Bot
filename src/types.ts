@@ -51,7 +51,6 @@ export type Command = {
 	execute(
 		interaction: ChatInputCommandInteraction,
 		client: BotClient,
-		...args: string[]
 	): Promise<unknown>;
 };
 
@@ -74,7 +73,6 @@ export type AutoCompleteCommand = {
 	execute(
 		interaction: ChatInputCommandInteraction,
 		client: BotClient,
-		...args: string[]
 	): Promise<unknown>;
 };
 
