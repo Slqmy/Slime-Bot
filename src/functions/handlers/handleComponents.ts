@@ -1,7 +1,7 @@
 import {BotClient, Button, Modal, SelectMenu} from "types";
 import {loopFolders} from "../../utility.js";
 
-export const handleComponents = (client: BotClient) => {
+export default (client: BotClient) => {
 	client.handleComponents = async () => {
 		const {buttons, selectMenus, modals} = client;
 

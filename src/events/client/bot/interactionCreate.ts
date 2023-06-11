@@ -1,4 +1,9 @@
-import {AnyContextMenuCommand, AutoCompleteCommand, Command, Event} from "types";
+import {
+	AnyContextMenuCommand,
+	AutoCompleteCommand,
+	Command,
+	Event,
+} from "types";
 import {AutocompleteInteraction, InteractionType} from "discord.js";
 import {Emojis, handleError} from "../../../utility.js";
 import chalk from "chalk";
@@ -14,14 +19,18 @@ export const interactionCreate: Event<"interactionCreate"> = {
 		if (process.env.debug) {
 			console.log(
 				yellow(
-					`${bold("[Debug]")} Received interaction type ${bold(InteractionType[interaction.type])} ${bold(
+					`${bold("[Debug]")} Received interaction type ${bold(
+						InteractionType[interaction.type],
+					)} ${bold(
 						`(${
 							// This is needed or else TypeScript will complain.
-							interaction.type === 2 || interaction.isAutocomplete() ? interaction.commandName : interaction.customId
+							interaction.type === 2 || interaction.isAutocomplete()
+								? interaction.commandName
+								: interaction.customId
 						})`,
-					)} in guild ${bold(interaction.guild?.name)} from user ${bold(interaction.user.username)} (ID: ${
-						interaction.user.id
-					}) ()`,
+					)} in guild ${bold(interaction.guild?.name)} from user ${bold(
+						interaction.user.username,
+					)} (ID: ${interaction.user.id}) ()`,
 				).replace(/\s{2,}/g, " "),
 			);
 		}
@@ -95,7 +104,9 @@ export const interactionCreate: Event<"interactionCreate"> = {
 				const command = commands.get(interaction.commandName);
 
 				if (!command) {
-					return console.error(`❌ Command not found: ${interaction.commandName}`);
+					return console.error(
+						`❌ Command not found: ${interaction.commandName}`,
+					);
 				}
 
 				try {
@@ -103,17 +114,24 @@ export const interactionCreate: Event<"interactionCreate"> = {
 				} catch (error) {
 					return handleError(interaction, client, error);
 				}
-			} else if (interaction.type === InteractionType.ApplicationCommandAutocomplete) {
+			} else if (
+				interaction.type === InteractionType.ApplicationCommandAutocomplete
+			) {
 				const {commands} = client;
 
 				const command = commands.get(interaction.commandName);
 
 				if (!command) {
-					return console.error(`❌ Command not found: ${interaction.commandName}`);
+					return console.error(
+						`❌ Command not found: ${interaction.commandName}`,
+					);
 				}
 
 				try {
-					await (command as AutoCompleteCommand).autocomplete(interaction, client);
+					await (command as AutoCompleteCommand).autocomplete(
+						interaction,
+						client,
+					);
 				} catch (error) {
 					return handleError(interaction, client, error);
 				}
@@ -123,9 +141,13 @@ export const interactionCreate: Event<"interactionCreate"> = {
 				embeds: [
 					{
 						title: `<:_:${Emojis.Error}> Maintenance Mode!`,
-						description: `Sorry, <@${client.user?.id}> is currently in maintenance mode!\n\n<@${
+						description: `Sorry, <@${
 							client.user?.id
-						}> has been in maintenance since <t:${Math.round(client.onlineTimestamp / 1000)}:R>.`,
+						}> is currently in maintenance mode!\n\n<@${
+							client.user?.id
+						}> has been in maintenance since <t:${Math.round(
+							client.onlineTimestamp / 1000,
+						)}:R>.`,
 						color: 0xff0000,
 					},
 				],
@@ -144,10 +166,16 @@ export const interactionCreate: Event<"interactionCreate"> = {
 			console.log(
 				yellow(
 					`${bold("[Debug]")} Took ${bold(
-						`${Date.now() - time} milliseconds (${new Intl.NumberFormat().format((Date.now() - time) / 1000)} seconds)`,
+						`${
+							Date.now() - time
+						} milliseconds (${new Intl.NumberFormat().format(
+							(Date.now() - time) / 1000,
+						)} seconds)`,
 					)} to execute interaction ${bold(
 						// This is needed or else TypeScript will complain.
-						interaction.type === 2 || interaction.isAutocomplete() ? interaction.commandName : interaction.customId,
+						interaction.type === 2 || interaction.isAutocomplete()
+							? interaction.commandName
+							: interaction.customId,
 					)}.\n`,
 				),
 			);

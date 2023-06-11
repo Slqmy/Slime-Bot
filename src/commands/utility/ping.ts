@@ -15,7 +15,9 @@ export const ping: Command = {
 				{
 					title: "🏓 Pong!",
 					color: Colours.Transparent,
-					description: `🤖 **API Latency**: \`${client.ws.ping}\`\n\n👤 **Client Ping**: \`${
+					description: `🤖 **API Latency**: \`${
+						client.ws.ping
+					}\`\n\n👤 **Client Ping**: \`${
 						message.createdTimestamp - interaction.createdTimestamp
 					}\``,
 				},

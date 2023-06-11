@@ -1,4 +1,11 @@
-import {APIRole, ChannelType, Role, SlashCommandBuilder, TextChannel, User} from "discord.js";
+import {
+	APIRole,
+	ChannelType,
+	Role,
+	SlashCommandBuilder,
+	TextChannel,
+	User,
+} from "discord.js";
 import {
 	PollMessageBuilder,
 	checkPermissions,
@@ -20,24 +27,38 @@ export const poll: Command = {
 				.setName("create")
 				.setDescription("📝 Create a poll.")
 				.addStringOption((option) =>
-					option.setName("message").setDescription("💬 What do you want to be voted on?").setRequired(true),
+					option
+						.setName("message")
+						.setDescription("💬 What do you want to be voted on?")
+						.setRequired(true),
 				)
-				.addStringOption((option) => option.setName("description").setDescription("📜 The description of the poll."))
+				.addStringOption((option) =>
+					option
+						.setName("description")
+						.setDescription("📜 The description of the poll."),
+				)
 				.addStringOption((option) =>
 					option
 						.setName("colour")
-						.setDescription("🌈 The colour of the poll embed. Accepts colour codes and the names of colours."),
+						.setDescription(
+							"🌈 The colour of the poll embed. Accepts colour codes and the names of colours.",
+						),
 				)
 				.addChannelOption((option) =>
 					option
 						.setName("channel")
 						.setDescription("💬 The channel that the poll should be sent in")
-						.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement),
+						.addChannelTypes(
+							ChannelType.GuildText,
+							ChannelType.GuildAnnouncement,
+						),
 				)
 				.addStringOption((option) =>
 					option
 						.setName("max-options")
-						.setDescription("🔢 The maximum number of options that a user can select.")
+						.setDescription(
+							"🔢 The maximum number of options that a user can select.",
+						)
 						.addChoices(
 							{name: "∞ Unlimited", value: "Unlimited"},
 							{name: "1", value: "1"},
@@ -64,33 +85,64 @@ export const poll: Command = {
 					),
 				)
 				.addBooleanOption((option) =>
-					option.setName("anonymous").setDescription("👤 Whether the poll should be sent anonymously."),
+					option
+						.setName("anonymous")
+						.setDescription("👤 Whether the poll should be sent anonymously."),
 				)
 				.addRoleOption((option) =>
-					option.setName("required-role").setDescription("👤 The role required to vote on the poll."),
+					option
+						.setName("required-role")
+						.setDescription("👤 The role required to vote on the poll."),
 				)
-				.addRoleOption((option) => option.setName("ping-role").setDescription("👤 The role that the bot should ping."))
+				.addRoleOption((option) =>
+					option
+						.setName("ping-role")
+						.setDescription("👤 The role that the bot should ping."),
+				)
 				.addStringOption((option) =>
 					option
 						.setName("thread-name")
-						.setDescription("💬 If a name is provided, a thread will be created with that name."),
+						.setDescription(
+							"💬 If a name is provided, a thread will be created with that name.",
+						),
 				)
 				.addStringOption((option) =>
 					option
 						.setName("attachments")
-						.setDescription("🎨 Send an attachment. Send multiple by separating links with commas."),
+						.setDescription(
+							"🎨 Send an attachment. Send multiple by separating links with commas.",
+						),
 				)
-				.addStringOption((option) => option.setName("choice-1").setDescription("1️⃣ The first option."))
-				.addStringOption((option) => option.setName("choice-2").setDescription("2️⃣The second option."))
-
-				.addStringOption((option) => option.setName("choice-3").setDescription("3️⃣ The third option."))
-				.addStringOption((option) => option.setName("choice-4").setDescription("4️⃣ The fourth option."))
-				.addStringOption((option) => option.setName("choice-5").setDescription("5️⃣ The fifth option."))
-				.addStringOption((option) => option.setName("choice-6").setDescription("6️⃣ The sixth option."))
-				.addStringOption((option) => option.setName("choice-7").setDescription("7️⃣ The seventh option."))
-				.addStringOption((option) => option.setName("choice-8").setDescription("8️⃣ The eighth option."))
-				.addStringOption((option) => option.setName("choice-9").setDescription("9️⃣ The ninth option."))
-				.addStringOption((option) => option.setName("choice-10").setDescription("🔟 The tenth option.")),
+				.addStringOption((option) =>
+					option.setName("choice-1").setDescription("1️⃣ The first option."),
+				)
+				.addStringOption((option) =>
+					option.setName("choice-2").setDescription("2️⃣The second option."),
+				)
+				.addStringOption((option) =>
+					option.setName("choice-3").setDescription("3️⃣ The third option."),
+				)
+				.addStringOption((option) =>
+					option.setName("choice-4").setDescription("4️⃣ The fourth option."),
+				)
+				.addStringOption((option) =>
+					option.setName("choice-5").setDescription("5️⃣ The fifth option."),
+				)
+				.addStringOption((option) =>
+					option.setName("choice-6").setDescription("6️⃣ The sixth option."),
+				)
+				.addStringOption((option) =>
+					option.setName("choice-7").setDescription("7️⃣ The seventh option."),
+				)
+				.addStringOption((option) =>
+					option.setName("choice-8").setDescription("8️⃣ The eighth option."),
+				)
+				.addStringOption((option) =>
+					option.setName("choice-9").setDescription("9️⃣ The ninth option."),
+				)
+				.addStringOption((option) =>
+					option.setName("choice-10").setDescription("🔟 The tenth option."),
+				),
 		),
 	usage: [
 		"poll create message: poll question description: description of the poll question colour: the colour of the poll embed channel: channel to send the poll message to max-options: maximum number of options a user can select duration: the duration of time that server members will be able to vote on the poll anonymous: whether the poll should be sent anonymously required-role: which role should be required for people to vote on the poll ping-role: which role should the be pinged for the poll thread-name: if provided, will create a thread with that name attachments: any images/other file attachments that should be sent along with the poll ...choices: choices that server members can select - up to 10 allowed",
@@ -104,7 +156,9 @@ export const poll: Command = {
 		const {options, guild, user} = interaction;
 
 		if (!interaction.channel || !guild) {
-			return interaction.reply(createErrorMessage("This command can only be used in a guild!"));
+			return interaction.reply(
+				createErrorMessage("This command can only be used in a guild!"),
+			);
 		}
 
 		if (options.getSubcommand() === "create") {
@@ -112,16 +166,29 @@ export const poll: Command = {
 
 			if (duration) {
 				try {
-					duration = evaluate(`${resolveDuration(duration.replace(/( *in *)|( *ago *)/g, ""))}`);
+					duration = evaluate(
+						`${resolveDuration(duration.replace(/( *in *)|( *ago *)/g, ""))}`,
+					);
 				} catch (error) {
-					return interaction.reply(createErrorMessage(`**Invalid duration provided:** ${duration}\n\n> ${error}`));
+					return interaction.reply(
+						createErrorMessage(
+							`**Invalid duration provided:** ${duration}\n\n> ${error}`,
+						),
+					);
 				}
 			}
 
-			const channel = (options.getChannel("channel") ?? interaction.channel) as TextChannel;
+			const channel = (options.getChannel("channel") ??
+				interaction.channel) as TextChannel;
 
 			const permissions = await checkPermissions(
-				["ViewChannel", "SendMessages", "EmbedLinks", "AddReactions", "UseApplicationCommands"],
+				[
+					"ViewChannel",
+					"SendMessages",
+					"EmbedLinks",
+					"AddReactions",
+					"UseApplicationCommands",
+				],
 				[user],
 				channel,
 				guild,
@@ -129,7 +196,9 @@ export const poll: Command = {
 			);
 
 			if (!permissions.value) {
-				return interaction.reply(createErrorMessage(permissions.message as string));
+				return interaction.reply(
+					createErrorMessage(permissions.message as string),
+				);
 			}
 
 			const botPermissions = await checkPermissions(
@@ -141,14 +210,19 @@ export const poll: Command = {
 			);
 
 			if (!botPermissions.value) {
-				return interaction.reply(createErrorMessage(botPermissions.message as string));
+				return interaction.reply(
+					createErrorMessage(botPermissions.message as string),
+				);
 			}
 
 			await interaction.deferReply({
 				ephemeral: true,
 			});
 
-			const pollMessage = await new PollMessageBuilder().create(interaction, client);
+			const pollMessage = await new PollMessageBuilder().create(
+				interaction,
+				client,
+			);
 
 			const embedMessage = await channel.send(pollMessage);
 
@@ -175,11 +249,17 @@ export const poll: Command = {
 				});
 
 				if (options.getRole("ping-role")) {
-					await thread.send(`<@&${(options.getRole("ping-role") as Role | APIRole).id}>`);
+					await thread.send(
+						`<@&${(options.getRole("ping-role") as Role | APIRole).id}>`,
+					);
 				}
 			}
 
-			await interaction.editReply(createSuccessMessage(`Successfully created and sent the poll in <#${channel.id}>.`));
+			await interaction.editReply(
+				createSuccessMessage(
+					`Successfully created and sent the poll in <#${channel.id}>.`,
+				),
+			);
 		}
 	},
 };

@@ -17,13 +17,21 @@ export default (client: BotClient) => {
 
 		// Filter out duplicate commands.
 		commandArray = commandArray.filter(
-			(command, index) => commandArray.map((commandData) => commandData.name).indexOf(command.name) === index,
+			(command, index) =>
+				commandArray
+					.map((commandData) => commandData.name)
+					.indexOf(command.name) === index,
 		);
 
-		const rest = new REST({version: "9"}).setToken(process.env.discordBotToken as string);
+		const rest = new REST({version: "9"}).setToken(
+			process.env.discordBotToken as string,
+		);
 
-		await rest.put(Routes.applicationCommands(process.env.discordApplicationID as string), {
-			body: process.env.clearCommands ? [] : commandArray,
-		});
+		await rest.put(
+			Routes.applicationCommands(process.env.discordApplicationID as string),
+			{
+				body: process.env.clearCommands ? [] : commandArray,
+			},
+		);
 	};
 };

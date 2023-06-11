@@ -1,11 +1,12 @@
+import {Client, Collection, GatewayIntentBits, Partials} from "discord.js";
+
+import {BotClient} from "types";
+import {connect} from "mongoose";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-import {Client, Collection, GatewayIntentBits, Partials} from "discord.js";
 import {loopFolders} from "./utility.js";
-import {BotClient} from "types";
-import {connect} from "mongoose";
 
 const {discordBotToken, mongoDatabaseToken} = process.env;
 
@@ -14,7 +15,9 @@ const client = new Client({
 	partials: Object.keys(Partials) as unknown as Partials[],
 }) as BotClient;
 
-await loopFolders("functions", (callback) => (callback as Function)(client));
+await loopFolders("functions", (callback) =>
+	(callback as (client: BotClient) => void)(client),
+);
 
 client.handleEvents().catch(console.error);
 

@@ -12,9 +12,15 @@ export default (client: BotClient) => {
 			const eventName = /\w+(?=\.js)/.exec(filePath)?.[0] as keyof ClientEvents;
 
 			if (typedEvent.once) {
-				client.once(eventName, (...args) => typedEvent.execute(client, ...args) as Promise<void>);
+				client.once(
+					eventName,
+					(...args) => typedEvent.execute(client, ...args) as Promise<void>,
+				);
 			} else {
-				client.on(eventName, (...args) => typedEvent.execute(client, ...args) as Promise<void>);
+				client.on(
+					eventName,
+					(...args) => typedEvent.execute(client, ...args) as Promise<void>,
+				);
 			}
 		});
 

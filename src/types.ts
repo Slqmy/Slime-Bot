@@ -48,7 +48,11 @@ export type Command = {
 	description?: string;
 	usage: string[];
 	examples?: string[];
-	execute(interaction: ChatInputCommandInteraction, client: BotClient, ...args: string[]): Promise<unknown>;
+	execute(
+		interaction: ChatInputCommandInteraction,
+		client: BotClient,
+		...args: string[]
+	): Promise<unknown>;
 };
 
 /**
@@ -63,22 +67,35 @@ export type AutoCompleteCommand = {
 	description?: string;
 	usage: string[];
 	examples: string[];
-	autocomplete(interaction: AutocompleteInteraction, client: BotClient): Promise<unknown>;
-	execute(interaction: ChatInputCommandInteraction, client: BotClient, ...args: string[]): Promise<unknown>;
+	autocomplete(
+		interaction: AutocompleteInteraction,
+		client: BotClient,
+	): Promise<unknown>;
+	execute(
+		interaction: ChatInputCommandInteraction,
+		client: BotClient,
+		...args: string[]
+	): Promise<unknown>;
 };
 
 export type MessageContextMenuCommand = {
 	data: ContextMenuCommandBuilder;
 	description: string;
 	usage: string[];
-	execute(interaction: MessageContextMenuCommandInteraction, client: BotClient): Promise<unknown>;
+	execute(
+		interaction: MessageContextMenuCommandInteraction,
+		client: BotClient,
+	): Promise<unknown>;
 };
 
 export type UserContextMenuCommand = {
 	data: ContextMenuCommandBuilder;
 	description: string;
 	usage: string[];
-	execute(interaction: UserContextMenuCommandInteraction, client: BotClient): Promise<unknown>;
+	execute(
+		interaction: UserContextMenuCommandInteraction,
+		client: BotClient,
+	): Promise<unknown>;
 };
 
 /**
@@ -89,7 +106,9 @@ export type AnyContextMenuCommand = {
 	description: string;
 	usage: string[];
 	execute(
-		interaction: MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction,
+		interaction:
+			| MessageContextMenuCommandInteraction
+			| UserContextMenuCommandInteraction,
 		client: BotClient,
 	): Promise<unknown>;
 };
@@ -103,12 +122,18 @@ export type Button = {
 
 export type Modal = {
 	name: string;
-	execute(interaction: ModalSubmitInteraction, client: BotClient): Promise<void>;
+	execute(
+		interaction: ModalSubmitInteraction,
+		client: BotClient,
+	): Promise<void>;
 };
 
 export type SelectMenu = {
 	name: string;
-	execute(interaction: StringSelectMenuInteraction, client: BotClient): Promise<void>;
+	execute(
+		interaction: StringSelectMenuInteraction,
+		client: BotClient,
+	): Promise<void>;
 };
 
 /**

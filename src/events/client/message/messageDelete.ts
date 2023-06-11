@@ -14,7 +14,9 @@ export const messageDelete: Event<"messageDelete"> = {
 				guildSettings.starboard.channels.forEach((starboardChannel, index) => {
 					// Normally - original message ID: starboard channel message ID.
 					// After inverting - starboard channel message ID: original message ID.
-					const invertedStarredMessageIDs = invertObject(starboardChannel.starredMessageIDs);
+					const invertedStarredMessageIDs = invertObject(
+						starboardChannel.starredMessageIDs,
+					);
 
 					// Get the ID of the original message based on the ID of the starboard channel message.
 					const originalMessageID = invertedStarredMessageIDs[message.id];
@@ -27,7 +29,9 @@ export const messageDelete: Event<"messageDelete"> = {
 						delete starboardChannel.starredMessageIDs[originalMessageID];
 
 						// TypeScript would not shut up about guildSettings.starboard possibly being null even though that is impossible, so there is an if check here.
-						if (guildSettings.starboard) guildSettings.starboard.channels[index] = starboardChannel;
+						if (guildSettings.starboard) {
+							guildSettings.starboard.channels[index] = starboardChannel;
+						}
 					}
 				});
 
@@ -48,7 +52,9 @@ export const messageDelete: Event<"messageDelete"> = {
 						const expressionValue = isComplex(evaluatedExpression)
 							? evaluatedExpression.re
 							: isResultSet(evaluatedExpression)
-							? evaluatedExpression.entries[evaluatedExpression.entries.length - 1]
+							? evaluatedExpression.entries[
+									evaluatedExpression.entries.length - 1
+							  ]
 							: evaluatedExpression;
 
 						if (expressionValue === countingChannel.count) {
