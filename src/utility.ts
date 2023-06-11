@@ -1,9 +1,11 @@
 import {
 	APIEmbed,
+	APIEmbedField,
+	APIEmbedFooter,
 	AttachmentBuilder,
 	AutocompleteInteraction,
 	ChatInputCommandInteraction,
-	EmbedBuilder,
+	ColorResolvable,
 	Guild,
 	GuildChannel,
 	GuildMember,
@@ -42,7 +44,7 @@ const {whiteBright, bold} = chalk;
 /**
  * A function to loop over a folder containing categories, which themselves contain files. The files are passed as parameters to a callback function. Information about the files is logged to the console.
  * @param {string} path The path to the folder containing the categories. (from the src directory)
- * @param {(exports: unknown, filePath: string) => void | Promise<void>} callback The callback function to be called on each file.
+ * @param {(_exports: unknown, _filePath: string) => void | Promise<void>} callback The callback function to be called on each file.
  * @returns {Promise<void>}
  * @example
  * // ./src/bot.ts.
@@ -57,13 +59,15 @@ const {whiteBright, bold} = chalk;
  */
 export const loopFolders = async (
 	path: string,
-	callback: (exports: unknown, filePath: string) => void | Promise<void>,
+	callback: (_exports: unknown, _filePath: string) => void | Promise<void>,
 ): Promise<void> => {
 	const categories = readdirSync(`./dist/${path}/`);
 	// The path starts at src (dist) because most use cases of this function will start there anyway.
 
 	for (const category of categories) {
-		const categoryFiles = readdirSync(`./dist/${path}/${category}`).filter((file) => !file.endsWith(".js.map"));
+		const categoryFiles = readdirSync(`./dist/${path}/${category}`).filter(
+			(file) => !file.endsWith(".js.map"),
+		);
 
 		for (const file of categoryFiles) {
 			let fileExports;
@@ -72,7 +76,9 @@ export const loopFolders = async (
 				fileExports = await import(`../dist/${path}/${category}/${file}`);
 			} catch (error) {
 				// Sometimes files with non-standard file extensions are imported (E.g., fonts). This will create an error which can be ignored.
-				(!(error instanceof Error) || !error.message.startsWith("Unknown file extension ")) && console.error(error);
+				(!(error instanceof Error) ||
+					!error.message.startsWith("Unknown file extension ")) &&
+					console.error(error);
 			}
 
 			// If there is only one export, as is in the case of files such as command, button, modal and select menu exports, then only that export is passed into the function.
@@ -209,8 +215,11 @@ export const isImageLink = (urlString: string): boolean => {
 	// For loop instead of forEach or reduce because jump target can not cross function boundary.
 	// I.e. -> "return true" in the callback passed as an argument to the forEach function will return true in the scope of that callback, not that of the whole forEach function.
 	// A regex pattern is used here instead of String.prototype.endsWith because there are certain cases where there can be more text after the file extension, as seen in the second example above.
-	for (const extension of ImageExtensions)
-		if (new RegExp(`\\.${extension}($|\\/[^/]+)`, "i").test(urlString)) return true;
+	for (const extension of ImageExtensions) {
+		if (new RegExp(`\\.${extension}($|\\/[^/]+)`, "i").test(urlString)) {
+			return true;
+		}
+	}
 
 	return false;
 };
@@ -239,7 +248,9 @@ export const isImageLink = (urlString: string): boolean => {
  *
  * // ...
  */
-export const invertObject = (object: {[key: string]: string}): {[key: string]: string} => {
+export const invertObject = (object: {
+	[key: string]: string;
+}): {[key: string]: string} => {
 	const newObject: {[key: string]: string} = {};
 
 	for (const key in object) {
@@ -305,12 +316,20 @@ export const invertObject = (object: {[key: string]: string}): {[key: string]: s
  *
  * // ...
  */
-export const logObject = (object: {[key: string]: unknown}, indent = 0): void => {
+export const logObject = (
+	object: {[key: string]: unknown},
+	indent = 0,
+): void => {
 	for (const key in object) {
 		if (typeof object[key] === "object" && object[key]) {
 			console.log(`${" ".repeat(indent)}${bold(key)}`);
 			logObject(object[key] as {[key: string]: unknown}, indent + 1);
-		} else if (object[key]) console.log(`${" ".repeat(indent)}${bold(key)}:`, whiteBright(`${object[key]}`));
+		} else if (object[key]) {
+			console.log(
+				`${" ".repeat(indent)}${bold(key)}:`,
+				whiteBright(`${object[key]}`),
+			);
+		}
 	}
 
 	if (!indent) console.log();
@@ -339,24 +358,33 @@ export const logObject = (object: {[key: string]: unknown}, indent = 0): void =>
  *
  * // ...
  */
-export const handleError = async (interaction: Interaction, client: BotClient, error: unknown): Promise<void> => {
+export const handleError = async (
+	interaction: Interaction,
+	client: BotClient,
+	error: unknown,
+): Promise<void> => {
 	console.log();
 	console.error(error);
 
-	const {discordBotOwnerID, discordGuildID, discordSupportChannelID} = process.env;
+	const {discordBotOwnerID, discordGuildID, discordSupportChannelID} =
+		process.env;
 
-	const discordBotOwner = discordBotOwnerID ? await client.users.fetch(discordBotOwnerID) : null;
-	const discordGuild = discordGuildID ? await client.guilds.fetch(discordGuildID) : null;
+	const discordBotOwner = discordBotOwnerID
+		? await client.users.fetch(discordBotOwnerID)
+		: null;
+	const discordGuild = discordGuildID
+		? await client.guilds.fetch(discordGuildID)
+		: null;
 	const discordGuildInvite = discordGuildID
-		? [...((await discordGuild?.invites?.fetch())?.values() ?? [])].sort((a, b) =>
-				!a.temporary
-					? 1
-					: // These are guaranteed to be numbers as we have already checked whether the invite has an infinite duration.
-					(((a.maxAge as number) > b.maxAge) as number)
-					? 1
-					: a.maxAge === b.maxAge
-					? (a.maxUses ?? Infinity) - (b.maxUses ?? Infinity)
-					: 0,
+		? [...((await discordGuild?.invites?.fetch())?.values() ?? [])].sort(
+				(a, b) =>
+					!a.temporary
+						? 1
+						: (a.maxAge as number) > (b.maxAge as number)
+						? 1
+						: a.maxAge === b.maxAge
+						? (a.maxUses ?? Infinity) - (b.maxUses ?? Infinity)
+						: 0,
 		  )[0].code
 		: null;
 
@@ -368,14 +396,22 @@ export const handleError = async (interaction: Interaction, client: BotClient, e
 					client.user?.username as string
 				}\` has encountered an error while executing the interaction:\n\n\`\`\`css\n${error}\`\`\`\n> Interaction Custom ID / Name: \`${
 					// This is needed or else TypeScript will complain.
-					interaction.type === 2 || interaction.isAutocomplete() ? interaction.commandName : interaction.customId
+					interaction.type === 2 || interaction.isAutocomplete()
+						? interaction.commandName
+						: interaction.customId
 				}\`\n\n${
 					discordGuildID && discordBotOwnerID
 						? `Please report this error to ${
-								interaction.guildId === discordGuildID ? `<@${discordBotOwnerID}>` : `\`${discordBotOwner?.username}\``
+								interaction.guildId === discordGuildID
+									? `<@${discordBotOwnerID}>`
+									: `\`${discordBotOwner?.username}\``
 						  } ${
 								interaction.guildId === discordGuildID
-									? `${discordSupportChannelID ? `in <#${discordSupportChannelID}>` : ""}`
+									? `${
+											discordSupportChannelID
+												? `in <#${discordSupportChannelID}>`
+												: ""
+									  }`
 									: `on [the support server](https://www.discord.gg/${discordGuildInvite})`
 						  }!`
 						: ""
@@ -405,7 +441,10 @@ export const handleError = async (interaction: Interaction, client: BotClient, e
 				},
 				"🏠 Guild": {Name: interaction.guild?.name, ID: interaction.guildId},
 				"📄 Channel": {
-					Name: interaction.channel instanceof TextChannel ? interaction.channel.name : null,
+					Name:
+						interaction.channel instanceof TextChannel
+							? interaction.channel.name
+							: null,
 					ID: interaction.channelId,
 				},
 				"👤 User": {Tag: interaction.user.tag, ID: interaction.user.id},
@@ -417,7 +456,9 @@ export const handleError = async (interaction: Interaction, client: BotClient, e
 								"ID": interaction.message?.id,
 								"Content": interaction.message?.content,
 								"Embed Title": interaction.message?.embeds?.[0]?.data?.title,
-								"Date": new Date(interaction?.message?.createdTimestamp ?? 0).toISOString(),
+								"Date": new Date(
+									interaction?.message?.createdTimestamp ?? 0,
+								).toISOString(),
 								"Timestamp": interaction?.message?.createdTimestamp,
 						  },
 			},
@@ -428,7 +469,7 @@ export const handleError = async (interaction: Interaction, client: BotClient, e
 		try {
 			await interaction.reply(errorReply);
 			// The variable is shadowed but it doesn't matter since 'error' isn't used beyond this point anyway.
-		} catch (error) {
+		} catch (_error) {
 			await interaction.editReply(errorReply).catch(console.error);
 		}
 	} else {
@@ -518,7 +559,9 @@ console.log = (...data) => {
  * @param {string} message The message to display in the embed.
  * @returns {{embeds: [APIEmbed]}} A simple embed with the success message.
  */
-export const createSuccessMessage = (message: string): {embeds: [APIEmbed]} => ({
+export const createSuccessMessage = (
+	message: string,
+): {embeds: [APIEmbed]} => ({
 	embeds: [
 		{
 			description: `<:_:${Emojis.Success}> ${message}`,
@@ -574,12 +617,19 @@ export const resolveDuration = (string: string): number | null => {
 			.trim();
 
 		for (const time in durations) {
-			string = string.replace(new RegExp(`${time}s?`, "ig"), `${durations[time]}`);
+			string = string.replace(
+				new RegExp(`${time}s?`, "ig"),
+				`${durations[time]}`,
+			);
 		}
 
-		if (string.startsWith("in")) return Date.now() + evaluate(/(?<=in).+/.exec(string)?.[0] ?? "0");
+		if (string.startsWith("in")) {
+			return Date.now() + evaluate(/(?<=in).+/.exec(string)?.[0] ?? "0");
+		}
 
-		if (string.endsWith("ago")) return Date.now() - evaluate(/.+(?=ago)/.exec(string)?.[0] ?? "0");
+		if (string.endsWith("ago")) {
+			return Date.now() - evaluate(/.+(?=ago)/.exec(string)?.[0] ?? "0");
+		}
 
 		return evaluate(string);
 	} catch (error) {
@@ -608,7 +658,9 @@ export const checkPermissions = async (
 	user?: GuildMember;
 	message?: string;
 }> => {
-	permissions = permissions.length ? permissions : ["ViewChannel", "SendMessages"];
+	permissions = permissions.length
+		? permissions
+		: ["ViewChannel", "SendMessages"];
 
 	for (const permission of permissions) {
 		if (permission) {
@@ -616,7 +668,9 @@ export const checkPermissions = async (
 				const guildMember = await guild.members.fetch(user.id);
 
 				if (!channel) {
-					if (!guildMember.permissions.has(PermissionsBitField.Flags[permission])) {
+					if (
+						!guildMember.permissions.has(PermissionsBitField.Flags[permission])
+					) {
 						return {
 							permission,
 							user: guildMember,
@@ -631,14 +685,18 @@ export const checkPermissions = async (
 
 				const userChannelPermissions = channel.permissionsFor(user);
 
-				if (!userChannelPermissions?.has(PermissionsBitField.Flags[permission])) {
+				if (
+					!userChannelPermissions?.has(PermissionsBitField.Flags[permission])
+				) {
 					return {
 						permission,
 						user: guildMember,
 						value: false,
 						message: `${
 							user.id === defaultUser.id ? "You do " : `<@${user.id}> does `
-						}not have the \`${permission}\` permission in the <#${channel.id}> channel!`,
+						}not have the \`${permission}\` permission in the <#${
+							channel.id
+						}> channel!`,
 					};
 				}
 			}
@@ -655,9 +713,11 @@ export const checkPermissions = async (
  * @example
  * `You have ${count} embed${addSuffix(input)}.`;
  */
-export const addSuffix = (number: number): "s" | "" => (Math.abs(number) === 1 ? "" : "s");
+export const addSuffix = (number: number): "s" | "" =>
+	Math.abs(number) === 1 ? "" : "s";
 
-console.log(addSuffix(1));
+// TODO: Add a better colour resolver function so we don't have to rely on Discord's for the PollMessage class.
+
 // ! Classes
 
 /**
@@ -683,14 +743,35 @@ export class PollMessageBuilder {
 	}
 
 	async create(
-		data: ChatInputCommandInteraction | {message: Message} | MessageReaction | PartialMessageReaction,
+		data:
+			| ChatInputCommandInteraction
+			| {message: Message}
+			| MessageReaction
+			| PartialMessageReaction,
 		client: BotClient,
 	) {
-		const embed = !(data instanceof ChatInputCommandInteraction) ? data.message.embeds?.[0]?.data : undefined;
-		const role = data instanceof ChatInputCommandInteraction ? data.options.getRole("required-role") : null;
-		const timestamp = data instanceof ChatInputCommandInteraction ? data.options.getString("duration") : null;
-		const ping = data instanceof ChatInputCommandInteraction ? data.options.getRole("ping") : null;
-		const pollEnd = embed ? embed.fields?.[1].value.match(/(?<=\*Poll ends:\* <t:)\d+(?=>)/)?.[0] : null;
+		const embed = !(data instanceof ChatInputCommandInteraction)
+			? data.message.embeds[0].data
+			: undefined;
+
+		const role =
+			data instanceof ChatInputCommandInteraction
+				? data.options.getRole("required-role")
+				: null;
+
+		const timestamp =
+			data instanceof ChatInputCommandInteraction
+				? data.options.getString("duration")
+				: null;
+
+		const ping =
+			data instanceof ChatInputCommandInteraction
+				? data.options.getRole("ping")
+				: null;
+
+		const pollEnd = embed
+			? embed.fields?.[1].value.match(/(?<=\*Poll ends:\* <t:)\d+(?=>)/)?.[0]
+			: null;
 
 		this.emojis = [];
 
@@ -729,11 +810,16 @@ export class PollMessageBuilder {
 
 				const afterEmojiMatch = afterEmojiReg.exec(option ?? "")?.[0];
 
-				if (emoji && !this.emojis.includes(emoji) && !emojiArray.includes(emoji)) {
+				if (
+					emoji &&
+					!this.emojis.includes(emoji) &&
+					!emojiArray.includes(emoji)
+				) {
 					this.emojis.push(emoji);
 					this.options.push(afterEmojiMatch ?? " ");
 				} else {
-					const optionEmojisOption: string | undefined = optionEmojis[(option ?? "").toLowerCase()];
+					const optionEmojisOption: string | undefined =
+						optionEmojis[(option ?? "").toLowerCase()];
 
 					this.emojis.push(
 						option
@@ -746,20 +832,30 @@ export class PollMessageBuilder {
 				}
 			}
 
-			this.emojis = this.emojis.filter((emoji) => emoji).length ? this.emojis : ["👍", "👎"];
-			this.options = this.options.filter((option) => option).length ? this.options : ["Yes", "No"];
+			this.emojis = this.emojis.filter((emoji) => emoji).length
+				? this.emojis
+				: ["👍", "👎"];
+			this.options = this.options.filter((option) => option).length
+				? this.options
+				: ["Yes", "No"];
 		}
 
-		if (!(data instanceof ChatInputCommandInteraction))
+		if (!(data instanceof ChatInputCommandInteraction)) {
 			this.content = data.message?.content ?? (ping ? `<@&${ping.id}>` : "");
+		}
 
 		let description = "";
 
 		const reactions = !(data instanceof ChatInputCommandInteraction)
-			? [...data.message.reactions.cache.values()].filter((reaction) => this.emojis.includes(reaction.emoji.name))
+			? [...data.message.reactions.cache.values()].filter((reaction) =>
+					this.emojis.includes(reaction.emoji.name),
+			  )
 			: this.options.filter((option) => option).map(() => ({count: 1}));
 
-		const totalReactions = reactions.reduce((reactionsCount, reaction) => reactionsCount + reaction.count - 1, 0);
+		const totalReactions = reactions.reduce(
+			(reactionsCount, reaction) => reactionsCount + reaction.count - 1,
+			0,
+		);
 
 		const canvas = createCanvas(500, 500);
 		const ctx = canvas.getContext("2d");
@@ -772,12 +868,18 @@ export class PollMessageBuilder {
 		for (let i = 0; i < 10; i++) {
 			if (this.options[i]) {
 				const progressBar =
-					(reactions ? reactions.map((reaction) => reaction.count - 1)[reactionIndex] / totalReactions : 0) * 10 || 0;
+					(reactions
+						? reactions.map((reaction) => reaction.count - 1)[reactionIndex] /
+						  totalReactions
+						: 0) * 10 || 0;
 
 				description += `\n\n${this.emojis[i]} ${this.options[i]}\n\`${
-					"█".repeat(Math.round(progressBar)) + " ".repeat(Math.round(10 - progressBar))
+					"█".repeat(Math.round(progressBar)) +
+					" ".repeat(Math.round(10 - progressBar))
 				}\` | ${(progressBar * 10).toFixed(2)}% (${
-					reactions ? reactions.map((e) => e.count - 1)[reactionIndex] ?? 0 : "0"
+					reactions
+						? reactions.map((e) => e.count - 1)[reactionIndex] ?? 0
+						: "0"
 				})`;
 
 				if (reactions[reactionIndex].count - 1 || totalReactions === 0) {
@@ -806,7 +908,10 @@ export class PollMessageBuilder {
 					ctx.translate(250, 250); // Center the canvas around the center of the pie chart.
 
 					// If the option is the only option with any votes, then the option text will be displayed in the middle of the pie chart.
-					if (totalReactions !== reactions[reactionIndex].count - 1 || !totalReactions) {
+					if (
+						totalReactions !== reactions[reactionIndex].count - 1 ||
+						!totalReactions
+					) {
 						// Rotate the canvas so the x axis intersects the center radius of one of current sector of the pie chart.
 						ctx.rotate(currentAngle - portionAngle * 0.5);
 
@@ -816,7 +921,10 @@ export class PollMessageBuilder {
 						ctx.rotate(-(currentAngle - portionAngle * 0.5)); // Rotate the canvas so it is now the normal rotation.
 					}
 
-					const fontSize = Math.min((reactions[reactionIndex].count / totalReactions) * 25, 25);
+					const fontSize = Math.min(
+						(reactions[reactionIndex].count / totalReactions) * 25,
+						25,
+					);
 
 					ctx.font = `${fontSize}px "Noto Colour Emoji"`;
 
@@ -824,9 +932,9 @@ export class PollMessageBuilder {
 
 					ctx.font = `${fontSize}px "Odin Rounded Light"`;
 
-					const text = `${this.options[i]?.trim() ? " " : ""}${this.options[i]?.trim()} - ${(progressBar * 10).toFixed(
-						2,
-					)}%`;
+					const text = `${this.options[i]?.trim() ? " " : ""}${this.options[
+						i
+					]?.trim()} - ${(progressBar * 10).toFixed(2)}%`;
 
 					const textLength = ctx.measureText(text).width;
 
@@ -849,7 +957,10 @@ export class PollMessageBuilder {
 					// Start undoing the whole process (move the canvas forward so it is centred around the center point of the current sector of the pie chart.)
 					ctx.translate(stringLength / 2, -fontSize / 2);
 
-					if (totalReactions !== reactions[reactionIndex].count - 1 || !totalReactions) {
+					if (
+						totalReactions !== reactions[reactionIndex].count - 1 ||
+						!totalReactions
+					) {
 						// Rotate it and prepare to go back to the center of the pie chart.
 						ctx.rotate(currentAngle - portionAngle * 0.5);
 
@@ -865,100 +976,150 @@ export class PollMessageBuilder {
 			}
 		}
 
-		let attachment: AttachmentBuilder | string = new AttachmentBuilder(canvas.toBuffer(), {
-			name: `slime-bot-poll-${new Date(Date.now())}.png`,
-		});
+		let attachment: AttachmentBuilder | string = new AttachmentBuilder(
+			canvas.toBuffer(),
+			{
+				name: `slime-bot-poll-${new Date(Date.now())}.png`,
+			},
+		);
 
 		const user = await client.users.fetch("500690028960284672");
 
 		const message: Message = await user.send({files: [attachment]});
 
-		attachment = [...message.attachments.values()][0].attachment.toString();
+		attachment = [...message.attachments.values()][0].url;
 
 		const pollTime =
 			timestamp || pollEnd
 				? pollEnd ??
+				  // Timestamp is guaranteed to be truthy as this whole expression is guarded by the previous expression of timestamp || pollEnd, meaning that either timestamp is truthy or pollEnd is truthy. As we have used the nullish coalescing operator on pollEnd, meaning that if pollEnd were truthy, this expression wouldn't be called. However, if pollEnd isn't truthy, this expression would be called AND timestamp would have to be truthy as either timestamp is truthy or pollEnd is truthy.
 				  Math.round(
 						(Date.now() +
-							resolveDuration(/^in.+/.test(timestamp.trim()) ? timestamp.match(/(?<=^in).+/)[0] : timestamp)) /
+							// The return value of resolveDuration is a number as that is checked in the /poll command file.
+							(resolveDuration(
+								/^in.+/.test((timestamp as string).trim())
+									? (
+											/(?<=^in).+/.exec(timestamp as string) as RegExpMatchArray
+									  )[0]
+									: (timestamp as string),
+							) as number)) /
 							1000,
 				  )
 				: null;
 
 		this.embeds = [
-			new EmbedBuilder()
-				.setTitle(embed?.title ?? data.options.getString("message"))
-				.setDescription(
-					(embed
-						? embed.description.match(
-								new RegExp(`^[\\s\\S]+(?=${this.emojis.filter((emoji) => emoji)[0]})`, "gm"),
-						  )?.[0] ?? ""
-						: data.options.getString("description") ?? "") + description,
-				)
-				.setColor(
-					embed?.color ??
-						(() => {
-							try {
-								return resolveColor(data.options.getString("colour"));
-							} catch (error) {}
-							return null;
-						})() ??
-						0x5865f2,
-				)
-				.setAuthor({
-					name: `${client.user?.username} Poll${pollEnd && pollEnd * 1000 <= Date.now() ? " - Ended" : ""}`,
-					iconURL: client.user?.displayAvatarURL({
-						size: 4096,
-						extension: "png",
-					}),
-				})
-				.setFooter({
-					text: embed?.footer?.text ?? `Poll by ${data.user.username}`,
-					iconURL:
-						embed?.footer?.icon_url ??
-						data.user.displayAvatarURL({
-							size: 4096,
-							extension: "png",
-						}),
-				})
-				.setTimestamp(embed?.timestamp ? Date.parse(embed.timestamp) : Date.now())
-				.addFields([
+			{
+				title:
+					data instanceof ChatInputCommandInteraction
+						? data.options.getString("message", true)
+						: embed?.title,
+				description:
+					(data instanceof ChatInputCommandInteraction
+						? data.options.getString("description") ?? ""
+						: new RegExp(
+								`^[\\s\\S]+(?=${this.emojis.filter((emoji) => emoji)[0]})`,
+								"gm",
+						  ).exec(
+								(embed as Readonly<APIEmbed>).description as string,
+						  )?.[0] ?? "") + description,
+				color:
+					data instanceof ChatInputCommandInteraction
+						? (() => {
+								// *Try* to resolve the colour.
+								try {
+									return resolveColor(
+										(data.options.getString("colour") ??
+											Colours.Blurple) as ColorResolvable,
+									);
+								} catch (error) {}
+
+								return undefined;
+						  })()
+						: embed?.color,
+
+				author: {
+					name: `${client.user?.username} Poll${
+						pollEnd && parseInt(pollEnd) * 1000 <= Date.now() ? " - Ended" : ""
+					}`,
+					icon_url: client.user?.displayAvatarURL(DisplayAvatarURLOptions),
+				},
+				footer: {
+					text:
+						data instanceof ChatInputCommandInteraction
+							? `Poll by ${data.user.username}`
+							: ((embed as Readonly<APIEmbed>).footer as APIEmbedFooter).text,
+					icon_url:
+						data instanceof ChatInputCommandInteraction
+							? data.user.displayAvatarURL(DisplayAvatarURLOptions)
+							: embed?.footer?.icon_url,
+				},
+				timestamp: embed?.timestamp ?? new Date(Date.now()).toISOString(),
+				fields: [
 					{
 						name: "👤 Poll Creator",
 						value:
-							embed?.fields?.[0]?.value ?? (data.options.getBoolean("anonymous") ? "Anonymous" : `<@${data.user.id}>`),
+							data instanceof ChatInputCommandInteraction
+								? data.options.getBoolean("anonymous")
+									? "Anonymous"
+									: `<@${data.user.id}>`
+								: ((embed as Readonly<APIEmbed>).fields as APIEmbedField[])[0]
+										.value,
 						inline: true,
 					},
 					{
 						name: "⚙ Poll Settings",
 						value:
 							embed && !pollEnd
-								? embed.fields[1].value
+								? (embed.fields as APIEmbedField[])[1].value
 								: `*Max options:* \`${
-										embed
-											? embed.fields[1].value.match(/(?<=\*Max options:\* `).+(?=`)/)[0]
-											: data.options.getString("max-options") ?? "Unlimited"
+										data instanceof ChatInputCommandInteraction
+											? data.options.getString("max-options") ?? "Unlimited"
+											: (
+													/(?<=\*Max options:\* `).+(?=`)/.exec(
+														(
+															(embed as Readonly<APIEmbed>)
+																.fields as APIEmbedField[]
+														)[1].value,
+													) as RegExpMatchArray
+											  )[0]
 								  }\`\n*Required role:* ${
 										role
 											? `<@&${role.id}>`
 											: embed
-											? embed.fields[1].value.match(/(?<=\*Required role:\* )(`None`|<@&\d+>)/)[0]
+											? (
+													/(?<=\*Required role:\* )(`None`|<@&\d+>)/.exec(
+														(embed.fields as APIEmbedField[])[1].value,
+													) as RegExpMatchArray
+											  )[0]
 											: "`None`"
-								  }\n*Poll end${pollEnd && pollEnd * 1000 <= Date.now() ? "ed" : "s"}:* ${
-										timestamp || pollEnd ? `<t:${pollTime}> (<t:${pollTime}:R>)` : "`Never`"
+								  }\n*Poll end${
+										pollEnd && parseInt(pollEnd) * 1000 <= Date.now()
+											? "ed"
+											: "s"
+								  }:* ${
+										timestamp || pollEnd
+											? `<t:${pollTime}> (<t:${pollTime}:R>)`
+											: "`Never`"
 								  }`,
 						inline: true,
 					},
-				])
-				.setThumbnail(attachment),
+				],
+				thumbnail: {url: attachment},
+			},
 		];
 
-		this.files = data.message ? [...data.message.attachments.values()].map((attachment) => attachment.attachment) : [];
+		this.files = !(data instanceof ChatInputCommandInteraction)
+			? [...data.message.attachments.values()].map(
+					(attachmentData) => attachmentData.url,
+			  )
+			: [];
 
-		if (!data.message) {
-			for (const attachment of (data.options.getString("attachments") ?? "").split(",")) {
-				if (isValidURL(attachment)) {
-					this.files.push(attachment);
+		if (data instanceof ChatInputCommandInteraction) {
+			for (const attachmentData of (
+				data.options.getString("attachments") ?? ""
+			).split(",")) {
+				if (isValidURL(attachmentData)) {
+					this.files.push(attachmentData);
 				}
 			}
 		}
@@ -1004,6 +1165,12 @@ export enum Colours {
 	 * Note: Not confirmed whether the colour actually matches, no way I'm going to enable Discord light theme to test.
 	 */
 	TransparentBright = 0xf2f3f5,
+	/**
+	 * The new `blurple` colour that Discord uses.
+	 *
+	 * Somewhere in between blue and purple.
+	 */
+	Blurple = 0x5865f2,
 }
 
 /**
@@ -1028,7 +1195,8 @@ export enum Colours {
  * // ...
  */
 export enum Emojis {
-	YouTubeLogo = "1115689277397926022", // https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/1024px-YouTube_full-color_icon_%282017%29.svg.png
+	// https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/1024px-YouTube_full-color_icon_%282017%29.svg.png
+	YouTubeLogo = "1115689277397926022",
 	Success = "",
 	Error = "1115712640954683534",
 }
@@ -1111,7 +1279,18 @@ export const ANSIControlCharacterRegExp = /\x1B|\[\d{1,2}m/g;
  *
  * Used in the poll system.
  */
-export const emojiArray = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+export const emojiArray = [
+	"1️⃣",
+	"2️⃣",
+	"3️⃣",
+	"4️⃣",
+	"5️⃣",
+	"6️⃣",
+	"7️⃣",
+	"8️⃣",
+	"9️⃣",
+	"🔟",
+];
 
 /**
  * Object used by the poll system to represent certain options with different emojis.
