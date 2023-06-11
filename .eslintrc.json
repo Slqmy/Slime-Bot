@@ -138,7 +138,6 @@
 		"sort-imports": "error",
 		"sort-vars": "error",
 		"vars-on-top": "error",
-		"lines-between-class-members": "error",
 		"padding-line-between-statements": "error",
 		"curly": ["error", "multi-line"],
 		// Inline comments can't be longer than 80 characters.
