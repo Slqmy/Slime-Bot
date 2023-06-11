@@ -20,7 +20,8 @@
 	"rules": {
 		"no-div-regex": "error",
 		"for-direction": "error",
-		"camelcase": ["error", {"allow": [""]}],
+		// "icon_url" and "proxy_url" are identifiers used by Discord JS in embed objects.
+		"camelcase": ["error", {"allow": ["icon_url", "proxy_url"]}],
 		"no-const-assign": "error",
 		"no-case-declarations": "off",
 		"no-dupe-args": "error",
@@ -39,6 +40,10 @@
 		"no-unsafe-finally": "error",
 		"no-use-before-define": "off",
 		"block-scoped-var": "error",
+		// Short circuits are expressions that use the guard operator or the or operator. E.g.,
+		// condition && f()
+		// This is basically shorthand for:
+		// if (condition) f()
 		"no-unused-expressions": ["error", {"allowShortCircuit": true}],
 		"no-unused-labels": "error",
 		"use-isnan": "error",
@@ -47,6 +52,7 @@
 		"no-extend-native": "error",
 		"no-extra-bind": "error",
 		"no-eq-null": "error",
+		// Empty catch blocks in try-catch statements are allowed.
 		"no-empty": ["error", {"allowEmptyCatch": true}],
 		"array-callback-return": "error",
 		"constructor-super": "error",
@@ -153,8 +159,10 @@
 		"spaced-comment": "error",
 		"yoda": "error",
 		"no-unused-vars": "off",
+		// Typescript support for normal ESLint rules.
 		"@typescript-eslint/no-shadow": "error",
 		"@typescript-eslint/no-unused-vars": "error",
+		// This option is a bit inconsistent, so it is more relaxed.
 		"@typescript-eslint/no-use-before-define": [
 			"error",
 			{"allowNamedExports": true, "enums": false, "variables": false}
