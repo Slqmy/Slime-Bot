@@ -1,9 +1,9 @@
 import {Event} from "types";
-import guildSettingsSchema from "../../../schemas/guildSettingsSchema.js";
+import GuildSettingsSchema from "../../../schemas/GuildSettingsSchema.js";
 
 export const emojiDelete: Event<"emojiDelete"> = {
 	async execute(_client, emoji) {
-		const guildSettings = await guildSettingsSchema.findOne({
+		const guildSettings = await GuildSettingsSchema.findOne({
 			id: emoji.guild.id,
 		});
 

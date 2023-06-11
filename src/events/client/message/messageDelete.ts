@@ -1,6 +1,6 @@
 import {evaluate, isComplex, isResultSet} from "mathjs";
 import {Event} from "types";
-import guildSettingsSchema from "../../../schemas/guildSettingsSchema.js";
+import GuildSettingsSchema from "../../../schemas/GuildSettingsSchema.js";
 import {invertObject} from "../../../utility.js";
 
 export const messageDelete: Event<"messageDelete"> = {
@@ -8,7 +8,7 @@ export const messageDelete: Event<"messageDelete"> = {
 		const {guildId, channel} = message;
 
 		if (guildId) {
-			const guildSettings = await guildSettingsSchema.findOne({id: guildId});
+			const guildSettings = await GuildSettingsSchema.findOne({id: guildId});
 
 			if (guildSettings?.starboard?.channels.length) {
 				guildSettings.starboard.channels.forEach((starboardChannel, index) => {

@@ -1,6 +1,6 @@
 import {Schema, model} from "mongoose";
 
-const guildSettingsSchema = new Schema({
+const GuildSettingsSchema = new Schema({
 	id: String,
 	youtube: {
 		channels: [
@@ -33,4 +33,4 @@ const guildSettingsSchema = new Schema({
 	},
 });
 
-export default model("Guild Settings", guildSettingsSchema, "Guild Settings");
+export default model("Guild Settings", GuildSettingsSchema, "Guild Settings");

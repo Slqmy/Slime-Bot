@@ -1,7 +1,7 @@
 import {APIEmbed, APIEmbedField, Guild, TextChannel} from "discord.js";
 import {Event} from "types";
+import GuildSettingsSchema from "../../../schemas/GuildSettingsSchema.js";
 import {PollMessageBuilder} from "../../../utility.js";
-import guildSettingsSchema from "../../../schemas/guildSettingsSchema.js";
 
 export const messageReactionRemove: Event<"messageReactionRemove"> = {
 	async execute(client, reaction, user) {
@@ -9,7 +9,7 @@ export const messageReactionRemove: Event<"messageReactionRemove"> = {
 		const {guild} = message;
 
 		if (guild) {
-			const guildSettings = await guildSettingsSchema.findOne({id: guild.id});
+			const guildSettings = await GuildSettingsSchema.findOne({id: guild.id});
 
 			const starboardChannels = guildSettings?.starboard?.channels;
 

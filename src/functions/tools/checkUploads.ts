@@ -1,14 +1,14 @@
 import {BotClient} from "types";
 import {Emojis} from "../../utility.js";
+import GuildSettingsSchema from "../../schemas/GuildSettingsSchema.js";
 import Parser from "rss-parser";
 import {TextChannel} from "discord.js";
-import guildSettingsSchema from "../../schemas/guildSettingsSchema.js";
 
 const parser = new Parser();
 
 export default (client: BotClient) => {
 	client.checkUploads = async () => {
-		const guilds = await guildSettingsSchema.find();
+		const guilds = await GuildSettingsSchema.find();
 
 		for (const guild of guilds) {
 			if (guild.youtube?.channels.length) {
@@ -81,7 +81,7 @@ export default (client: BotClient) => {
 					index++;
 				}
 
-				await guildSettingsSchema.updateOne(
+				await GuildSettingsSchema.updateOne(
 					{id: guild.id},
 					{youtube: guild.youtube},
 				);

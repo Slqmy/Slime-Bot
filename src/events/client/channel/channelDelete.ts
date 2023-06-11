@@ -1,13 +1,13 @@
 import {Event} from "types";
 import {GuildChannel} from "discord.js";
-import guildSettingsSchema from "../../../schemas/guildSettingsSchema.js";
+import GuildSettingsSchema from "../../../schemas/GuildSettingsSchema.js";
 
 export const channelDelete: Event<"channelDelete"> = {
 	async execute(_client, channel) {
 		if (channel instanceof GuildChannel) {
 			const {guild} = channel;
 
-			const guildSettings = await guildSettingsSchema.findOne({id: guild.id});
+			const guildSettings = await GuildSettingsSchema.findOne({id: guild.id});
 
 			// Starboard channel deletion check.
 			if (guildSettings?.starboard?.channels.length) {

@@ -1,13 +1,13 @@
 import {evaluate, isComplex, isResultSet} from "mathjs";
 import {Event} from "types";
-import guildSettingsSchema from "../../../schemas/guildSettingsSchema.js";
+import GuildSettingsSchema from "../../../schemas/GuildSettingsSchema.js";
 
 export const messageCreate: Event<"messageCreate"> = {
 	async execute(_client, message) {
 		const {guild} = message;
 
 		if (guild) {
-			const guildSettings = await guildSettingsSchema.findOne({id: guild.id});
+			const guildSettings = await GuildSettingsSchema.findOne({id: guild.id});
 
 			if (guildSettings?.counting?.channels.length) {
 				guildSettings.counting.channels.forEach((countingChannel, index) => {

@@ -15,7 +15,7 @@ import {
 	isImageLink,
 } from "../../../utility.js";
 import {Event} from "types";
-import guildSettingsSchema from "../../../schemas/guildSettingsSchema.js";
+import GuildSettingsSchema from "../../../schemas/GuildSettingsSchema.js";
 
 export const messageReactionAdd: Event<"messageReactionAdd"> = {
 	async execute(client, reaction, user) {
@@ -23,7 +23,7 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 		const {guild} = message;
 
 		if (guild) {
-			const guildSettings = await guildSettingsSchema.findOne({id: guild.id});
+			const guildSettings = await GuildSettingsSchema.findOne({id: guild.id});
 
 			if (guildSettings?.starboard?.channels.length) {
 				const {emoji} = reaction;
@@ -187,7 +187,7 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 							channel.starredMessageIDs[message.id] = starboardMessage.id;
 
 							const {starboard} = guildSettings;
-							await guildSettingsSchema.updateOne({id: guild.id}, {starboard});
+							await GuildSettingsSchema.updateOne({id: guild.id}, {starboard});
 						}
 					}
 				}
