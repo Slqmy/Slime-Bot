@@ -162,14 +162,14 @@ export const interactionCreate: Event<"interactionCreate"> = {
 			}
 		}
 
+		const timeTaken = Date.now() - time;
+
 		if (process.env.debug) {
 			console.log(
 				yellow(
 					`${bold("[Debug]")} Took ${bold(
-						`${
-							Date.now() - time
-						} milliseconds (${new Intl.NumberFormat().format(
-							(Date.now() - time) / 1000,
+						`${timeTaken} milliseconds (${new Intl.NumberFormat().format(
+							timeTaken / 1000,
 						)} seconds)`,
 					)} to execute interaction ${bold(
 						// This is needed or else TypeScript will complain.
