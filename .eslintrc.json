@@ -4,7 +4,12 @@
 		"es2021": true
 	},
 	// Make sure "prettier" is last in the list.
-	"extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "eslint:recommended", "prettier"],
+	"extends": [
+		"eslint:recommended",
+		"plugin:@typescript-eslint/recommended",
+		"eslint:recommended",
+		"prettier"
+	],
 	"parser": "@typescript-eslint/parser",
 	"parserOptions": {
 		"ecmaVersion": "latest",
@@ -12,24 +17,8 @@
 	},
 	"plugins": ["@typescript-eslint"],
 	"globals": {"process": "readonly"},
-	"overrides": [
-		{
-			"files": ["*.ts"],
-			"rules": {
-				"no-extra-parens": "off",
-				"no-use-before-define": "off"
-			}
-		},
-		{
-			"files": ["types.ts"],
-			"rules": {
-				"no-unused-vars": "off"
-			}
-		}
-	],
 	"rules": {
 		"linebreak-style": ["error", "unix"],
-		"no-extra-parens": "error",
 		"quotes": ["error", "double"],
 		"semi": ["error", "always"],
 		"no-div-regex": "error",
@@ -51,10 +40,9 @@
 		"no-unreachable-loop": "error",
 		"no-unsafe-negation": "error",
 		"no-unsafe-finally": "error",
-		"no-unused-vars": "error",
-		"no-use-before-define": "error",
+		"no-use-before-define": "off",
 		"block-scoped-var": "error",
-		"no-unused-expressions": "error",
+		"no-unused-expressions": ["error", {"allowShortCircuit": true}],
 		"no-unused-labels": "error",
 		"use-isnan": "error",
 		"eqeqeq": "error",
@@ -62,8 +50,8 @@
 		"no-extend-native": "error",
 		"no-extra-bind": "error",
 		"no-eq-null": "error",
-		"no-mixed-spaces-and-tabs": "error",
-		"no-empty": "error",
+		"no-mixed-spaces-and-tabs": ["error", "smart-tabs"],
+		"no-empty": ["error", {"allowEmptyCatch": true}],
 		"array-callback-return": "error",
 		"constructor-super": "error",
 		"getter-return": "error",
@@ -128,13 +116,11 @@
 			}
 		],
 		"no-new-func": "error",
-		"no-confusing-arrow": "error",
 		"no-new-object": "error",
 		"no-new-wrappers": "error",
 		"no-throw-literal": "error",
 		"no-this-before-super": "error",
 		"no-useless-call": "error",
-		"no-undefined": "error",
 		"no-unmodified-loop-condition": "error",
 		"no-undef-init": "error",
 		"no-unneeded-ternary": "error",
@@ -177,6 +163,8 @@
 		"template-tag-spacing": "error",
 		"wrap-iife": "error",
 		"yield-star-spacing": "error",
+		// Inline comments can't be longer than 80 characters.
+		"no-inline-comments": ["error", {"ignorePattern": "^[\\s\\S]{0,60}$"}],
 		"arrow-spacing": ["warn", {"before": true, "after": true}],
 		"brace-style": ["error", "1tbs", {"allowSingleLine": true}],
 		"comma-dangle": ["error", "always-multiline"],
@@ -190,14 +178,12 @@
 		"no-console": "off",
 		"no-empty-function": "error",
 		"no-floating-decimal": "error",
-		// Inline comments can't be longer than 80 characters.
-		"no-inline-comments": ["error", {"ignorePattern": "^[\\s\\S]{0,60}$"}],
 		"no-lonely-if": "error",
 		"no-multi-spaces": "error",
 		"no-multiple-empty-lines": ["error", {"max": 2, "maxEOF": 1, "maxBOF": 0}],
-		"no-shadow": ["error", {"allow": ["err", "resolve", "reject"]}],
 		"no-trailing-spaces": ["error"],
 		"no-var": "error",
+		"object-curly-spacing": ["error", "never"],
 		"prefer-const": "error",
 		"space-before-blocks": "error",
 		"space-before-function-paren": [
@@ -212,6 +198,13 @@
 		"space-infix-ops": "error",
 		"space-unary-ops": "error",
 		"spaced-comment": "error",
-		"yoda": "error"
+		"yoda": "error",
+		"@typescript-eslint/no-shadow": "error",
+		"@typescript-eslint/no-unused-vars": "error",
+		"@typescript-eslint/no-use-before-define": [
+			"error",
+			{"allowNamedExports": true, "enums": false, "variables": false}
+		],
+		"@typescript-eslint/no-extra-parens": ["error", "functions"]
 	}
 }
