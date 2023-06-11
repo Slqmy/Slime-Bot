@@ -1,13 +1,16 @@
 {
+	"printWidth": 80,
 	"tabWidth": 2,
-	"printWidth": 120,
 	"useTabs": true,
 	"semi": true,
 	"singleQuote": false,
+	"quoteProps": "consistent",
 	"trailingComma": "all",
 	"bracketSpacing": false,
-	"bracketSameLine": false,
 	"arrowParens": "always",
+	"requirePragma": false,
+	"insertPragma": false,
+	"proseWrap": "preserve",
 	"endOfLine": "lf",
-	"quoteProps": "consistent"
+	"embeddedLanguageFormatting": "auto"
 }
