@@ -723,15 +723,11 @@ export const addSuffix = (number: number): "s" | "" =>
 /**
  * A class to create a poll message based on a command, the poll message, or a reaction.
  */
-export class PollMessageBuilder {
+export class PollMessage {
 	emojis: (string | null)[];
-
 	options: (string | null)[];
-
 	content: string;
-
 	embeds: APIEmbed[];
-
 	files: string[];
 
 	constructor() {

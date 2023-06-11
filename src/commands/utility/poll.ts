@@ -7,7 +7,7 @@ import {
 	User,
 } from "discord.js";
 import {
-	PollMessageBuilder,
+	PollMessage,
 	checkPermissions,
 	createErrorMessage,
 	createSuccessMessage,
@@ -219,10 +219,7 @@ export const poll: Command = {
 				ephemeral: true,
 			});
 
-			const pollMessage = await new PollMessageBuilder().create(
-				interaction,
-				client,
-			);
+			const pollMessage = await new PollMessage().create(interaction, client);
 
 			const embedMessage = await channel.send(pollMessage);
 

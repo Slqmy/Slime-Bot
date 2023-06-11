@@ -1,7 +1,7 @@
 import {APIEmbed, APIEmbedField, Guild, TextChannel} from "discord.js";
 import {Event} from "types";
 import GuildSettingsSchema from "../../../schemas/GuildSettingsSchema.js";
-import {PollMessageBuilder} from "../../../utility.js";
+import {PollMessage} from "../../../utility.js";
 
 export const messageReactionRemove: Event<"messageReactionRemove"> = {
 	async execute(client, reaction, user) {
@@ -94,7 +94,7 @@ export const messageReactionRemove: Event<"messageReactionRemove"> = {
 						emojis.includes(reaction.emoji.name as string)
 					) {
 						await reaction.message.edit(
-							await new PollMessageBuilder().create(reaction, client),
+							await new PollMessage().create(reaction, client),
 						);
 					}
 				}

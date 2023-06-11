@@ -8,7 +8,7 @@ import {
 import {
 	Colours,
 	DisplayAvatarURLOptions,
-	PollMessageBuilder,
+	PollMessage,
 	URLRegExp,
 	addSuffix,
 	createErrorMessage,
@@ -289,7 +289,7 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 				}
 
 				await reaction.message.edit(
-					await new PollMessageBuilder().create(reaction, client),
+					await new PollMessage().create(reaction, client),
 				);
 			}
 		}

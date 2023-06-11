@@ -1,6 +1,6 @@
 import {Message, TextChannel} from "discord.js";
 import {BotClient} from "../../types";
-import {PollMessageBuilder} from "../../utility.js";
+import {PollMessage} from "../../utility.js";
 import TemporaryDataSchema from "../../schemas/TemporaryDataSchema.js";
 
 export default (client: BotClient) => {
@@ -24,7 +24,7 @@ export default (client: BotClient) => {
 									?.fetch(temporary.data.message)
 									.then(async (message: Message) => {
 										await message.edit(
-											await new PollMessageBuilder().create({message}, client),
+											await new PollMessage().create({message}, client),
 										);
 									}),
 							);
