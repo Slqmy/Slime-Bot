@@ -1,6 +1,6 @@
 import {Schema, model} from "mongoose";
 
-const temporaryDataSchema = new Schema({
+const TemporaryDataSchema = new Schema({
 	_id: Schema.Types.ObjectId,
 	type: String,
 	data: Object,
@@ -8,4 +8,4 @@ const temporaryDataSchema = new Schema({
 	lifeSpan: Number,
 });
 
-export default model("Temporary Data", temporaryDataSchema, "Temporary Data");
+export default model("Temporary Data", TemporaryDataSchema, "Temporary Data");

@@ -14,9 +14,9 @@ import {
 	resolveDuration,
 } from "../../utility.js";
 import {Command} from "../../types";
+import TemporaryDataSchema from "../../schemas/TemporaryDataSchema.js";
 import {evaluate} from "mathjs";
 import mongoose from "mongoose";
-import temporaryDataSchema from "../../schemas/temporaryDataSchema.js";
 
 export const poll: Command = {
 	data: new SlashCommandBuilder()
@@ -231,7 +231,7 @@ export const poll: Command = {
 			}
 
 			if (duration) {
-				const temporary = new temporaryDataSchema({
+				const temporary = new TemporaryDataSchema({
 					_id: new mongoose.Types.ObjectId(),
 					type: "poll",
 					data: {message: embedMessage.id, channel: channel.id},

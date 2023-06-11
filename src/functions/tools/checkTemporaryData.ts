@@ -1,18 +1,18 @@
 import {Message, TextChannel} from "discord.js";
 import {BotClient} from "../../types";
 import {PollMessageBuilder} from "../../utility.js";
-import temporaryDataSchema from "../../schemas/temporaryDataSchema.js";
+import TemporaryDataSchema from "../../schemas/TemporaryDataSchema.js";
 
 export default (client: BotClient) => {
 	client.checkTemporaryData = async () => {
-		const tempArray = await temporaryDataSchema.find();
+		const tempArray = await TemporaryDataSchema.find();
 
 		for (const temporary of tempArray) {
 			if (
 				Date.now() - (temporary.creationDate as number) >
 				(temporary.lifeSpan as number)
 			) {
-				await temporaryDataSchema.deleteOne({_id: temporary._id});
+				await TemporaryDataSchema.deleteOne({_id: temporary._id});
 
 				// More types of temporary data will possibly be used in the future
 				switch (temporary.type) {
