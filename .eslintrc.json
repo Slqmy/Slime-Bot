@@ -7,7 +7,6 @@
 	"extends": [
 		"eslint:recommended",
 		"plugin:@typescript-eslint/recommended",
-		"eslint:recommended",
 		"prettier"
 	],
 	"parser": "@typescript-eslint/parser",
@@ -20,8 +19,18 @@
 	"rules": {
 		"no-div-regex": "error",
 		"for-direction": "error",
-		// "icon_url" and "proxy_url" are identifiers used by Discord JS in embed objects.
-		"camelcase": ["error", {"allow": ["icon_url", "proxy_url"]}],
+		"camelcase": [
+			"error",
+			{
+				"allow": [
+					/**
+					 * "icon_url" and "proxy_url" are identifiers used by Discord JS in embed objects.
+					 */
+					"icon_url",
+					"proxy_url"
+				]
+			}
+		],
 		"no-const-assign": "error",
 		"no-case-declarations": "off",
 		"no-dupe-args": "error",
@@ -40,11 +49,22 @@
 		"no-unsafe-finally": "error",
 		"no-use-before-define": "off",
 		"block-scoped-var": "error",
-		// Short circuits are expressions that use the guard operator or the or operator. E.g.,
-		// condition && f()
-		// This is basically shorthand for:
-		// if (condition) f()
-		"no-unused-expressions": ["error", {"allowShortCircuit": true}],
+		"no-unused-expressions": [
+			"error",
+			{
+				/**
+				 * Short circuits are expressions that use the guard operator or the or operator. E.g.,
+				 *
+				 * condition && f();
+				 *
+				 * This is basically shorthand for:
+				 *
+				 * if (condition) f();
+				 */
+				"allowShortCircuit": true,
+				"allowTernary": true
+			}
+		],
 		"no-unused-labels": "error",
 		"use-isnan": "error",
 		"eqeqeq": "error",
@@ -52,7 +72,9 @@
 		"no-extend-native": "error",
 		"no-extra-bind": "error",
 		"no-eq-null": "error",
-		// Empty catch blocks in try-catch statements are allowed.
+		/**
+		 * Empty catch blocks in try-catch statements are allowed.
+		 */
 		"no-empty": ["error", {"allowEmptyCatch": true}],
 		"array-callback-return": "error",
 		"constructor-super": "error",
@@ -83,6 +105,11 @@
 		"no-undef": "error",
 		"no-multi-str": "error",
 		"no-nested-ternary": "off",
+		/**
+		 * This option may conflict with prettier. You can just disable it for that line or refactor your code.
+		 *
+		 * More info: https://github.com/prettier/eslint-config-prettier#no-unexpected-multiline
+		 */
 		"no-unexpected-multiline": "error",
 		"no-unreachable": "error",
 		"no-unsafe-optional-chaining": "error",
@@ -104,6 +131,11 @@
 		"no-invalid-this": "error",
 		"no-lone-blocks": "error",
 		"no-inner-declarations": "error",
+		/**
+		 * eslint-config-prettier says that this option may conflict with prettier, but from my testing it seems fine.
+		 *
+		 * More info: https://github.com/prettier/eslint-config-prettier#no-mixed-operators
+		 */
 		"no-mixed-operators": [
 			"error",
 			{
@@ -145,8 +177,29 @@
 		"sort-vars": "error",
 		"vars-on-top": "error",
 		"padding-line-between-statements": "error",
+		/**
+		 * This rule may sometimes "conflict" with prettier, however it is easy to fix.
+		 * For example prettier may find that an if statement followed by a function call is too long for a single line.
+		 *
+		 * if (someReallyLongConditionHere) aReallyLongFunctionNameHere();
+		 *
+		 * It would format it to be like this:
+		 *
+		 * if (someReallyLongConditionHere)
+		 *  	aReallyLongFunctionNameHere();
+		 *
+		 * ESLint would find issues with this, but it can be prevented simply by adding curly brackets.
+		 *
+		 * if (someReallyLongConditionHere) {
+		 *  	aReallyLongFunctionNameHere();
+		 * }
+		 *
+		 * More info: https://github.com/prettier/eslint-config-prettier#curly
+		 */
 		"curly": ["error", "multi-line"],
-		// Inline comments can't be longer than 80 characters.
+		/**
+		 * Inline comments can't be longer than 80 characters.
+		 */
 		"no-inline-comments": ["error", {"ignorePattern": "^[\\s\\S]{0,60}$"}],
 		"handle-callback-err": "off",
 		"max-nested-callbacks": ["error", {"max": 4}],
@@ -159,10 +212,14 @@
 		"spaced-comment": "error",
 		"yoda": "error",
 		"no-unused-vars": "off",
-		// Typescript support for normal ESLint rules.
+		/**
+		 * Typescript support for normal ESLint rules.
+		 */
 		"@typescript-eslint/no-shadow": "error",
 		"@typescript-eslint/no-unused-vars": "error",
-		// This option is a bit inconsistent, so it is more relaxed.
+		/**
+		 * This option is a bit inconsistent, so it is more relaxed.
+		 */
 		"@typescript-eslint/no-use-before-define": [
 			"error",
 			{"allowNamedExports": true, "enums": false, "variables": false}
