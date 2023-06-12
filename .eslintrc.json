@@ -79,6 +79,7 @@
 		 */
 		"no-empty": ["error", {"allowEmptyCatch": true}],
 		"array-callback-return": "error",
+		"no-mixed-spaces-and-tabs": "off",
 		"constructor-super": "error",
 		"getter-return": "error",
 		"no-class-assign": "error",
