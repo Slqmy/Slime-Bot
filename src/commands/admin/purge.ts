@@ -1,4 +1,16 @@
-import {PermissionFlagsBits, SlashCommandBuilder} from "discord.js";
+import {
+	Message,
+	PermissionFlagsBits,
+	SlashCommandBuilder,
+	TextChannel,
+} from "discord.js";
+import {
+	RegExpCharactersRegExp,
+	URLRegExp,
+	addSuffix,
+	createErrorMessage,
+	createSuccessMessage,
+} from "../../utility.js";
 import {Command} from "types";
 
 export const purge: Command = {
@@ -11,7 +23,8 @@ export const purge: Command = {
 				.setName("count")
 				.setDescription("💬 The number of messages to delete.")
 				.setRequired(true)
-				.setMinValue(1),
+				.setMinValue(1)
+				.setMaxValue(100),
 		)
 		.addUserOption((option) =>
 			option
@@ -41,7 +54,7 @@ export const purge: Command = {
 		)
 		.addBooleanOption((option) =>
 			option
-				.setName("embeds")
+				.setName("contain-embeds")
 				.setDescription(
 					"📝 Only delete messages that contain embeds. Specify false to not delete messages with embeds.",
 				),
@@ -72,7 +85,7 @@ export const purge: Command = {
 		)
 		.addBooleanOption((option) =>
 			option
-				.setName("files-attachments")
+				.setName("contain-file-attachments")
 				.setDescription(
 					"🎨 Only delete messages that contain files. Specify false to not delete messages with files.",
 				),
@@ -86,38 +99,48 @@ export const purge: Command = {
 		)
 		.addBooleanOption((option) =>
 			option
-				.setName("guild-invites")
+				.setName("contain-guild-invites")
 				.setDescription(
 					"🔗 Only delete messages containing invites. Specify false to not delete messages containing invites.",
 				),
 		)
 		.addBooleanOption((option) =>
 			option
-				.setName("links")
+				.setName("contain-links")
 				.setDescription(
 					"🔗 Only delete messages containing links. Specify false to not delete messages containing links",
 				),
 		)
 		.addBooleanOption((option) =>
 			option
-				.setName("mention-pings")
+				.setName("contain-mention-pings")
 				.setDescription(
 					"🔔 Only delete messages containing pings. Specify false to not delete messages containing pings.",
 				),
 		)
 		.addStringOption((option) =>
 			option
-				.setName("after")
+				.setName("before-message")
+				.setDescription(
+					"📄 Only delete messages sent before a specified message ID/link.",
+				),
+		)
+		.addStringOption((option) =>
+			option
+				.setName("before-date")
+				.setDescription("📅 Only delete message sent after a specified date."),
+		)
+		.addStringOption((option) =>
+			option
+				.setName("after-message")
 				.setDescription(
 					"📄 Only delete messages sent after a specified message ID/link.",
 				),
 		)
 		.addStringOption((option) =>
 			option
-				.setName("before")
-				.setDescription(
-					"📄 Only delete messages sent before a specified message ID/link.",
-				),
+				.setName("after-date")
+				.setDescription("📅 Only delete messages sent after a specified date"),
 		)
 		.addBooleanOption((option) =>
 			option
@@ -131,8 +154,216 @@ export const purge: Command = {
 	async execute(interaction) {
 		const {channel, options} = interaction;
 
-		const messageNumber = options.getInteger("messages", true);
+		if (!(channel instanceof TextChannel)) {
+			return interaction.reply(
+				createErrorMessage(
+					"You can only use this command in a `Text Channel`!",
+				),
+			);
+		}
 
-		const messages = await channel?.messages.fetch({limit: messageNumber});
+		let regex: string | null | RegExp = options.getString("regex");
+
+		if (regex) {
+			try {
+				regex = new RegExp(regex);
+			} catch (error) {
+				return interaction.reply(
+					createErrorMessage(`Invalid regular expression pattern:\n${error}`),
+				);
+			}
+		}
+
+		let beforeDate: string | null | number = options.getString("before-date");
+
+		if (beforeDate) {
+			try {
+				beforeDate = Date.parse(beforeDate);
+			} catch (error) {
+				return interaction.reply(
+					createErrorMessage(`Invalid \`before-date\` input:\n${error}`),
+				);
+			}
+		}
+
+		let afterDate: string | null | number = options.getString("after-date");
+
+		if (afterDate) {
+			try {
+				afterDate = Date.parse(afterDate);
+			} catch (error) {
+				return interaction.reply(
+					createErrorMessage(`Invalid \`after-date\` input:\n${error}`),
+				);
+			}
+		}
+
+		let beforeMessage: string | null | Message | undefined =
+			options.getString("before-message");
+
+		if (beforeMessage) {
+			const beforeMessageID = /\d+$/.exec(beforeMessage)?.[0];
+
+			if (!beforeMessageID) {
+				return interaction.reply(
+					createErrorMessage(
+						"Invalid message ID or link entered for `before-message`",
+					),
+				);
+			}
+
+			beforeMessage = await channel?.messages.fetch(beforeMessageID);
+
+			if (!beforeMessage) {
+				return interaction.reply(
+					createErrorMessage("`before-message` message not found"),
+				);
+			}
+		}
+
+		let afterMessage: string | null | Message | undefined =
+			options.getString("after-message");
+
+		if (afterMessage) {
+			const afterMessageID = /\d+$/.exec(afterMessage)?.[0];
+
+			if (!afterMessageID) {
+				return interaction.reply(
+					createErrorMessage(
+						`Invalid message ID or link entered for \`after-message\``,
+					),
+				);
+			}
+
+			afterMessage = await channel?.messages.fetch(afterMessageID);
+
+			if (!afterMessage) {
+				return interaction.reply(
+					createErrorMessage(`\`after-message\` message not found`),
+				);
+			}
+		}
+
+		const messageNumber = options.getInteger("count", true);
+
+		const user = options.getUser("user");
+		const match = options.getString("match");
+		const noMatch = options.getString("no-match");
+
+		const containEmbeds = options.getBoolean("contain-embeds");
+		const startsWith = options.getString("starts-with");
+		const notStartsWith = options.getString("not-starts-with");
+		const endsWith = options.getString("ends-with");
+		const notEndsWith = options.getString("not-ends-with");
+		const containFileAttachments = options.getBoolean(
+			"contain-file-attachments",
+		);
+		const bot = options.getBoolean("bot");
+		const containGuildInvites = options.getBoolean("contain-guild-invites");
+		const containLinks = options.getBoolean("contain-links");
+		const containMentionPings = options.getBoolean("contain-mention-pings");
+
+		const inverse = options.getBoolean("inverse");
+
+		const matchRegExp = match
+			? new RegExp(match?.replace(RegExpCharactersRegExp, "\\$&"))
+			: null;
+
+		const noMatchRegExp = noMatch
+			? new RegExp(noMatch?.replace(RegExpCharactersRegExp, "\\$&"))
+			: null;
+
+		const guildInviteRegExp =
+			/(https?:\/\/)?(www.)?(discord.(gg|io|me|li)|discordapp.com\/invite)\/[^\s/]+?(?=\s)/;
+
+		let deletedMessages = 0;
+
+		let earliestMessageID = "";
+
+		const deletableMessages = [];
+
+		while (deletedMessages < messageNumber) {
+			const messages = [
+				...((
+					await channel?.messages.fetch(
+						earliestMessageID
+							? {
+									limit: Math.min(messageNumber - deletedMessages, 100),
+									before: earliestMessageID,
+							  }
+							: {
+									limit: Math.min(messageNumber - deletedMessages, 100),
+							  },
+					)
+				)?.values() ?? []),
+			].filter((message) => {
+				const {author, content, embeds, attachments, createdTimestamp} =
+					message;
+
+				console.log(
+					!user || user.id === author.id,
+					message.id,
+					message.content,
+				);
+
+				const meetsConditions =
+					(!user || user.id === author.id) &&
+					(!matchRegExp || matchRegExp.test(content)) &&
+					(!noMatchRegExp || !noMatchRegExp.test(content)) &&
+					(!regex || (regex as RegExp).test(content)) &&
+					(containEmbeds === null ||
+						(!containEmbeds && !embeds.length) ||
+						(containEmbeds && embeds.length)) &&
+					(!startsWith || content.startsWith(startsWith)) &&
+					(!endsWith || content.endsWith(endsWith)) &&
+					(!notStartsWith || !content.startsWith(notStartsWith)) &&
+					(!notEndsWith || !content.endsWith(notEndsWith)) &&
+					(containFileAttachments === null ||
+						(!containFileAttachments && !attachments.size) ||
+						(containFileAttachments && attachments.size)) &&
+					(bot === null ||
+						(bot === false && !author.bot) ||
+						(bot === true && author.bot)) &&
+					(containGuildInvites === null ||
+						(containGuildInvites === false &&
+							!guildInviteRegExp.test(content)) ||
+						(containGuildInvites === true &&
+							guildInviteRegExp.test(content))) &&
+					(containLinks === null ||
+						(!containLinks && !URLRegExp.test(content)) ||
+						(containLinks && URLRegExp.test(content))) &&
+					(containMentionPings === null ||
+						(!containMentionPings && !/<@&?\d{18,}>/.test(content)) ||
+						(containMentionPings && /<@&?\d{18,}>/.test(content))) &&
+					(!beforeDate || createdTimestamp < (beforeDate as number)) &&
+					(!afterDate || createdTimestamp > (afterDate as number)) &&
+					(!beforeMessage ||
+						createdTimestamp < (beforeMessage as Message).createdTimestamp) &&
+					(!afterMessage ||
+						createdTimestamp > (afterMessage as Message).createdTimestamp);
+
+				return inverse ? !meetsConditions : meetsConditions;
+			});
+
+			console.log(messages, messages.length);
+
+			deletableMessages.push(...messages);
+
+			console.log(messages[messages.length - 1], messages);
+
+			earliestMessageID = messages[messages.length - 1].id;
+
+			deletedMessages += messages.length;
+		}
+
+		await channel.bulkDelete(deletableMessages);
+
+		return interaction.reply(
+			createSuccessMessage(
+				`Successfully deleted ${deletedMessages} message${addSuffix(
+					deletedMessages,
+				)}!`,
+			),
+		);
 	},
 };
