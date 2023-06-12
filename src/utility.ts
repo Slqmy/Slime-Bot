@@ -1268,6 +1268,8 @@ export const DisplayAvatarURLOptions: ImageURLOptions = {
  */
 export const ANSIControlCharacterRegExp = /\x1B|\[\d{1,2}m/g;
 
+export const RegExpCharactersRegExp = /[.*+?^${}()|[\]\\]/g;
+
 // ! Arrays
 
 /**
