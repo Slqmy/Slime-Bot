@@ -3,7 +3,9 @@
 		"browser": true,
 		"es2021": true
 	},
-	// Make sure "prettier" is last in the list.
+	/**
+	 * Make sure "prettier" is last in the list.
+	 */
 	"extends": [
 		"eslint:recommended",
 		"plugin:@typescript-eslint/recommended",
