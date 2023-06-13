@@ -152,10 +152,12 @@ export const purge: Command = {
 	usage: ["purge messages:number of messages to delete"],
 	examples: ["purge messages:50"],
 	async execute(interaction) {
+		await interaction.deferReply({ephemeral: true});
+
 		const {channel, options} = interaction;
 
 		if (!(channel instanceof TextChannel)) {
-			return interaction.reply(
+			return interaction.editReply(
 				new ErrorMessage("You can only use this command in a `Text Channel`!"),
 			);
 		}
@@ -166,7 +168,7 @@ export const purge: Command = {
 			try {
 				regex = new RegExp(regex);
 			} catch (error) {
-				return interaction.reply(
+				return interaction.editReply(
 					new ErrorMessage(`Invalid regular expression pattern:\n${error}`),
 				);
 			}
@@ -178,7 +180,7 @@ export const purge: Command = {
 			try {
 				beforeDate = Date.parse(beforeDate);
 			} catch (error) {
-				return interaction.reply(
+				return interaction.editReply(
 					new ErrorMessage(`Invalid \`before-date\` input:\n${error}`),
 				);
 			}
@@ -190,7 +192,7 @@ export const purge: Command = {
 			try {
 				afterDate = Date.parse(afterDate);
 			} catch (error) {
-				return interaction.reply(
+				return interaction.editReply(
 					new ErrorMessage(`Invalid \`after-date\` input:\n${error}`),
 				);
 			}
@@ -203,9 +205,9 @@ export const purge: Command = {
 			const beforeMessageID = /\d+$/.exec(beforeMessage)?.[0];
 
 			if (!beforeMessageID) {
-				return interaction.reply(
+				return interaction.editReply(
 					new ErrorMessage(
-						"Invalid message ID or link entered for `before-message`",
+						"Invalid message ID or link entered for `before-message`.",
 					),
 				);
 			}
@@ -213,8 +215,8 @@ export const purge: Command = {
 			beforeMessage = await channel?.messages.fetch(beforeMessageID);
 
 			if (!beforeMessage) {
-				return interaction.reply(
-					new ErrorMessage("`before-message` message not found"),
+				return interaction.editReply(
+					new ErrorMessage("`before-message` message not found."),
 				);
 			}
 		}
@@ -226,9 +228,9 @@ export const purge: Command = {
 			const afterMessageID = /\d+$/.exec(afterMessage)?.[0];
 
 			if (!afterMessageID) {
-				return interaction.reply(
+				return interaction.editReply(
 					new ErrorMessage(
-						`Invalid message ID or link entered for \`after-message\``,
+						`Invalid message ID or link entered for \`after-message\`.`,
 					),
 				);
 			}
@@ -236,8 +238,8 @@ export const purge: Command = {
 			afterMessage = await channel?.messages.fetch(afterMessageID);
 
 			if (!afterMessage) {
-				return interaction.reply(
-					new ErrorMessage(`\`after-message\` message not found`),
+				return interaction.editReply(
+					new ErrorMessage(`\`after-message\` message not found.`),
 				);
 			}
 		}
@@ -249,14 +251,19 @@ export const purge: Command = {
 		const noMatch = options.getString("no-match");
 
 		const containEmbeds = options.getBoolean("contain-embeds");
+
 		const startsWith = options.getString("starts-with");
 		const notStartsWith = options.getString("not-starts-with");
+
 		const endsWith = options.getString("ends-with");
 		const notEndsWith = options.getString("not-ends-with");
+
 		const containFileAttachments = options.getBoolean(
 			"contain-file-attachments",
 		);
+
 		const bot = options.getBoolean("bot");
+
 		const containGuildInvites = options.getBoolean("contain-guild-invites");
 		const containLinks = options.getBoolean("contain-links");
 		const containMentionPings = options.getBoolean("contain-mention-pings");
@@ -274,35 +281,26 @@ export const purge: Command = {
 		const guildInviteRegExp =
 			/(https?:\/\/)?(www.)?(discord.(gg|io|me|li)|discordapp.com\/invite)\/[^\s/]+?(?=\s)/;
 
-		let deletedMessages = 0;
+		let messages: Message[] = [];
+		let earliestMessageID: string | undefined;
 
-		let earliestMessageID = "";
-
-		const deletableMessages = [];
-
-		while (deletedMessages < messageNumber) {
-			const messages = [
+		while (messages.length < messageNumber) {
+			const fetchedMessages = [
 				...((
 					await channel?.messages.fetch(
 						earliestMessageID
 							? {
-									limit: Math.min(messageNumber - deletedMessages, 100),
+									limit: 100,
 									before: earliestMessageID,
 							  }
 							: {
-									limit: Math.min(messageNumber - deletedMessages, 100),
+									limit: 100,
 							  },
 					)
 				)?.values() ?? []),
 			].filter((message) => {
 				const {author, content, embeds, attachments, createdTimestamp} =
 					message;
-
-				console.log(
-					!user || user.id === author.id,
-					message.id,
-					message.content,
-				);
 
 				const meetsConditions =
 					(!user || user.id === author.id) &&
@@ -343,23 +341,19 @@ export const purge: Command = {
 				return inverse ? !meetsConditions : meetsConditions;
 			});
 
-			console.log(messages, messages.length);
+			messages.push(...fetchedMessages);
 
-			deletableMessages.push(...messages);
-
-			console.log(messages[messages.length - 1], messages);
-
-			earliestMessageID = messages[messages.length - 1].id;
-
-			deletedMessages += messages.length;
+			earliestMessageID = fetchedMessages[fetchedMessages.length - 1].id;
 		}
 
-		await channel.bulkDelete(deletableMessages);
+		messages = messages.slice(0, messageNumber);
 
-		return interaction.reply(
+		await channel.bulkDelete(messages);
+
+		return interaction.editReply(
 			new SuccessMessage(
-				`Successfully deleted ${deletedMessages} message${addSuffix(
-					deletedMessages,
+				`Successfully deleted \`${messages.length}\` message${addSuffix(
+					messages.length,
 				)}!`,
 			),
 		);
