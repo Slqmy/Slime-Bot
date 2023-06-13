@@ -7,10 +7,10 @@ import {
 	User,
 } from "discord.js";
 import {
+	ErrorMessage,
 	PollMessage,
+	SuccessMessage,
 	checkPermissions,
-	createErrorMessage,
-	createSuccessMessage,
 	resolveDuration,
 } from "../../utility.js";
 import {Command} from "../../types";
@@ -157,7 +157,7 @@ export const poll: Command = {
 
 		if (!interaction.channel || !guild) {
 			return interaction.reply(
-				createErrorMessage("This command can only be used in a guild!"),
+				new ErrorMessage("This command can only be used in a guild!"),
 			);
 		}
 
@@ -171,7 +171,7 @@ export const poll: Command = {
 					);
 				} catch (error) {
 					return interaction.reply(
-						createErrorMessage(
+						new ErrorMessage(
 							`**Invalid duration provided:** ${duration}\n\n> ${error}`,
 						),
 					);
@@ -197,7 +197,7 @@ export const poll: Command = {
 
 			if (!permissions.value) {
 				return interaction.reply(
-					createErrorMessage(permissions.message as string),
+					new ErrorMessage(permissions.message as string),
 				);
 			}
 
@@ -211,7 +211,7 @@ export const poll: Command = {
 
 			if (!botPermissions.value) {
 				return interaction.reply(
-					createErrorMessage(botPermissions.message as string),
+					new ErrorMessage(botPermissions.message as string),
 				);
 			}
 
@@ -253,7 +253,7 @@ export const poll: Command = {
 			}
 
 			await interaction.editReply(
-				createSuccessMessage(
+				new SuccessMessage(
 					`Successfully created and sent the poll in <#${channel.id}>.`,
 				),
 			);

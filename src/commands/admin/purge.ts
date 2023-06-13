@@ -1,16 +1,16 @@
 import {
+	ErrorMessage,
+	RegExpCharactersRegExp,
+	SuccessMessage,
+	URLRegExp,
+	addSuffix,
+} from "../../utility.js";
+import {
 	Message,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 	TextChannel,
 } from "discord.js";
-import {
-	RegExpCharactersRegExp,
-	URLRegExp,
-	addSuffix,
-	createErrorMessage,
-	createSuccessMessage,
-} from "../../utility.js";
 import {Command} from "types";
 
 export const purge: Command = {
@@ -156,9 +156,7 @@ export const purge: Command = {
 
 		if (!(channel instanceof TextChannel)) {
 			return interaction.reply(
-				createErrorMessage(
-					"You can only use this command in a `Text Channel`!",
-				),
+				new ErrorMessage("You can only use this command in a `Text Channel`!"),
 			);
 		}
 
@@ -169,7 +167,7 @@ export const purge: Command = {
 				regex = new RegExp(regex);
 			} catch (error) {
 				return interaction.reply(
-					createErrorMessage(`Invalid regular expression pattern:\n${error}`),
+					new ErrorMessage(`Invalid regular expression pattern:\n${error}`),
 				);
 			}
 		}
@@ -181,7 +179,7 @@ export const purge: Command = {
 				beforeDate = Date.parse(beforeDate);
 			} catch (error) {
 				return interaction.reply(
-					createErrorMessage(`Invalid \`before-date\` input:\n${error}`),
+					new ErrorMessage(`Invalid \`before-date\` input:\n${error}`),
 				);
 			}
 		}
@@ -193,7 +191,7 @@ export const purge: Command = {
 				afterDate = Date.parse(afterDate);
 			} catch (error) {
 				return interaction.reply(
-					createErrorMessage(`Invalid \`after-date\` input:\n${error}`),
+					new ErrorMessage(`Invalid \`after-date\` input:\n${error}`),
 				);
 			}
 		}
@@ -206,7 +204,7 @@ export const purge: Command = {
 
 			if (!beforeMessageID) {
 				return interaction.reply(
-					createErrorMessage(
+					new ErrorMessage(
 						"Invalid message ID or link entered for `before-message`",
 					),
 				);
@@ -216,7 +214,7 @@ export const purge: Command = {
 
 			if (!beforeMessage) {
 				return interaction.reply(
-					createErrorMessage("`before-message` message not found"),
+					new ErrorMessage("`before-message` message not found"),
 				);
 			}
 		}
@@ -229,7 +227,7 @@ export const purge: Command = {
 
 			if (!afterMessageID) {
 				return interaction.reply(
-					createErrorMessage(
+					new ErrorMessage(
 						`Invalid message ID or link entered for \`after-message\``,
 					),
 				);
@@ -239,7 +237,7 @@ export const purge: Command = {
 
 			if (!afterMessage) {
 				return interaction.reply(
-					createErrorMessage(`\`after-message\` message not found`),
+					new ErrorMessage(`\`after-message\` message not found`),
 				);
 			}
 		}
@@ -359,7 +357,7 @@ export const purge: Command = {
 		await channel.bulkDelete(deletableMessages);
 
 		return interaction.reply(
-			createSuccessMessage(
+			new SuccessMessage(
 				`Successfully deleted ${deletedMessages} message${addSuffix(
 					deletedMessages,
 				)}!`,
