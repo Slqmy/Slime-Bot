@@ -555,36 +555,6 @@ console.log = (...data) => {
 };
 
 /**
- * A function to easily create a simple success message.
- * @param {string} message The message to display in the embed.
- * @returns {{embeds: [APIEmbed]}} A simple embed with the success message.
- */
-export const createSuccessMessage = (
-	message: string,
-): {embeds: [APIEmbed]} => ({
-	embeds: [
-		{
-			description: `<:_:${Emojis.Success}> ${message}`,
-			color: Colours.Transparent,
-		},
-	],
-});
-
-/**
- * A function to easily create a simple error message.
- * @param {string} message The message to display in the embed.
- * @returns {{embeds: [APIEmbed]}} A simple embed with the error message.
- */
-export const createErrorMessage = (message: string): {embeds: [APIEmbed]} => ({
-	embeds: [
-		{
-			description: `<:_:${Emojis.Error}> ${message}`,
-			color: Colours.Transparent,
-		},
-	],
-});
-
-/**
  * Resolves a date from a given string.
  * @param {string} string The string to resolve the date of.
  * @returns {number} The resolved date.
@@ -719,6 +689,42 @@ export const addSuffix = (number: number): "s" | "" =>
 // TODO: Add a better colour resolver function so we don't have to rely on Discord's for the PollMessage class.
 
 // ! Classes
+
+/**
+ * A function to easily create a simple error message.
+ * @param {string} message The message to display in the embed.
+ * @returns {{embeds: [APIEmbed]}} A simple embed with the error message.
+ */
+export class SuccessMessage {
+	embeds: [APIEmbed];
+
+	constructor(message: string) {
+		this.embeds = [
+			{
+				description: `<:_:${Emojis.Success}> ${message}`,
+				color: Colours.Transparent,
+			},
+		];
+	}
+}
+
+/**
+ * A function to easily create a simple error message.
+ * @param {string} message The message to display in the embed.
+ * @returns {{embeds: [APIEmbed]}} A simple embed with the error message.
+ */
+export class ErrorMessage {
+	embeds: [APIEmbed];
+
+	constructor(message: string) {
+		this.embeds = [
+			{
+				description: `<:_:${Emojis.Error}> ${message}`,
+				color: Colours.Transparent,
+			},
+		];
+	}
+}
 
 /**
  * A class to create a poll message based on a command, the poll message, or a reaction.
@@ -1193,8 +1199,8 @@ export enum Colours {
 export enum Emojis {
 	// https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/1024px-YouTube_full-color_icon_%282017%29.svg.png
 	YouTubeLogo = "1115689277397926022",
-	Success = "",
-	Error = "1115712640954683534",
+	Success = "1118183966705467532",
+	Error = "1118182956670914634",
 }
 
 // ! Objects
