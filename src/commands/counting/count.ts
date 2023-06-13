@@ -1,4 +1,4 @@
-import {Colours, createErrorMessage} from "../../utility.js";
+import {Colours, ErrorMessage} from "../../utility.js";
 import {Command} from "types";
 import GuildSettingsSchema from "../../schemas/GuildSettingsSchema.js";
 import {SlashCommandBuilder} from "discord.js";
@@ -15,11 +15,11 @@ export const count: Command = {
 
 		if (!guild || !guildSettings) {
 			await interaction.reply(
-				createErrorMessage("You have to be in a guild to do this!"),
+				new ErrorMessage("You have to be in a guild to do this!"),
 			);
 		} else if (!guildSettings.counting?.channels.length) {
 			await interaction.reply(
-				createErrorMessage(
+				new ErrorMessage(
 					"This guild does not have any counting channels set up!",
 				),
 			);

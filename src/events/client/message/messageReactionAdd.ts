@@ -8,10 +8,10 @@ import {
 import {
 	Colours,
 	DisplayAvatarURLOptions,
+	ErrorMessage,
 	PollMessage,
 	URLRegExp,
 	addSuffix,
-	createErrorMessage,
 	isImageLink,
 } from "../../../utility.js";
 import {Event} from "types";
@@ -218,7 +218,7 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 					}
 				}
 
-				return member.send(createErrorMessage("Sorry, this poll has ended."));
+				return member.send(new ErrorMessage("Sorry, this poll has ended."));
 			}
 
 			if (
@@ -251,7 +251,7 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 					);
 
 					return member.send(
-						createErrorMessage(
+						new ErrorMessage(
 							`You must have the <@&${role?.id}> role to participate in this poll!`,
 						),
 					);
@@ -280,7 +280,7 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 					}
 
 					return member.send(
-						createErrorMessage(
+						new ErrorMessage(
 							`You may not choose more than **${maxOptions}** option${addSuffix(
 								maxOptions,
 							)} for this poll!`,
