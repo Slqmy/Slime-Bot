@@ -14,8 +14,6 @@ const {yellow, bold} = chalk;
 // TODO: Make the code better & more concise (don't repeat yourself).
 export const interactionCreate: Event<"interactionCreate"> = {
 	async execute(client, interaction) {
-		const time = Date.now();
-
 		if (process.env.debug) {
 			console.log(
 				yellow(
@@ -162,7 +160,7 @@ export const interactionCreate: Event<"interactionCreate"> = {
 			}
 		}
 
-		const timeTaken = Date.now() - time;
+		const timeTaken = Date.now() - interaction.createdTimestamp;
 
 		if (process.env.debug) {
 			console.log(
