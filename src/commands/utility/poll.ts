@@ -182,6 +182,8 @@ export const poll: Command = {
 				interaction.channel) as TextChannel;
 
 			const permissions = await checkPermissions(
+				[user],
+				user,
 				[
 					"ViewChannel",
 					"SendMessages",
@@ -189,10 +191,7 @@ export const poll: Command = {
 					"AddReactions",
 					"UseApplicationCommands",
 				],
-				[user],
 				channel,
-				guild,
-				user,
 			);
 
 			if (!permissions.value) {
@@ -202,11 +201,10 @@ export const poll: Command = {
 			}
 
 			const botPermissions = await checkPermissions(
-				["ViewChannel", "SendMessages", "EmbedLinks", "AddReactions"],
 				[client.user as User],
+				null,
+				["ViewChannel", "SendMessages", "EmbedLinks", "AddReactions"],
 				channel,
-				guild,
-				user,
 			);
 
 			if (!botPermissions.value) {
