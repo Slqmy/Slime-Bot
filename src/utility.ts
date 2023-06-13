@@ -42,12 +42,15 @@ const {whiteBright, bold} = chalk;
 // ! Functions
 
 /**
- * A function to loop over a folder containing categories, which themselves contain files. The files are passed as parameters to a callback function. Information about the files is logged to the console.
+ * A function to loop over a folder containing categories, which themselves contain files. The file exports (if there are any) and the file path are passed as parameters to a callback function.
+ *
+ * Information about the files is logged to the console.
  * @param {string} path The path to the folder containing the categories. (from the src directory)
- * @param {(_exports: unknown, _filePath: string) => void | Promise<void>} callback The callback function to be called on each file.
+ * @param {(_exports: unknown, _filePath: string) => void | Promise<void>} callback The callback function to be called on each file. The function is called with two arguments: the file exports (if there are any) and the file path.
  * @returns {Promise<void>}
  * @example
  * // ./src/bot.ts.
+ * // Registering the client functions.
  * import {loopFolders} from "./functions.js";
  *
  * // ...
@@ -59,7 +62,7 @@ const {whiteBright, bold} = chalk;
  */
 export const loopFolders = async (
 	path: string,
-	callback: (_exports: unknown, _filePath: string) => void | Promise<void>,
+	callback: (exports: unknown, filePath: string) => void | Promise<void>,
 ): Promise<void> => {
 	const categories = readdirSync(`./dist/${path}/`);
 	// The path starts at src (dist) because most use cases of this function will start there anyway.
@@ -75,7 +78,7 @@ export const loopFolders = async (
 			try {
 				fileExports = await import(`../dist/${path}/${category}/${file}`);
 			} catch (error) {
-				// Sometimes files with non-standard file extensions are imported (E.g., fonts). This will create an error which can be ignored.
+				// Sometimes files with non-standard file extensions are imported (E.g., fonts). This will create an error, which can safely be ignored.
 				(!(error instanceof Error) ||
 					!error.message.startsWith("Unknown file extension ")) &&
 					console.error(error);
@@ -96,7 +99,7 @@ export const loopFolders = async (
 };
 
 /**
- * A regular expression that matches all URLs in a string. (Global and ignore case flags)
+ * A regular expression that matches all URLs in a string. +(Global and ignore case flags)
  * @example
  * // Matching all URLs in a string.
  * import {URLRegExp} from "../../../utility.js";
@@ -159,8 +162,9 @@ export const isValidURL = (urlString: string): boolean =>
  *
  * // ...
  *
- * for (const extension of ImageExtensions)
- *	if (new RegExp(`\\.${extension}($|\\/[^/]+)`, "i").test(urlString)) return true;
+ * ImageExtensions.some((extension) =>
+ *  	new RegExp(`\\.${extension}($|\\/[^/]+)`, "i").test(urlString),
+ * );
  *
  * // ...
  */
@@ -211,24 +215,20 @@ export const ImageExtensions = [
  *
  * // ...
  */
-export const isImageLink = (urlString: string): boolean => {
+export const isImageLink = (urlString: string): boolean =>
 	// For loop instead of forEach or reduce because jump target can not cross function boundary.
 	// I.e. -> "return true" in the callback passed as an argument to the forEach function will return true in the scope of that callback, not that of the whole forEach function.
 	// A regex pattern is used here instead of String.prototype.endsWith because there are certain cases where there can be more text after the file extension, as seen in the second example above.
-	for (const extension of ImageExtensions) {
-		if (new RegExp(`\\.${extension}($|\\/[^/]+)`, "i").test(urlString)) {
-			return true;
-		}
-	}
-
-	return false;
-};
+	ImageExtensions.some((extension) =>
+		new RegExp(`\\.${extension}($|\\/[^/]+)`, "i").test(urlString),
+	);
 
 /**
  * A function that inverts an objects keys and values. Used in the `⭐ Starboard`.
  * @param {{[key: string]: string}} object The object to invert the values of.
  * @returns {{[key: string]: string}} A **new** object with the inverted keys and values.
  * @example
+ * // Inverting a user object.
  * import {invertObject} from "../../../utility.js";
  *
  * let rolyPolyVole = { firstName: "roly", secondName: "Poly", thirdName: "Vole" };
@@ -272,17 +272,17 @@ export const invertObject = (object: {
  * import {logObject} from "../../../utility.js";
  *
  * const userData = {
- *	name: "rolyPolyVole",
- *	firstName: "roly",
- *	secondName: "Poly",
- *	thirdName: "Vole",
- *	stats: {
- *		coding: 10,
- *		troll: 42,
- *	intelligence: "99.999...",
- *		school: 10,
- *		discord: -50,
- *		opinion: -1000
+ *		name: "rolyPolyVole",
+ *		firstName: "roly",
+ *		secondName: "Poly",
+ *		thirdName: "Vole",
+ *		stats: {
+ *			coding: 10,
+ *			troll: 42,
+ *			intelligence: "99.999...",
+ *			school: 10,
+ *			discord: -50,
+ *			opinion: -1000,
  *		}
  * };
  *
@@ -338,11 +338,15 @@ export const logObject = (
 /**
  * A function to attempt to handle errors as best as possible.
  *
+ * If the user is just a normal user, the function will reply with a simple error prompting the user to report the error.
+ *
+ * If the user ID is one of the IDs included in `process.env.discordBotTesters`, then a more detailed error message is sent with interaction details.
+ *
  * Sends an embed with some of the error details and a prompt for the user to report the error. Used in `interactionCreate.ts`.
  * @param {Interaction} interaction The interaction that caused the error.
- * @param {BotClient} client The bot client
+ * @param {BotClient} client The bot client.
  * @param {unknown} error The error that occurred.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Replies to the interaction with an error message. (A simple message if the user is an average user, a more detailed one if the user is included in `process.env.discordBotTesters`).
  * @example
  * // Handing errors in interactionCreate.
  * import {Command} from "types";
@@ -366,15 +370,21 @@ export const handleError = async (
 	console.log();
 	console.error(error);
 
-	const {discordBotOwnerID, discordGuildID, discordSupportChannelID} =
-		process.env;
+	const {
+		discordBotOwnerID,
+		discordBotTesters,
+		discordGuildID,
+		discordSupportChannelID,
+	} = process.env;
 
 	const discordBotOwner = discordBotOwnerID
 		? await client.users.fetch(discordBotOwnerID)
 		: null;
+
 	const discordGuild = discordGuildID
 		? await client.guilds.fetch(discordGuildID)
 		: null;
+
 	const discordGuildInvite = discordGuildID
 		? [...((await discordGuild?.invites?.fetch())?.values() ?? [])].sort(
 				(a, b) =>
@@ -388,45 +398,49 @@ export const handleError = async (
 		  )[0].code
 		: null;
 
+	const {user, channel, guild, channelId, guildId} = interaction;
+
+	const isBotTester =
+		(discordBotTesters
+			?.split(",")
+			.map((id) => id.trim())
+			.includes(user.id) ??
+			false) ||
+		user.id === discordBotOwnerID;
+
 	const errorReply = {
 		embeds: [
 			{
 				title: `<:_:${Emojis.Error}> Error!`,
 				description: `\`${
 					client.user?.username as string
-				}\` has encountered an error while executing the interaction:\n\n\`\`\`css\n${error}\`\`\`\n> Interaction Custom ID / Name: \`${
-					// This is needed or else TypeScript will complain.
-					interaction.type === 2 || interaction.isAutocomplete()
-						? interaction.commandName
-						: interaction.customId
-				}\`\n\n${
-					discordGuildID && discordBotOwnerID
+				}\` has encountered an error while executing the interaction${
+					isBotTester
+						? `:\n\n\`\`\`css\n${error}\`\`\`\n> Interaction Custom ID / Name: \`${
+								// This is needed or else TypeScript will complain.
+								interaction.type === 2 || interaction.isAutocomplete()
+									? interaction.commandName
+									: interaction.customId
+						  }\``
+						: "."
+				}\n\n${
+					discordGuildID && discordBotOwnerID && user.id !== discordBotOwnerID
 						? `Please report this error to ${
-								interaction.guildId === discordGuildID
+								guildId === discordGuildID
 									? `<@${discordBotOwnerID}>`
-									: `\`${discordBotOwner?.username}\``
-						  } ${
-								interaction.guildId === discordGuildID
+									: `\`@${(discordBotOwner as User).tag}\``
+						  }${
+								guildId === discordGuildID
 									? `${
 											discordSupportChannelID
-												? `in <#${discordSupportChannelID}>`
+												? ` in <#${discordSupportChannelID}>`
 												: ""
 									  }`
-									: `on [the support server](https://www.discord.gg/${discordGuildInvite})`
+									: ` on [the support server](https://www.discord.gg/${discordGuildInvite})`
 						  }!`
 						: ""
 				}`.trim(),
-				color: 0xff0000,
-				author: {
-					name: client.user?.username as string,
-					url: "https://github.com/Slqmy/Slime-Bot",
-					icon_url: client.user?.displayAvatarURL(DisplayAvatarURLOptions),
-				},
-				footer: {
-					text: interaction.user.username,
-					icon_url: interaction.user.displayAvatarURL(DisplayAvatarURLOptions),
-				},
-				timestamp: new Date(Date.now()).toISOString(),
+				color: Colours.Transparent,
 			},
 		],
 	};
@@ -439,15 +453,12 @@ export const handleError = async (
 					Date: new Date(interaction.createdTimestamp).toISOString(),
 					TimeStamp: interaction.createdTimestamp,
 				},
-				"🏠 Guild": {Name: interaction.guild?.name, ID: interaction.guildId},
+				"🏠 Guild": {Name: guild?.name, ID: guildId},
 				"📄 Channel": {
-					Name:
-						interaction.channel instanceof TextChannel
-							? interaction.channel.name
-							: null,
-					ID: interaction.channelId,
+					Name: channel instanceof TextChannel ? channel.name : null,
+					ID: channelId,
 				},
-				"👤 User": {Tag: interaction.user.tag, ID: interaction.user.id},
+				"👤 User": {Tag: user.tag, ID: user.id},
 				"💬 Message":
 					interaction.type === InteractionType.ApplicationCommand ||
 					interaction.type === InteractionType.ApplicationCommandAutocomplete
@@ -468,17 +479,31 @@ export const handleError = async (
 	if (!(interaction instanceof AutocompleteInteraction)) {
 		try {
 			await interaction.reply(errorReply);
-			// The variable is shadowed but it doesn't matter since 'error' isn't used beyond this point anyway.
 		} catch (_error) {
 			await interaction.editReply(errorReply).catch(console.error);
 		}
 	} else {
-		await interaction.channel?.send(errorReply).catch(console.error);
+		await channel?.send(errorReply).catch(console.error);
 	}
 };
 
 /**
  * The standard, untouched console log function. Used in the refactored `console.log` function.
+ *
+ * Prints to `stdout` with newline. Multiple arguments can be passed, with the
+ * first used as the primary message and all additional used as substitution
+ * values similar to [`printf(3)`](http://man7.org/linux/man-pages/man3/printf.3.html) (the arguments are all passed to `util.format()`).
+ *
+ * ```js
+ * const count = 5;
+ * console.log('count: %d', count);
+ * // Prints: count: 5, to stdout
+ * console.log('count:', count);
+ * // Prints: count: 5, to stdout
+ * ```
+ *
+ * See `util.format()` for more information.
+ * @since v0.1.100
  * @example
  * // Used in the refactored console.log function.
  * // ./src/utility.ts.
@@ -555,13 +580,38 @@ console.log = (...data) => {
 };
 
 /**
- * Resolves a date from a given string.
- * @param {string} string The string to resolve the date of.
- * @returns {number} The resolved date.
+ * Resolves a duration from a given string.
+ * @param {string} string The string to resolve the duration of.
+ * @returns {number} The resolved duration.
  * @example
+ * // Resolving specific durations.
+ *
  * resolveDuration("In 5 days"); // Returns Date.now() + 5 * 24 * 60 * 60 * 1000.
  * resolveDuration("Now"); // Returns Date.now().
  * resolveDuration("5 min"); // Returns 5 * 60 * 1000.
+ *
+ * @example
+ * // Resolving user duration input.
+ * // Used in the /poll command. (./src/commands/utility/poll.ts)
+ * import {resolveDuration} from "../../utility.js";
+ *
+ * // ...
+ *
+ * if (duration) {
+ * 		try {
+ * 			duration = evaluate(
+ * 				`${resolveDuration(duration.replace(/( *in *)|( *ago *)/g, ""))}`,
+ * 			);
+ *			} catch (error) {
+ *				return interaction.reply(
+ *					new ErrorMessage(
+ *						`**Invalid duration provided:** ${duration}\n\n>>> ${error}`,
+ * 					),
+ * 				);
+ * 			}
+ * 		}
+ *
+ * // ...
  */
 export const resolveDuration = (string: string): number | null => {
 	if (/now/gi.test(string)) return Date.now();
@@ -608,24 +658,24 @@ export const resolveDuration = (string: string): number | null => {
 };
 
 /**
- * Checks whether an array of users have a permissions.
- * @param {string[]} permissions The permissions to check.
- * @param {GuildMember[]} users The users to check if they have the permissions.
- * @param {GuildChannel?} channel The channel to check the permissions in.
- * @param {Guild} guild The guild to check the permissions in.
- * @param {GuildMember} defaultUser The user who is considered the default user. Will display "*You* do not have the permission." if the user does not have a permission.
- * @returns {Promise<{value: boolean;permission?: string;user?: GuildMember;message?: string;}>} Object with information about the permissions.
+ * Checks whether an array of users have a list of permissions.
+ * @param {User[]} users The users to check permissions of.
+ * @param {User | null} defaultUser The user who is considered the default user. Will display "*You* do not have the permission." if the specified user does not have a permission. Pass in `null` if there is no *"default user"*.
+ * @param {(keyof typeof PermissionsBitField.Flags)[] | []} permissions The permissions to check. Pass in `[]` to use the default permission check (`ViewChannel` & `SendMessages`).
+ * @param {GuildChannel | null} channel The channel to check the permissions in, if applicable. *Pass in `null` if you're checking the permissions in the guild.*
+ * @param {Guild?} guild The guild to check the permissions in. If you specify this parameter, **don't** specify the `channel` parameter (pass in `null`), as the function prioritises checking the channel permissions.
+ * @returns {Promise<{value: boolean;permission?: keyof typeof PermissionsBitField.Flags;user?: GuildMember | User;message?: string;}>} Object with information about the permissions.
  */
 export const checkPermissions = async (
-	permissions: (keyof typeof PermissionsBitField.Flags)[],
 	users: User[],
+	defaultUser: User | null,
+	permissions: (keyof typeof PermissionsBitField.Flags)[] | [],
 	channel: GuildChannel | null,
-	guild: Guild,
-	defaultUser: User,
+	guild?: Guild,
 ): Promise<{
 	value: boolean;
-	permission?: string;
-	user?: GuildMember;
+	permission?: keyof typeof PermissionsBitField.Flags;
+	user?: GuildMember | User;
 	message?: string;
 }> => {
 	permissions = permissions.length
@@ -635,9 +685,9 @@ export const checkPermissions = async (
 	for (const permission of permissions) {
 		if (permission) {
 			for (const user of users) {
-				const guildMember = await guild.members.fetch(user.id);
+				if (guild) {
+					const guildMember = await guild.members.fetch(user.id);
 
-				if (!channel) {
 					if (
 						!guildMember.permissions.has(PermissionsBitField.Flags[permission])
 					) {
@@ -646,28 +696,30 @@ export const checkPermissions = async (
 							user: guildMember,
 							value: false,
 							message: `${
-								user.id === defaultUser.id ? "You do " : `<#${user.id}> does `
+								user.id === defaultUser?.id ? "You do " : `<#${user.id}> does `
 							}not have the \`${permission}\` permission!`,
 						};
 					}
 					continue;
 				}
 
-				const userChannelPermissions = channel.permissionsFor(user);
+				if (channel) {
+					const userChannelPermissions = channel.permissionsFor(user);
 
-				if (
-					!userChannelPermissions?.has(PermissionsBitField.Flags[permission])
-				) {
-					return {
-						permission,
-						user: guildMember,
-						value: false,
-						message: `${
-							user.id === defaultUser.id ? "You do " : `<@${user.id}> does `
-						}not have the \`${permission}\` permission in the <#${
-							channel.id
-						}> channel!`,
-					};
+					if (
+						!userChannelPermissions?.has(PermissionsBitField.Flags[permission])
+					) {
+						return {
+							permission,
+							user,
+							value: false,
+							message: `${
+								user.id === defaultUser?.id ? "You do " : `<@${user.id}> does `
+							}not have the \`${permission}\` permission in the <#${
+								channel.id
+							}> channel!`,
+						};
+					}
 				}
 			}
 		}
@@ -677,27 +729,36 @@ export const checkPermissions = async (
 };
 
 /**
- * Returns the appropriate ending to a word that is either plural or singular.
+ * Returns the appropriate suffix to a word that is either plural or singular. Only supports words which the plural ending is "s".
  * @param {number} number The string to convert.
  * @returns {"s"|""} The appropriate ending to the provided string.
- * @example
- * `You have ${count} embed${addSuffix(input)}.`;
  */
 export const addSuffix = (number: number): "s" | "" =>
 	Math.abs(number) === 1 ? "" : "s";
 
-// TODO: Add a better colour resolver function so we don't have to rely on Discord's for the PollMessage class.
+/**
+ * A simple function that extends the Discord JS `resolveColor` function, now including colours from the `Colours` enum.
+ * @param {ColorResolvable | keyof typeof Colours} colour The colour to resolve.
+ * @returns {number} The resolved colour value.
+ */
+export const resolveColour = (
+	colour: ColorResolvable | keyof typeof Colours,
+): number =>
+	typeof colour === "string" && colour in Colours
+		? Colours[colour as keyof typeof Colours]
+		: resolveColor(colour as ColorResolvable);
 
 // ! Classes
 
 /**
- * A function to easily create a simple error message.
- * @param {string} message The message to display in the embed.
- * @returns {{embeds: [APIEmbed]}} A simple embed with the error message.
+ * A class to easily create a simple error message.
  */
 export class SuccessMessage {
 	embeds: [APIEmbed];
 
+	/**
+	 * @param {string} message The message to display in the embed.
+	 */
 	constructor(message: string) {
 		this.embeds = [
 			{
@@ -709,13 +770,14 @@ export class SuccessMessage {
 }
 
 /**
- * A function to easily create a simple error message.
- * @param {string} message The message to display in the embed.
- * @returns {{embeds: [APIEmbed]}} A simple embed with the error message.
+ * A class to easily create a simple error message.
  */
 export class ErrorMessage {
 	embeds: [APIEmbed];
 
+	/**
+	 * @param {string} message The message to display in the embed.
+	 */
 	constructor(message: string) {
 		this.embeds = [
 			{
@@ -1029,7 +1091,7 @@ export class PollMessage {
 						? (() => {
 								// *Try* to resolve the colour.
 								try {
-									return resolveColor(
+									return resolveColour(
 										(data.options.getString("colour") ??
 											Colours.Blurple) as ColorResolvable,
 									);
@@ -1159,12 +1221,12 @@ export class PollMessage {
  */
 export enum Colours {
 	/**
-	 * A colour that exactly matches the colour of embed backgrounds using dark theme.
+	 * A colour that exactly matches the colour of *embed backgrounds* using **dark theme**.
 	 */
 	Transparent = 0x2b2d31,
 	/**
-	 * A colour that matches the colour of embed backgrounds using light theme.
-	 * Note: Not confirmed whether the colour actually matches, no way I'm going to enable Discord light theme to test.
+	 * A colour that matches the colour of *embed backgrounds* using **light theme**.
+	 * Note: Not confirmed whether the colour actually matches the background of embeds in light mode, no way I'm going to enable Discord light theme to test.
 	 */
 	TransparentBright = 0xf2f3f5,
 	/**
@@ -1239,7 +1301,7 @@ export const DisplayAvatarURLOptions: ImageURLOptions = {
 // ! Regular Expressions
 
 /**
- * A regular expression to match ANSI control characters.
+ * A regular expression to match `ANSI control characters`.
  *
  * This is useful for cleaning up strings that were changed in some way by the `chalk` module.
  *
