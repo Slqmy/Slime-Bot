@@ -7,15 +7,17 @@ const {bold, redBright} = chalk;
 
 export default (client: BotClient) => {
 	client.handleFonts = async () =>
-		loopFolders("../fonts", (_font, fontPath) => {
-			const fontName = /[a-z ]+(?=\..+)/i.exec(fontPath)?.[0];
+		loopFolders("../fonts", (_exports, fontFilePath) => {
+			const fontName = /[a-z ]+(?=\..+)/i.exec(fontFilePath)?.[0];
 
 			if (!fontName) {
 				console.log(
-					redBright(`\n${bold("[Fonts]")} Invalid Font Name: ${fontPath}.\n`),
+					redBright(
+						`\n${bold("[Fonts]")} Invalid Font Name: ${fontFilePath}.\n`,
+					),
 				);
 			} else {
-				registerFont(fontPath.replace(/^\.\/\./, ""), {family: fontName});
+				registerFont(fontFilePath.replace(/^\.\/\./, ""), {family: fontName});
 			}
 		});
 };
