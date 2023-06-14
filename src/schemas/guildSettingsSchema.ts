@@ -31,6 +31,10 @@ const GuildSettingsSchema = new Schema({
 	counting: {
 		channels: [{channelID: String, count: Number, latestCountAuthorID: String}],
 	},
+	levels: {
+		min: Number,
+		max: Number,
+	},
 });
 
 export default model("Guild Settings", GuildSettingsSchema, "Guild Settings");
