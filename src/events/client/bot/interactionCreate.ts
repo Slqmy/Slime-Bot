@@ -154,7 +154,7 @@ export const interactionCreate: Event<"interactionCreate"> = {
 			if (!(interaction instanceof AutocompleteInteraction)) {
 				try {
 					await interaction.reply(maintenanceReply);
-				} catch (error) {
+				} catch (_error) {
 					await interaction.editReply(maintenanceReply).catch(console.error);
 				}
 			}
