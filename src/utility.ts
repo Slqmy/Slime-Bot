@@ -21,6 +21,7 @@ import {
 	resolveColor,
 } from "discord.js";
 import {BotClient} from "types";
+import Decimal from "decimal.js";
 import chalk from "chalk";
 import {createCanvas} from "canvas";
 import {evaluate} from "mathjs";
@@ -652,7 +653,7 @@ export const resolveDuration = (string: string): number | null => {
 		}
 
 		return evaluate(string);
-	} catch (error) {
+	} catch (_error) {
 		return null;
 	}
 };
@@ -665,6 +666,33 @@ export const resolveDuration = (string: string): number | null => {
  * @param {GuildChannel | null} channel The channel to check the permissions in, if applicable. *Pass in `null` if you're checking the permissions in the guild.*
  * @param {Guild?} guild The guild to check the permissions in. If you specify this parameter, **don't** specify the `channel` parameter (pass in `null`), as the function prioritises checking the channel permissions.
  * @returns {Promise<{value: boolean;permission?: keyof typeof PermissionsBitField.Flags;user?: GuildMember | User;message?: string;}>} Object with information about the permissions.
+ * @example
+ * // Used to check the permissions of the user performing the /poll command.
+ * // ./src/commands/utility/poll.ts
+ * import {checkPermissions} from "../../utility.js";
+ *
+ * // ...
+ *
+ * const permissions = await checkPermissions(
+ *		[user],
+ *		user,
+ *		[
+ *			"ViewChannel",
+ *			"SendMessages",
+ *			"EmbedLinks",
+ *			"AddReactions",
+ *			"UseApplicationCommands",
+ *		],
+ *		channel,
+ * 	);
+ *
+ * if (!permissions.value) {
+ * 	return interaction.reply(
+ * 		new ErrorMessage(permissions.message as string),
+ * 	);
+ * }
+ *
+ * // ...
  */
 export const checkPermissions = async (
 	users: User[],
@@ -732,6 +760,23 @@ export const checkPermissions = async (
  * Returns the appropriate suffix to a word that is either plural or singular. Only supports words which the plural ending is "s".
  * @param {number} number The string to convert.
  * @returns {"s"|""} The appropriate ending to the provided string.
+ * @example
+ * // Displaying the correct suffix for the number of messages deleted.
+ * // Used in the /purge command.
+ * // ./src/commands/admin/purge.ts
+ * import {addSuffix} from "../../utility.js";
+ *
+ * // ...
+ *
+ * return interaction.editReply(
+ *  new SuccessMessage(
+ *	  `Successfully deleted \`${messages.length}\` message${addSuffix(
+ *	   messages.length,
+ *	  )}!`,
+ *	 ),
+ * );
+ *
+ * //...
  */
 export const addSuffix = (number: number): "s" | "" =>
 	Math.abs(number) === 1 ? "" : "s";
@@ -747,6 +792,43 @@ export const resolveColour = (
 	typeof colour === "string" && colour in Colours
 		? Colours[colour as keyof typeof Colours]
 		: resolveColor(colour as ColorResolvable);
+
+/**
+ * A function for the sigma notation used in math (Σ). Can be used as a summative operator.
+ * @param {string} expression The expression to summarise. You can use the `variable` argument in the expression string just like you would in normal math.
+ * @param {Decimal.Value} startValue The start value of the sum. The function will sum the expressions starting from this value, *including the value itself*, up to the end value.
+ * @param {Decimal.Value} endValue The end value of the sum. The function will stop summing the expressions after this value. This value is *included* in the sum.
+ * @param {string?} variable The name of the variable used in the expression (if any). You can leave this parameter undefined if your sum does not have a variable.
+ * @returns {Decimal} The summed expression.
+ * @example
+ * // Calculating how much XP is needed for a certain Discord level.
+ * import {sigma} from "../../utility.js";
+ *
+ * // ...
+ *
+ * const xpNeeded = sigma(`100 + 50k`, "k", 0, desiredLevel - 1).dividedBy(xpMultiplier);
+ *
+ * // ...
+ */
+export const sigma = (
+	expression: string,
+	startValue: Decimal.Value,
+	endValue: Decimal.Value,
+	variable?: string,
+) => {
+	startValue = new Decimal(startValue);
+	endValue = new Decimal(endValue);
+
+	let sum = new Decimal(0);
+
+	for (let i = startValue; i <= endValue; i = i.plus(1)) {
+		sum = sum.plus(
+			evaluate(variable ? expression.replace(variable, `(${i})`) : expression),
+		);
+	}
+
+	return sum;
+};
 
 // ! Classes
 
@@ -941,9 +1023,7 @@ export class PollMessage {
 					"█".repeat(Math.round(progressBar)) +
 					" ".repeat(Math.round(10 - progressBar))
 				}\` | ${(progressBar * 10).toFixed(2)}% (${
-					reactions
-						? reactions.map((e) => e.count - 1)[reactionIndex] ?? 0
-						: "0"
+					reactions?.map((reaction) => reaction.count - 1)[reactionIndex] ?? "0"
 				})`;
 
 				if (reactions[reactionIndex].count - 1 || totalReactions === 0) {
@@ -1095,7 +1175,7 @@ export class PollMessage {
 										(data.options.getString("colour") ??
 											Colours.Blurple) as ColorResolvable,
 									);
-								} catch (error) {}
+								} catch (_error) {}
 
 								return undefined;
 						  })()
