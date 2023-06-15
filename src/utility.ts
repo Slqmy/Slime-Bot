@@ -1418,6 +1418,9 @@ export const ANSIControlCharacterRegExp = /\x1B|\[\d{1,2}m/g;
 
 export const RegExpCharactersRegExp = /[.*+?^${}()|[\]\\]/g;
 
+export const PunctuationRegExp =
+	/[\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-./:;<=>?@[\]^_`{|}~]/g;
+
 // ! Arrays
 
 /**
