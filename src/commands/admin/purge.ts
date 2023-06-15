@@ -149,8 +149,8 @@ export const purge: Command = {
 					"🙃 Inverse the previous choices. ! Can lead to unexpected behaviour.",
 				),
 		),
-	usage: ["purge messages:number of messages to delete"],
-	examples: ["purge messages:50"],
+	usage: ["messages:number of messages to delete"],
+	examples: ["messages:50"],
 	async execute(interaction) {
 		await interaction.deferReply({ephemeral: true});
 

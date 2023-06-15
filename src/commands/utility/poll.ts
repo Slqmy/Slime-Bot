@@ -145,12 +145,13 @@ export const poll: Command = {
 				),
 		),
 	usage: [
-		"poll create message: poll question description: description of the poll question colour: the colour of the poll embed channel: channel to send the poll message to max-options: maximum number of options a user can select duration: the duration of time that server members will be able to vote on the poll anonymous: whether the poll should be sent anonymously required-role: which role should be required for people to vote on the poll ping-role: which role should the be pinged for the poll thread-name: if provided, will create a thread with that name attachments: any images/other file attachments that should be sent along with the poll ...choices: choices that server members can select - up to 10 allowed",
+		"create message:poll question",
+		"create message:poll question description:description of the poll question colour:the colour of the poll embed channel:channel to send the poll message to max-options:maximum number of options a user can select duration:the duration of time that server members will be able to vote on the poll anonymous:whether the poll should be sent anonymously required-role:which role should be required for people to vote on the poll ping-role:which role should the be pinged for the poll thread-name:if provided, will create a thread with that name attachments:any images/other file attachments that should be sent along with the poll ...choices:choices that server members can select - up to 10 allowed",
 	],
 	examples: [
-		"poll create message: 🥣 Is Cereal a Soup? description: Top scientists have been consumed by this question for years. choice-1: Yes choice-2: No",
-		"poll create message: 🤖 Is Slime Bot the best bot? description: Truly an intriguing conundrum. choice-1: Yes",
-		"poll create message: 🐈🐕 Are you a cat or a dog person? description: Which animal do you prefer? choice-1: 🐱 Cat choice-2: 🐶 Dog",
+		"create message:🥣 Is Cereal a Soup? description:Top scientists have been consumed by this question for years. choice-1:Yes choice-2:No",
+		"create message:🤖 Is Slime Bot the best bot? description:Truly an intriguing conundrum. choice-1:Yes",
+		"create message:🐈🐕 Are you a cat or a dog person? description:Which animal do you prefer? choice-1:🐱 Cat choice-2:🐶 Dog",
 	],
 	async execute(interaction, client) {
 		const {options, guild, user} = interaction;

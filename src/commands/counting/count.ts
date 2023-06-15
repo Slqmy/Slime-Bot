@@ -7,7 +7,6 @@ export const count: Command = {
 	data: new SlashCommandBuilder()
 		.setName("count")
 		.setDescription("🔢 Get the current count!"),
-	usage: ["count"],
 	async execute(interaction) {
 		const {guild} = interaction;
 

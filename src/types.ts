@@ -46,7 +46,7 @@ export type Command = {
 		| SlashCommandSubcommandsOnlyBuilder
 		| Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">;
 	description?: string;
-	usage: string[];
+	usage?: string[];
 	examples?: string[];
 	execute(
 		interaction: ChatInputCommandInteraction,
@@ -56,7 +56,6 @@ export type Command = {
 
 /**
  * Type for autocomplete commands. This basically extends base command type & adds an autocompletion function.
- * - Note that examples are required for this command type.
  */
 export type AutoCompleteCommand = {
 	data:
@@ -64,8 +63,8 @@ export type AutoCompleteCommand = {
 		| SlashCommandSubcommandsOnlyBuilder
 		| Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">;
 	description?: string;
-	usage: string[];
-	examples: string[];
+	usage?: string[];
+	examples?: string[];
 	autocomplete(
 		interaction: AutocompleteInteraction,
 		client: BotClient,
@@ -79,7 +78,7 @@ export type AutoCompleteCommand = {
 export type MessageContextMenuCommand = {
 	data: ContextMenuCommandBuilder;
 	description: string;
-	usage: string[];
+	usage?: string[];
 	execute(
 		interaction: MessageContextMenuCommandInteraction,
 		client: BotClient,
@@ -89,7 +88,7 @@ export type MessageContextMenuCommand = {
 export type UserContextMenuCommand = {
 	data: ContextMenuCommandBuilder;
 	description: string;
-	usage: string[];
+	usage?: string[];
 	execute(
 		interaction: UserContextMenuCommandInteraction,
 		client: BotClient,
@@ -102,7 +101,7 @@ export type UserContextMenuCommand = {
 export type AnyContextMenuCommand = {
 	data: ContextMenuCommandBuilder;
 	description: string;
-	usage: string[];
+	usage?: string[];
 	execute(
 		interaction:
 			| MessageContextMenuCommandInteraction

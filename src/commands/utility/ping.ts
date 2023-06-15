@@ -4,7 +4,6 @@ import {SlashCommandBuilder} from "discord.js";
 
 export const ping: Command = {
 	data: new SlashCommandBuilder().setName("ping").setDescription("🏓 Pong!"),
-	usage: ["ping"],
 	async execute(interaction, client) {
 		const message = await interaction.deferReply({
 			fetchReply: true,
