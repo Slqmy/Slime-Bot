@@ -10,7 +10,7 @@ The bot's main purpose is to provide key functionality and useful features for t
 - [ ] Fun commands (0% complete)
 - [ ] Utility commands (30% complete)
 - [ ] Server statistics channels system (0% complete)
-- [ ] Levelling system (10% complete)
+- [ ] Levelling system (40% complete)
 - [ ] YouTube upload tracker (50% complete)
   - [x] YouTube upload tracker & poster (100% complete) => `Profile picture fetcher from channel ID.`
   - [ ] YouTube upload tracker settings (0% complete) => `YouTube channel link & Discord channel link or ID input => +(YouTube channel ID & latest video ID)`
