@@ -32,8 +32,23 @@ const GuildSettingsSchema = new Schema({
 		channels: [{channelID: String, count: Number, latestCountAuthorID: String}],
 	},
 	levels: {
-		min: Number,
-		max: Number,
+		// The minimum and maximum number of XP that a user can get from a message.
+		minMessageXP: Number,
+		maxMessageXP: Number,
+		// The amount of time (in seconds) that a user needs to wait before being able to gain experience from sending messages again.
+		coolDown: Number,
+		// Different XP bonuses that the user can receive from a message.
+		punctuationBonus: Number,
+		characterBonus: Number,
+		sentenceBonus: Number,
+		lineBonus: Number,
+		paragraphBonus: Number,
+		wordBonus: Number,
+		linkBonus: Number,
+		attachmentBonus: Number,
+		// Minimum and maximum random XP.
+		minRandomXP: Number,
+		maxRandomXP: Number,
 	},
 });
 
