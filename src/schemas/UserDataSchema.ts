@@ -5,7 +5,10 @@ const UserDataSchema = new Schema({
 	// Experience is stored, and an inverse function is used to find the level.
 	experience: {
 		type: Object,
-		of: String,
+		of: {
+			experience: Number,
+			lastMessageTimestamp: Number,
+		},
 	},
 });
 
