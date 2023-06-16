@@ -1,7 +1,7 @@
 import {AttachmentBuilder, SlashCommandBuilder} from "discord.js";
-import {Image, createCanvas} from "canvas";
+import {Image, createCanvas, loadImage} from "canvas";
 import {Command} from "types";
-import {ErrorMessage} from "../../utility.js";
+import {DisplayAvatarURLOptions, ErrorMessage} from "../../utility.js";
 import UserDataSchema from "../../schemas/UserDataSchema.js";
 
 export const level: Command = {
@@ -41,8 +41,7 @@ export const level: Command = {
 			);
 		}
 
-		const levelCard = new Image();
-		levelCard.src = "../../../images/level-card.png";
+		const levelCard = await loadImage("./images/level-card.png");
 
 		// Matches the level card dimensions.
 		const canvas = createCanvas(934, 282);
@@ -50,8 +49,20 @@ export const level: Command = {
 
 		context.drawImage(levelCard, 0, 0);
 
+		const userAvatarURL = interaction.user.displayAvatarURL(
+			DisplayAvatarURLOptions,
+		);
+
+		console.log(userAvatarURL);
+
+		const userAvatarImage = await loadImage(
+			userAvatarURL.replace(/\.webp/, ".png"),
+		);
+
+		context.drawImage(userAvatarImage, 0, 0);
+
 		const attachment = new AttachmentBuilder(canvas.toBuffer(), {
-			name: `level-card-${user.tag}-${Date.now()}`,
+			name: `level-card-${user.tag}-${Date.now()}.png`,
 		});
 
 		await interaction.reply({
