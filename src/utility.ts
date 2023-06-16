@@ -1004,9 +1004,9 @@ export class PollMessage {
 		);
 
 		const canvas = createCanvas(500, 500);
-		const ctx = canvas.getContext("2d");
+		const context = canvas.getContext("2d");
 
-		ctx.save();
+		context.save();
 
 		let currentAngle = 0;
 		let reactionIndex = 0;
@@ -1027,7 +1027,7 @@ export class PollMessage {
 				})`;
 
 				if (reactions[reactionIndex].count - 1 || totalReactions === 0) {
-					ctx.restore();
+					context.restore();
 
 					const portionAngle =
 						((reactions[reactionIndex].count - 1) / totalReactions ||
@@ -1035,21 +1035,21 @@ export class PollMessage {
 						2 *
 						Math.PI;
 
-					ctx.beginPath();
+					context.beginPath();
 
-					ctx.arc(250, 250, 250, currentAngle, currentAngle + portionAngle); // Draws circle slice with radius of 250 around x: 250, y:250.
+					context.arc(250, 250, 250, currentAngle, currentAngle + portionAngle); // Draws circle slice with radius of 250 around x: 250, y:250.
 
 					currentAngle += portionAngle;
 
-					ctx.lineTo(250, 250); // Draws a line to the center of the circle.
+					context.lineTo(250, 250); // Draws a line to the center of the circle.
 
-					ctx.fillStyle = rainbowColourArray[i];
+					context.fillStyle = rainbowColourArray[i];
 
-					ctx.fill(); // Fills the circle.
+					context.fill(); // Fills the circle.
 
-					ctx.fillStyle = "#FFFFFF";
+					context.fillStyle = "#FFFFFF";
 
-					ctx.translate(250, 250); // Center the canvas around the center of the pie chart.
+					context.translate(250, 250); // Center the canvas around the center of the pie chart.
 
 					// If the option is the only option with any votes, then the option text will be displayed in the middle of the pie chart.
 					if (
@@ -1057,12 +1057,12 @@ export class PollMessage {
 						!totalReactions
 					) {
 						// Rotate the canvas so the x axis intersects the center radius of one of current sector of the pie chart.
-						ctx.rotate(currentAngle - portionAngle * 0.5);
+						context.rotate(currentAngle - portionAngle * 0.5);
 
 						// Move the canvas forward so it is now centred around the center point of the current sector of the pie chart.
-						ctx.translate(250 / 2, 0);
+						context.translate(250 / 2, 0);
 
-						ctx.rotate(-(currentAngle - portionAngle * 0.5)); // Rotate the canvas so it is now the normal rotation.
+						context.rotate(-(currentAngle - portionAngle * 0.5)); // Rotate the canvas so it is now the normal rotation.
 					}
 
 					const fontSize = Math.min(
@@ -1070,50 +1070,50 @@ export class PollMessage {
 						25,
 					);
 
-					ctx.font = `${fontSize}px "Noto Colour Emoji"`;
+					context.font = `${fontSize}px "Noto Colour Emoji"`;
 
-					const emojiLength = ctx.measureText(this.emojis[i] ?? "").width;
+					const emojiLength = context.measureText(this.emojis[i] ?? "").width;
 
-					ctx.font = `${fontSize}px "Odin Rounded Light"`;
+					context.font = `${fontSize}px "Odin Rounded Light"`;
 
 					const text = `${this.options[i]?.trim() ? " " : ""}${this.options[
 						i
 					]?.trim()} - ${(progressBar * 10).toFixed(2)}%`;
 
-					const textLength = ctx.measureText(text).width;
+					const textLength = context.measureText(text).width;
 
 					const stringLength = emojiLength + textLength;
 
-					ctx.translate(-(stringLength / 2), fontSize / 2); // Move the canvas back so the text is centred.
+					context.translate(-(stringLength / 2), fontSize / 2); // Move the canvas back so the text is centred.
 
-					ctx.font = `${fontSize}px "Noto Colour Emoji"`;
+					context.font = `${fontSize}px "Noto Colour Emoji"`;
 
-					ctx.fillText(this.emojis[i] ?? "", 0, 0); // Writes the emoji.
+					context.fillText(this.emojis[i] ?? "", 0, 0); // Writes the emoji.
 
-					ctx.translate(emojiLength, 0); // Move forward so the text is after the emoji
+					context.translate(emojiLength, 0); // Move forward so the text is after the emoji
 
-					ctx.font = `${fontSize}px "Odin Rounded Light"`;
+					context.font = `${fontSize}px "Odin Rounded Light"`;
 
-					ctx.fillText(text, 0, 0); // Writes the text.
+					context.fillText(text, 0, 0); // Writes the text.
 
-					ctx.translate(-emojiLength, 0); // Moves back the length of the emoji.
+					context.translate(-emojiLength, 0); // Moves back the length of the emoji.
 
 					// Start undoing the whole process (move the canvas forward so it is centred around the center point of the current sector of the pie chart.)
-					ctx.translate(stringLength / 2, -fontSize / 2);
+					context.translate(stringLength / 2, -fontSize / 2);
 
 					if (
 						totalReactions !== reactions[reactionIndex].count - 1 ||
 						!totalReactions
 					) {
 						// Rotate it and prepare to go back to the center of the pie chart.
-						ctx.rotate(currentAngle - portionAngle * 0.5);
+						context.rotate(currentAngle - portionAngle * 0.5);
 
-						ctx.translate(-(250 / 2), 0); // Go back to the center of the pie chart.
+						context.translate(-(250 / 2), 0); // Go back to the center of the pie chart.
 
-						ctx.rotate(-(currentAngle - portionAngle * 0.5)); // Rotate it normally.
+						context.rotate(-(currentAngle - portionAngle * 0.5)); // Rotate it normally.
 					}
 
-					ctx.translate(-250, -250); // Center the canvas around 0, 0.
+					context.translate(-250, -250); // Center the canvas around 0, 0.
 				}
 
 				reactionIndex++;
