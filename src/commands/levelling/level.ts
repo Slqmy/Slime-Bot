@@ -1,8 +1,9 @@
-import {AttachmentBuilder, SlashCommandBuilder} from "discord.js";
-import {Image, createCanvas, loadImage} from "canvas";
-import {Command} from "types";
+import {AttachmentBuilder, Guild, SlashCommandBuilder} from "discord.js";
 import {DisplayAvatarURLOptions, ErrorMessage} from "../../utility.js";
+import {Command} from "types";
+import Decimal from "decimal.js";
 import UserDataSchema from "../../schemas/UserDataSchema.js";
+import canvacord from "canvacord";
 
 export const level: Command = {
 	data: new SlashCommandBuilder()
@@ -16,8 +17,8 @@ export const level: Command = {
 				),
 		),
 	usage: ["", "user:the user to check the level of"],
-	async execute(interaction, client) {
-		const {options, guildId} = interaction;
+	async execute(interaction) {
+		const {options, guild, guildId} = interaction;
 
 		if (!guildId) {
 			return interaction.reply(
@@ -35,34 +36,36 @@ export const level: Command = {
 			);
 		}
 
-		if (!userData.experience?.[guildId]) {
-			return interaction.reply(
-				new ErrorMessage("This user has no experience in this guild!"),
-			);
-		}
+		const userExperience = userData.experience?.[guildId]?.experience ?? 0;
+		const userLevel = new Decimal(-1.5)
+			.plus(new Decimal(userExperience).plus(56.25).sqrt().dividedBy(5))
+			.floor()
+			.toNumber();
 
-		const levelCard = await loadImage("./images/level-card.png");
+		const userLevelRequiredXP = 25 * userLevel ** 2 + 75 * userLevel;
+		const nextLevelRequiredXP =
+			25 * (userLevel + 1) ** 2 + 75 * (userLevel + 1);
 
-		// Matches the level card dimensions.
-		const canvas = createCanvas(934, 282);
-		const context = canvas.getContext("2d");
+		const currentLevelProgress =
+			(userData.experience?.[guildId]?.experience ?? 0) - userLevelRequiredXP;
 
-		context.drawImage(levelCard, 0, 0);
+		const userAvatar = user.displayAvatarURL(DisplayAvatarURLOptions);
 
-		const userAvatarURL = interaction.user.displayAvatarURL(
-			DisplayAvatarURLOptions,
-		);
+		const guildMember = await (guild as Guild).members.fetch(user.id);
 
-		console.log(userAvatarURL);
+		const levelCard = await new canvacord.Rank()
+			.setAvatar(userAvatar)
+			.setLevel(userLevel)
+			.setCurrentXP(currentLevelProgress)
+			.setRequiredXP(nextLevelRequiredXP - userLevelRequiredXP)
+			.setStatus(guildMember.presence?.status ?? "online")
+			.setProgressBar("#10df50", "COLOR")
+			.setUsername(user.username)
+			.setDiscriminator(user.discriminator)
+			.build();
 
-		const userAvatarImage = await loadImage(
-			userAvatarURL.replace(/\.webp/, ".png"),
-		);
-
-		context.drawImage(userAvatarImage, 0, 0);
-
-		const attachment = new AttachmentBuilder(canvas.toBuffer(), {
-			name: `level-card-${user.tag}-${Date.now()}.png`,
+		const attachment = new AttachmentBuilder(levelCard, {
+			name: `level-card-${user.id}-${Date.now()}.png`,
 		});
 
 		await interaction.reply({
