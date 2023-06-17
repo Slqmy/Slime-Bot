@@ -1373,9 +1373,13 @@ export const DisplayAvatarURLOptions: ImageURLOptions = {
 	 */
 	forceStatic: false,
 	/**
-	 * `Size: 4096` - Make sure that the avatar is of the maximum size.
+	 * `size: 4096` - Make sure that the avatar is of the maximum size.
 	 */
 	size: 4096,
+	/**
+	 * `extension: "png"` - Make sure that the avatar image is a PNG, so that the image can be loaded and used without problems by the `canvas` module, and so that in general, it is of good quality.
+	 */
+	extension: "png",
 };
 
 // ! Regular Expressions
