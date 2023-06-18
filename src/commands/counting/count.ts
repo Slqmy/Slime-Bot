@@ -1,4 +1,4 @@
-import {Colours, ErrorMessage} from "../../utility.js";
+import {Colours, Emojis, ErrorMessage} from "../../utility.js";
 import {Command} from "types";
 import GuildDataSchema from "../../schemas/GuildDataSchema.js";
 import {SlashCommandBuilder} from "discord.js";
@@ -10,27 +10,32 @@ export const count: Command = {
 	async execute(interaction) {
 		const {guild} = interaction;
 
-		const guildSettings = await GuildDataSchema.findOne({id: guild?.id});
+		const guildData = await GuildDataSchema.findOne({id: guild?.id});
 
-		if (!guild || !guildSettings) {
+		if (!guildData) {
 			await interaction.reply(
 				new ErrorMessage("You have to be in a guild to do this!"),
 			);
-		} else if (!guildSettings.counting?.channels.length) {
+		} else if (!guildData.settings?.counting?.channels.length) {
 			await interaction.reply(
 				new ErrorMessage(
 					"This guild does not have any counting channels set up!",
 				),
 			);
 		} else {
-			const {channels} = guildSettings.counting;
+			const {channels} = guildData.settings.counting;
 
 			await interaction.reply({
 				embeds: [
 					{
 						title: "🔢 Counting Channels",
 						description: `${channels.map(
-							(channel) => `<#${channel.channelID}> - \`${channel.count}\``,
+							(channel) =>
+								`<#${channel.channelID}> - \`${channel.count}\`${
+									guildData.settings?.counting?.disabled
+										? `\n\n> <:_:${Emojis.Warning}> Note: the counting channels are currently disabled.`
+										: ""
+								}`,
 						)}`,
 						color: Colours.Transparent,
 					},
