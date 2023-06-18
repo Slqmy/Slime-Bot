@@ -1,24 +1,35 @@
 {
 	"name": "slime-bot",
-	"description": "Slime Bot is a Discord bot developed by `@🍉 Slqmy#5014` for the The Slimy Swamp [community Discord server](https://www.discord.gg/SjAGgJaCYc).\n The bot's main purpose is to provide key functionality and useful features for the server.",
-	"author": "@🍉 Slqmy#5014",
+	"description": "🌳 Slime Bot [/] is a Discord bot developed by Slqmy and rolyPolyVole for 🌌 The Slimy Swamp 🌳 community Discord server.",
+	"author": {
+		"name": "Slqmy",
+		"url": "https://github.com/Slqmy"
+	},
+	"contributors": [
+		{
+			"name": "rolyPolyVole",
+			"url": "https://github.com/rolyPolyVole"
+		}
+	],
 	"version": "1.5.0",
 	"license": "ISC",
 	"keywords": [
-		"bot",
 		"typescript",
-		"discord",
-		"discordjs",
 		"discord-bot",
 		"ts",
 		"discord-js",
-		"discordjs-bot",
 		"discordbot",
-		"discord-js-bot",
-		"ts-discord-bot",
-		"typescript-discord-bot",
-		"discordjs-v14",
+		"discord-bot-js",
+		"discord-ts",
+		"discordbotjs",
+		"discord-ts-bot",
+		"typescript-discord",
+		"discord-bot-project",
+		"ts-bot",
+		"discord-bot-typescript",
 		"discord-js-v14",
+		"discord-utility-bot",
+		"discord-api-bot",
 		"slime-bot",
 		"the-slimy-swamp",
 		"slimebot",
