@@ -55,7 +55,7 @@ interface IGuildDataSchema {
 	userExperienceData?: {
 		[key: string]: {
 			experience: number;
-			lastMessageTimestamp: string;
+			lastMessageTimestamp: number;
 		};
 	};
 }
@@ -127,7 +127,7 @@ const GuildDataSchema = new Schema<IGuildDataSchema>({
 		of: {
 			type: {
 				experience: String,
-				lastMessageTimestamp: String,
+				lastMessageTimestamp: Number,
 			},
 			required: true,
 		},
