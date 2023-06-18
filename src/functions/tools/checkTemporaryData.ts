@@ -10,7 +10,7 @@ export default (client: BotClient) => {
 		for (const temporary of tempArray) {
 			if (
 				Date.now() - (temporary.creationDate as number) >
-				(temporary.lifeSpan as number)
+				temporary.lifeSpan
 			) {
 				await TemporaryDataSchema.deleteOne({_id: temporary._id});
 
@@ -18,10 +18,10 @@ export default (client: BotClient) => {
 				switch (temporary.type) {
 					case "poll":
 						await client.channels
-							.fetch(temporary.data.channel)
+							.fetch(temporary.data.channel as string)
 							.then((channel) =>
 								(channel as TextChannel)?.messages
-									?.fetch(temporary.data.message)
+									?.fetch(temporary.data.message as string)
 									.then(async (message: Message) => {
 										await message.edit(
 											await new PollMessage().create({message}, client),

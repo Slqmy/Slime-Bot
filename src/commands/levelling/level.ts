@@ -2,7 +2,7 @@ import {AttachmentBuilder, Guild, SlashCommandBuilder} from "discord.js";
 import {DisplayAvatarURLOptions, ErrorMessage} from "../../utility.js";
 import {Command} from "types";
 import Decimal from "decimal.js";
-import UserDataSchema from "../../schemas/UserDataSchema.js";
+import GuildDataSchema from "../../schemas/GuildDataSchema.js";
 import canvacord from "canvacord";
 
 export const level: Command = {
@@ -28,15 +28,11 @@ export const level: Command = {
 
 		const user = options.getUser("user") ?? interaction.user;
 
-		const userData = await UserDataSchema.findOne({id: user.id});
+		const guildData = await GuildDataSchema.findOne({id: guildId});
 
-		if (!userData) {
-			return interaction.reply(
-				new ErrorMessage("There is no data for this user!"),
-			);
-		}
+		const userExperience =
+			guildData?.userExperienceData?.[user.id]?.experience ?? 0;
 
-		const userExperience = userData.experience?.[guildId]?.experience ?? 0;
 		const userLevel = new Decimal(-1.5)
 			.plus(new Decimal(userExperience).plus(56.25).sqrt().dividedBy(5))
 			.floor()
@@ -46,8 +42,7 @@ export const level: Command = {
 		const nextLevelRequiredXP =
 			25 * (userLevel + 1) ** 2 + 75 * (userLevel + 1);
 
-		const currentLevelProgress =
-			(userData.experience?.[guildId]?.experience ?? 0) - userLevelRequiredXP;
+		const currentLevelProgress = userExperience - userLevelRequiredXP;
 
 		const userAvatar = user.displayAvatarURL(DisplayAvatarURLOptions);
 

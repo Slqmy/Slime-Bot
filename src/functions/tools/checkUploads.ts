@@ -10,10 +10,12 @@ export default (client: BotClient) => {
 	client.checkUploads = async () => {
 		const guilds = await GuildDataSchema.find();
 
-		for (const guild of guilds) {
-			if (guild.youtube?.channels.length) {
+		for (const guildData of guilds) {
+			const {settings} = guildData;
+
+			if (settings?.youtube?.channels.length && !settings?.youtube?.disabled) {
 				let index = 0;
-				for (const channel of guild.youtube.channels) {
+				for (const channel of settings.youtube.channels) {
 					const channelData = await parser.parseURL(
 						`https://www.youtube.com/feeds/videos.xml?channel_id=${channel.youtubeChannelID}`,
 					);
@@ -34,14 +36,14 @@ export default (client: BotClient) => {
 					const latestVideoID = channelData.items[0].id.slice(9);
 
 					if (channel.latestVideoID !== latestVideoID) {
-						guild.youtube.channels[index].latestVideoID = latestVideoID;
+						settings.youtube.channels[index].latestVideoID = latestVideoID;
 
-						const discordGuild = await client.guilds.fetch(guild.id);
+						const discordGuild = await client.guilds.fetch(guildData.id);
 
 						// When the owner or an admin adds a channel, the bot would have checked that the channel is not of type CategoryChannel or type ForumChannel.
 						// That means that the assertion that the channel is of type TextChannel is safe.
 						const discordChannel = (await discordGuild.channels.fetch(
-							channel.discordChannelID as string,
+							channel.discordChannelID,
 						)) as TextChannel;
 
 						const {title, link, author, isoDate} = channelData.items[0];
@@ -82,8 +84,8 @@ export default (client: BotClient) => {
 				}
 
 				await GuildDataSchema.updateOne(
-					{id: guild.id},
-					{youtube: guild.youtube},
+					{id: guildData.id},
+					{youtube: settings.youtube},
 				);
 			}
 		}

@@ -4,11 +4,11 @@ import mongoose from "mongoose";
 
 export const guildCreate: Event<"guildCreate"> = {
 	async execute(_client, guild) {
-		const guildSettings = new GuildDataSchema({
+		const guildData = new GuildDataSchema({
 			_id: new mongoose.Types.ObjectId(),
 			id: guild.id,
 		});
 
-		await guildSettings.save();
+		await guildData.save();
 	},
 };

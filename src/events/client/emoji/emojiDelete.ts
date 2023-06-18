@@ -3,18 +3,20 @@ import GuildDataSchema from "../../../schemas/GuildDataSchema.js";
 
 export const emojiDelete: Event<"emojiDelete"> = {
 	async execute(_client, emoji) {
-		const guildSettings = await GuildDataSchema.findOne({
+		const guildData = await GuildDataSchema.findOne({
 			id: emoji.guild.id,
 		});
 
-		if (guildSettings?.starboard?.channels.length) {
-			guildSettings.starboard?.channels.forEach((starboardChannel, index) => {
-				if (starboardChannel.emojiID === emoji.id) {
-					guildSettings.starboard?.channels.splice(index, 1);
-				}
-			});
+		if (guildData?.settings?.starboard?.channels.length) {
+			guildData.settings?.starboard?.channels.forEach(
+				(starboardChannel, index) => {
+					if (starboardChannel.emoji === emoji.id) {
+						guildData.settings?.starboard?.channels.splice(index, 1);
+					}
+				},
+			);
 
-			await guildSettings.save();
+			await guildData.save();
 		}
 	},
 };

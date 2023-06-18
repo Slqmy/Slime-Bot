@@ -23,22 +23,25 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 		const {guild} = message;
 
 		if (guild) {
-			const guildSettings = await GuildDataSchema.findOne({id: guild.id});
+			const guildData = await GuildDataSchema.findOne({id: guild.id});
 
-			if (guildSettings?.starboard?.channels.length) {
+			if (
+				guildData?.settings?.starboard?.channels.length &&
+				!guildData?.settings?.starboard?.disabled
+			) {
 				const {emoji} = reaction;
 
-				for (const channel of guildSettings.starboard.channels) {
+				for (const channel of guildData.settings.starboard.channels) {
 					if (
 						// The emoji is the one of the starboard channel. (By default (AKA channel.emojiID is undefined), the starboard emoji is a star emoji ⭐)
-						(emoji.id ?? emoji.name) === (channel.emojiID ?? "⭐") &&
+						(emoji.id ?? emoji.name) === (channel.emoji ?? "⭐") &&
 						channel.channelID !== message.channelId // The message is not in the starboard channel
 					) {
 						// When the owner or an admin adds a channel, the bot would have checked that the channel is not of type CategoryChannel or type ForumChannel.
 						// That means that the assertion that the channel is of type TextChannel is safe.
 						const starboardChannel = (await (
 							await client.guilds.fetch(guild.id)
-						).channels.fetch(channel.channelID as string)) as TextChannel;
+						).channels.fetch(channel.channelID)) as TextChannel;
 
 						const starredMessageID = channel.starredMessageIDs?.[message.id];
 
@@ -93,7 +96,7 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 														(starboardEmoji as GuildEmoji).animated ? "a:" : ""
 												  }_:`
 												: ""
-										}${channel.emojiID ?? "⭐"}${emoji.id ? ">" : ""} ${
+										}${channel.emoji ?? "⭐"}${emoji.id ? ">" : ""} ${
 											reaction.count
 										} | <t:${Math.round(Date.now() / 1000)}:R> | <#${
 											message.channelId
@@ -186,7 +189,7 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 							channel.starredMessageIDs ??= {};
 							channel.starredMessageIDs[message.id] = starboardMessage.id;
 
-							const {starboard} = guildSettings;
+							const {starboard} = guildData.settings;
 							await GuildDataSchema.updateOne({id: guild.id}, {starboard});
 						}
 					}

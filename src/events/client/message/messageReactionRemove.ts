@@ -9,15 +9,16 @@ export const messageReactionRemove: Event<"messageReactionRemove"> = {
 		const {guild} = message;
 
 		if (guild) {
-			const guildSettings = await GuildDataSchema.findOne({id: guild.id});
+			const guildData = await GuildDataSchema.findOne({id: guild.id});
 
-			const starboardChannels = guildSettings?.starboard?.channels;
+			const starboardChannels = guildData?.settings?.starboard?.channels;
 
-			if (starboardChannels?.length) {
+			if (
+				starboardChannels?.length &&
+				!guildData?.settings?.starboard?.disabled
+			) {
 				for (const channel of starboardChannels) {
-					const starredMessageID = channel.starredMessageIDs[message.id] as
-						| string
-						| undefined;
+					const starredMessageID = channel.starredMessageIDs?.[message.id];
 
 					// Message sent in starboard channel.
 					if (starredMessageID) {
@@ -25,7 +26,7 @@ export const messageReactionRemove: Event<"messageReactionRemove"> = {
 						// The bot also checks that the channel is a text channel when the user inputs the ID/link, therefore the channel has to be an instance of the TextChannel type.
 						// channel.channelID has to be a string since the input requires that.
 						const starboardChannel = (await guild.channels.fetch(
-							channel.channelID as string,
+							channel.channelID,
 						)) as TextChannel;
 
 						const starredMessage = await starboardChannel.messages.fetch(
