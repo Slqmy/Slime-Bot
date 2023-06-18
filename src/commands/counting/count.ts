@@ -1,6 +1,6 @@
 import {Colours, ErrorMessage} from "../../utility.js";
 import {Command} from "types";
-import GuildSettingsSchema from "../../schemas/GuildSettingsSchema.js";
+import GuildDataSchema from "../../schemas/GuildDataSchema.js";
 import {SlashCommandBuilder} from "discord.js";
 
 export const count: Command = {
@@ -10,7 +10,7 @@ export const count: Command = {
 	async execute(interaction) {
 		const {guild} = interaction;
 
-		const guildSettings = await GuildSettingsSchema.findOne({id: guild?.id});
+		const guildSettings = await GuildDataSchema.findOne({id: guild?.id});
 
 		if (!guild || !guildSettings) {
 			await interaction.reply(

@@ -1,11 +1,11 @@
 import {Schema, model} from "mongoose";
 
-const GuildSettingsSchema = new Schema({
+const GuildDataSchema = new Schema({
 	id: String,
 	youtube: {
 		channels: [
 			{
-				youtubeChannelID: String,
+				youtubeChannelID: {type: String, required: true},
 				youtubeChannelProfilePictureURL: String,
 				latestVideoID: String,
 				discordChannelID: String,
@@ -52,4 +52,4 @@ const GuildSettingsSchema = new Schema({
 	},
 });
 
-export default model("Guild Settings", GuildSettingsSchema, "Guild Settings");
+export default model("Guild Settings", GuildDataSchema, "Guild Settings");

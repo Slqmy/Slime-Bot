@@ -2,7 +2,7 @@ import {Colours, PunctuationRegExp, URLRegExp} from "../../../utility.js";
 import {evaluate, isComplex, isResultSet} from "mathjs";
 import Decimal from "decimal.js";
 import {Event} from "types";
-import GuildSettingsSchema from "../../../schemas/GuildSettingsSchema.js";
+import GuildDataSchema from "../../../schemas/GuildDataSchema.js";
 import UserDataSchema from "../../../schemas/UserDataSchema.js";
 import mongoose from "mongoose";
 
@@ -11,7 +11,7 @@ export const messageCreate: Event<"messageCreate"> = {
 		const {guild, author, content, attachments, channel} = message;
 
 		if (guild) {
-			const guildSettings = await GuildSettingsSchema.findOne({id: guild.id});
+			const guildSettings = await GuildDataSchema.findOne({id: guild.id});
 
 			if (guildSettings?.counting?.channels.length) {
 				guildSettings.counting.channels.forEach((countingChannel, index) => {

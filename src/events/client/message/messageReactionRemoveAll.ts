@@ -1,13 +1,13 @@
 import {APIEmbed, TextChannel} from "discord.js";
 import {Event} from "types";
-import GuildSettingsSchema from "../../../schemas/GuildSettingsSchema.js";
+import GuildDataSchema from "../../../schemas/GuildDataSchema.js";
 
 export const messageReactionRemoveAll: Event<"messageReactionRemoveAll"> = {
 	async execute(client, message, reactions) {
 		const {guild} = message;
 
 		if (guild) {
-			const guildSettings = await GuildSettingsSchema.findOne({id: guild.id});
+			const guildSettings = await GuildDataSchema.findOne({id: guild.id});
 
 			const starboardChannels = guildSettings?.starboard?.channels;
 

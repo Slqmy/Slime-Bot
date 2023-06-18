@@ -231,7 +231,6 @@ export const poll: Command = {
 					_id: new mongoose.Types.ObjectId(),
 					type: "poll",
 					data: {message: embedMessage.id, channel: channel.id},
-					creationDate: Date.now(),
 					lifeSpan: Math.round(parseInt(`${duration}`)),
 				});
 
