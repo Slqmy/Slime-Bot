@@ -1,6 +1,14 @@
 import {Schema, model} from "mongoose";
 
-const TemporaryDataSchema = new Schema({
+interface ITemporaryDataSchema {
+	_id: Schema.Types.ObjectId;
+	type: string;
+	data: {[key: string]: unknown};
+	creationDate?: number;
+	lifeSpan: number;
+}
+
+const TemporaryDataSchema = new Schema<ITemporaryDataSchema>({
 	_id: Schema.Types.ObjectId,
 	type: {type: String, required: true},
 	data: {type: Object, required: true},
