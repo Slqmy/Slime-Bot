@@ -1342,6 +1342,7 @@ export enum Emojis {
 	// https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/1024px-YouTube_full-color_icon_%282017%29.svg.png
 	YouTubeLogo = "1115689277397926022",
 	Success = "1118183966705467532",
+	Warning = "1120062360531521546",
 	Error = "1118182956670914634",
 }
 
