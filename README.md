@@ -48,7 +48,7 @@ Currently, `🌳 Slime Bot [/]` is a private bot (you can't invite it to your se
 
 ## Environment Variables
 
-To run this project, you will need to add the following environment variables to your .env file. See the [.env.schema](https://github.com/Slqmy/Slime-Bot/blob/main/.env.schema) file for more information.
+To run this project, you will need to add the following environment variables to your `.env` file. See the [.env.schema](https://github.com/Slqmy/Slime-Bot/blob/main/.env.schema) file for more information.
 
 `discordBotToken`
 
