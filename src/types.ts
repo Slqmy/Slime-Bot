@@ -13,6 +13,7 @@ import {
 	StringSelectMenuInteraction,
 	UserContextMenuCommandInteraction,
 } from "discord.js";
+import mongoose, {Document} from "mongoose";
 
 /**
  * A type for the bot client. Extends the default Discord JS client class with the necessary methods used by the code.
@@ -152,3 +153,15 @@ export type MongoEvent = {
 	once?: boolean;
 	execute(...args: unknown[]): void;
 };
+
+/**
+ * A utility type for more easily asserting mongoose document types.
+ */
+export type MongooseDocument<I> = Document<unknown, NonNullable<unknown>, I> &
+	Omit<
+		I &
+			Required<{
+				_id: mongoose.Types.ObjectId;
+			}>,
+		never
+	>;
