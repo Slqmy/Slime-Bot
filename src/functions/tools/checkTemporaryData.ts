@@ -1,7 +1,9 @@
+import {BotClient, MongooseDocument} from "../../types";
 import {Message, TextChannel} from "discord.js";
-import {BotClient} from "../../types";
+import TemporaryDataSchema, {
+	ITemporaryDataSchema,
+} from "../../schemas/TemporaryDataSchema.js";
 import {PollMessage} from "../../utility.js";
-import TemporaryDataSchema from "../../schemas/TemporaryDataSchema.js";
 
 export default (client: BotClient) => {
 	client.checkTemporaryData = async () => {
@@ -15,20 +17,22 @@ export default (client: BotClient) => {
 				await TemporaryDataSchema.deleteOne({_id: temporary._id});
 
 				// More types of temporary data will possibly be used in the future
-				switch (temporary.type) {
-					case "poll":
-						await client.channels
-							.fetch(temporary.data.channel as string)
-							.then((channel) =>
-								(channel as TextChannel)?.messages
-									?.fetch(temporary.data.message as string)
-									.then(async (message: Message) => {
-										await message.edit(
-											await new PollMessage().create({message}, client),
-										);
-									}),
-							);
-						break;
+				if (temporary.type === "poll") {
+					const typedTemporaryData = temporary as MongooseDocument<
+						ITemporaryDataSchema<{channelID: string; messageID: string}>
+					>;
+
+					await client.channels
+						.fetch(typedTemporaryData.data.channelID)
+						.then((channel) =>
+							(channel as TextChannel | null)?.messages
+								?.fetch(typedTemporaryData.data.messageID)
+								.then(async (message: Message) => {
+									await message.edit(
+										await new PollMessage().create({message}, client),
+									);
+								}),
+						);
 				}
 			}
 		}
