@@ -10,6 +10,8 @@ export const messageCreate: Event<"messageCreate"> = {
 
 		const guildData = await GuildDataSchema.findOne({id: guildId});
 
+		console.log(guildData);
+
 		if (guildData) {
 			if (guildData?.settings?.counting?.channels.length) {
 				guildData.settings?.counting.channels.forEach(
@@ -55,17 +57,16 @@ export const messageCreate: Event<"messageCreate"> = {
 
 			if (!author.bot) {
 				guildData.userExperienceData ??= {};
-				guildData.userExperienceData[author.id] ??= {
-					experience: 0,
-					lastMessageTimestamp: message.createdTimestamp,
-				};
+				guildData.userExperienceData[author.id] ??= {experience: 0};
 
 				const userData = guildData.userExperienceData[author.id];
 
 				if (
-					Date.now() - (userData?.lastMessageTimestamp ?? 0) >
+					message.createdTimestamp - (userData?.lastMessageTimestamp ?? 0) >
 					(guildData.settings?.levelling?.coolDown ?? 20000)
 				) {
+					userData.lastMessageTimestamp = message.createdTimestamp;
+
 					const userExperience = userData.experience;
 
 					// Use an inverse function to calculate the user level.
@@ -176,6 +177,10 @@ export const messageCreate: Event<"messageCreate"> = {
 							],
 						});
 					}
+
+					console.log(guildData);
+
+					await GuildDataSchema.updateOne({id: guildData.id}, guildData);
 
 					await guildData.save();
 				}
