@@ -4,6 +4,7 @@ import {
 	APIEmbedFooter,
 	AttachmentBuilder,
 	AutocompleteInteraction,
+	ButtonInteraction,
 	ChatInputCommandInteraction,
 	ColorResolvable,
 	Guild,
@@ -20,7 +21,8 @@ import {
 	User,
 	resolveColor,
 } from "discord.js";
-import {BotClient} from "types";
+import {BotClient, MongooseDocument} from "types";
+import GuildDataSchema, {IGuildDataSchema} from "./schemas/GuildDataSchema.js";
 import Decimal from "decimal.js";
 import chalk from "chalk";
 import {createCanvas} from "canvas";
@@ -830,6 +832,22 @@ export const sigma = (
 	return sum;
 };
 
+export const levelToExperienceFunction = (level: Decimal | number) =>
+	new Decimal(level)
+		.toPower(2)
+		.times(25)
+		.plus(new Decimal(level).times(75))
+		.toNumber();
+
+export const experienceToLevelFunction = (experience: Decimal | number) =>
+	new Decimal(experience)
+		.plus(56.25)
+		.sqrt()
+		.dividedBy(5)
+		.minus(1.5)
+		.floor()
+		.toNumber();
+
 // ! Classes
 
 /**
@@ -1267,6 +1285,64 @@ export class PollMessage {
 				}
 			}
 		}
+		return this;
+	}
+}
+
+export class LevelLeaderboardMessage {
+	embeds: APIEmbed[];
+
+	constructor() {
+		this.embeds = [];
+	}
+
+	async create(interaction: ChatInputCommandInteraction | ButtonInteraction) {
+		const page =
+			interaction instanceof ChatInputCommandInteraction
+				? interaction.options.getNumber("page") ?? 1
+				: parseInt(
+						(
+							/\d+/.exec(
+								(interaction.message.embeds[0]?.data.footer as APIEmbedFooter)
+									.text,
+							) as RegExpExecArray
+						)[0],
+				  );
+
+		const guildData = (await GuildDataSchema.findOne({
+			id: interaction.guildId,
+		})) as MongooseDocument<IGuildDataSchema>;
+
+		const levels = guildData.userExperienceData;
+
+		let leaderboardArray: {
+			userID: string;
+			experience: number;
+			lastMessageTimestamp?: number;
+		}[] = [];
+
+		for (const key in levels) {
+			leaderboardArray.push({userID: key, ...levels[key]});
+		}
+
+		leaderboardArray = leaderboardArray.sort(
+			(a, b) => b.experience - a.experience,
+		);
+
+		const pageLevels = leaderboardArray.slice(page * 10 - 10, page * 10 + 1);
+
+		this.embeds = [
+			{
+				title: "🏆 Leaderboard",
+				description: pageLevels
+					.map(
+						(user, index) =>
+							`${index + 1} - <@${user.userID}> - ${user.experience}`,
+					)
+					.join("\n"),
+			},
+		];
+
 		return this;
 	}
 }
