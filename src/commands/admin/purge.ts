@@ -146,7 +146,7 @@ export const purge: Command = {
 			option
 				.setName("inverse")
 				.setDescription(
-					"🙃 Inverse the previous choices. ! Can lead to unexpected behaviour.",
+					"🙃 Inverse the previous choices. ❗ Can lead to unexpected behaviour.",
 				),
 		),
 	usage: ["messages:number of messages to delete"],
@@ -244,7 +244,7 @@ export const purge: Command = {
 			}
 		}
 
-		const messageNumber = options.getInteger("count", true);
+		let messageNumber = options.getInteger("count", true);
 
 		const user = options.getUser("user");
 		const match = options.getString("match");
@@ -343,7 +343,11 @@ export const purge: Command = {
 
 			messages.push(...fetchedMessages);
 
-			earliestMessageID = fetchedMessages[fetchedMessages.length - 1].id;
+			if (!fetchedMessages.length) messageNumber = 0;
+
+			if (fetchedMessages.length) {
+				earliestMessageID = fetchedMessages[fetchedMessages.length - 1].id;
+			}
 		}
 
 		messages = messages.slice(0, messageNumber);
@@ -351,11 +355,15 @@ export const purge: Command = {
 		await channel.bulkDelete(messages);
 
 		return interaction.editReply(
-			new SuccessMessage(
-				`Successfully deleted \`${messages.length}\` message${addSuffix(
-					messages.length,
-				)}!`,
-			),
+			messages.length
+				? new SuccessMessage(
+						`Successfully deleted \`${messages.length}\` message${addSuffix(
+							messages.length,
+						)}!`,
+				  )
+				: new ErrorMessage(
+						`Couldn't find any messages that matched the specified requirements within a reasonable number of messages.`,
+				  ),
 		);
 	},
 };
