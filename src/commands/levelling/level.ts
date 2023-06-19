@@ -8,7 +8,7 @@ import canvacord from "canvacord";
 export const level: Command = {
 	data: new SlashCommandBuilder()
 		.setName("level")
-		.setDescription("⏫ Check your, or another user's level.")
+		.setDescription("⏫ Check your or another user's level.")
 		.addUserOption((option) =>
 			option
 				.setName("user")
@@ -30,8 +30,23 @@ export const level: Command = {
 
 		const guildData = await GuildDataSchema.findOne({id: guildId});
 
-		const userExperience =
-			guildData?.userExperienceData?.[user.id]?.experience ?? 0;
+		const levels = guildData?.userExperienceData;
+
+		let levelArray: {
+			userID: string;
+			experience: number;
+			lastMessageTimestamp?: number;
+		}[] = [];
+
+		for (const key in levels) {
+			levelArray.push({userID: key, ...levels[key]});
+		}
+
+		levelArray = levelArray.sort((a, b) => b.experience - a.experience);
+
+		const rank = levelArray.map((data) => data.userID).indexOf(user.id) + 1;
+
+		const userExperience = levels?.[user.id]?.experience ?? 0;
 
 		const userLevel = new Decimal(-1.5)
 			.plus(new Decimal(userExperience).plus(56.25).sqrt().dividedBy(5))
@@ -52,6 +67,7 @@ export const level: Command = {
 			.setAvatar(userAvatar)
 			.setLevel(userLevel)
 			.setCurrentXP(currentLevelProgress)
+			.setRank(rank)
 			.setRequiredXP(nextLevelRequiredXP - userLevelRequiredXP)
 			.setStatus(guildMember.presence?.status ?? "online")
 			.setProgressBar("#10df50", "COLOR")
