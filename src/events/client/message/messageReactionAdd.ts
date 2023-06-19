@@ -198,13 +198,13 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 
 			const messageEmbed = reaction.message.embeds?.[0]?.data;
 
+			const emojisList = messageEmbed?.description?.match(
+				/^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟)/gm,
+			) as RegExpMatchArray;
+
 			const member = await (reaction.message.guild as Guild).members.fetch(
 				user.id,
 			);
-
-			const emojisList = (messageEmbed.description as string).match(
-				/^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟)/gm,
-			) as RegExpMatchArray;
 
 			const userReactions = reaction.message.reactions.cache.filter(
 				(reactionData) =>
