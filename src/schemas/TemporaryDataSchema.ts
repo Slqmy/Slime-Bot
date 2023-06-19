@@ -1,17 +1,17 @@
-import {Schema, model} from "mongoose";
+import mongoose, {Schema, model} from "mongoose";
 
-interface ITemporaryDataSchema {
-	_id: Schema.Types.ObjectId;
+export interface ITemporaryDataSchema<D> {
+	_id: mongoose.Types.ObjectId;
 	type: string;
-	data: {[key: string]: unknown};
+	data: D;
 	creationDate?: number;
 	lifeSpan: number;
 }
 
-const TemporaryDataSchema = new Schema<ITemporaryDataSchema>({
-	_id: Schema.Types.ObjectId,
+const TemporaryDataSchema = new Schema<ITemporaryDataSchema<unknown>>({
+	_id: mongoose.Types.ObjectId,
 	type: {type: String, required: true},
-	data: {type: Object, required: true},
+	data: Schema.Types.Mixed,
 	creationDate: {type: Number, default: Date.now},
 	lifeSpan: {type: Number, required: true},
 });
