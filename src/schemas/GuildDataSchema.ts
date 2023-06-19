@@ -1,7 +1,7 @@
-import {Schema, model} from "mongoose";
+import mongoose, {Schema, model} from "mongoose";
 
-interface IGuildDataSchema {
-	_id: Schema.Types.ObjectId;
+export interface IGuildDataSchema {
+	_id: mongoose.Types.ObjectId;
 	id: string;
 	settings?: {
 		youtube?: {
@@ -55,13 +55,14 @@ interface IGuildDataSchema {
 	userExperienceData?: {
 		[key: string]: {
 			experience: number;
-			lastMessageTimestamp: number;
+			// There could be no last message timestamp, specifically for users who haven't sent any messages yet.
+			lastMessageTimestamp?: number;
 		};
 	};
 }
 
 const GuildDataSchema = new Schema<IGuildDataSchema>({
-	_id: Schema.Types.ObjectId,
+	_id: mongoose.Types.ObjectId,
 	id: {type: String, required: true},
 	settings: {
 		youtube: {
@@ -126,8 +127,8 @@ const GuildDataSchema = new Schema<IGuildDataSchema>({
 		type: Object,
 		of: {
 			type: {
-				experience: String,
-				lastMessageTimestamp: Number,
+				experience: {type: Number, required: true},
+				lastMessageTimestamp: {type: Number},
 			},
 			required: true,
 		},
