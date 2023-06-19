@@ -13,8 +13,10 @@ import {
 	checkPermissions,
 	resolveDuration,
 } from "../../utility.js";
+import TemporaryDataSchema, {
+	ITemporaryDataSchema,
+} from "../../schemas/TemporaryDataSchema.js";
 import {Command} from "../../types";
-import TemporaryDataSchema from "../../schemas/TemporaryDataSchema.js";
 import {evaluate} from "mathjs";
 import mongoose from "mongoose";
 
@@ -227,10 +229,12 @@ export const poll: Command = {
 			}
 
 			if (duration) {
-				const temporary = new TemporaryDataSchema({
+				const temporary = new TemporaryDataSchema<
+					ITemporaryDataSchema<{channelID: string; messageID: string}>
+				>({
 					_id: new mongoose.Types.ObjectId(),
 					type: "poll",
-					data: {message: embedMessage.id, channel: channel.id},
+					data: {channelID: channel.id, messageID: embedMessage.id},
 					lifeSpan: Math.round(parseInt(`${duration}`)),
 				});
 
