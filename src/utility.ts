@@ -23,10 +23,10 @@ import {
 } from "discord.js";
 import {BotClient, MongooseDocument} from "types";
 import GuildDataSchema, {IGuildDataSchema} from "./schemas/GuildDataSchema.js";
+import {evaluate, isComplex, isResultSet} from "mathjs";
 import Decimal from "decimal.js";
 import chalk from "chalk";
 import {createCanvas} from "canvas";
-import {evaluate} from "mathjs";
 import {readdirSync} from "fs";
 
 const {whiteBright, bold} = chalk;
@@ -832,14 +832,14 @@ export const sigma = (
 	return sum;
 };
 
-export const levelToExperienceFunction = (level: Decimal | number) =>
+export const levelToExperience = (level: Decimal | number) =>
 	new Decimal(level)
 		.toPower(2)
 		.times(25)
 		.plus(new Decimal(level).times(75))
 		.toNumber();
 
-export const experienceToLevelFunction = (experience: Decimal | number) =>
+export const experienceToLevel = (experience: Decimal | number) =>
 	new Decimal(experience)
 		.plus(56.25)
 		.sqrt()
@@ -847,6 +847,35 @@ export const experienceToLevelFunction = (experience: Decimal | number) =>
 		.minus(1.5)
 		.floor()
 		.toNumber();
+
+export const getExpressionValue = (expression: string) => {
+	let evaluatedExpression;
+
+	try {
+		evaluatedExpression = evaluate(expression);
+	} catch (error) {
+		return error;
+	}
+
+	return isComplex(evaluatedExpression)
+		? evaluatedExpression.re
+		: isResultSet(evaluatedExpression)
+		? evaluatedExpression.entries[evaluatedExpression.entries.length - 1]
+		: evaluatedExpression;
+};
+
+export const limitNumber = (
+	number: number | Decimal,
+	minimumValue: number | Decimal,
+	maximumValue: number | Decimal,
+) =>
+	Math.min(
+		Math.max(
+			new Decimal(number).toNumber(),
+			new Decimal(minimumValue).toNumber(),
+		),
+		new Decimal(maximumValue).toNumber(),
+	);
 
 // ! Classes
 
@@ -897,7 +926,6 @@ export class PollMessage {
 	content: string;
 	embeds: APIEmbed[];
 	files: string[];
-
 	constructor() {
 		this.emojis = [];
 		this.options = [];
@@ -905,7 +933,6 @@ export class PollMessage {
 		this.embeds = [];
 		this.files = [];
 	}
-
 	async create(
 		data:
 			| ChatInputCommandInteraction
@@ -1291,11 +1318,9 @@ export class PollMessage {
 
 export class LevelLeaderboardMessage {
 	embeds: APIEmbed[];
-
 	constructor() {
 		this.embeds = [];
 	}
-
 	async create(interaction: ChatInputCommandInteraction | ButtonInteraction) {
 		const page =
 			interaction instanceof ChatInputCommandInteraction
@@ -1382,6 +1407,7 @@ export enum Colours {
 	Transparent = 0x2b2d31,
 	/**
 	 * A colour that matches the colour of *embed backgrounds* using **light theme**.
+	 *
 	 * Note: Not confirmed whether the colour actually matches the background of embeds in light mode, no way I'm going to enable Discord light theme to test.
 	 */
 	TransparentBright = 0xf2f3f5,
@@ -1415,11 +1441,18 @@ export enum Colours {
  * // ...
  */
 export enum Emojis {
-	// https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/1024px-YouTube_full-color_icon_%282017%29.svg.png
+	// https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg
 	YouTubeLogo = "1115689277397926022",
+	// Edited version of https://www.flaticon.com/free-icon/check_10337354
 	Success = "1118183966705467532",
+	// Edited version of https://www.flaticon.com/free-icon/exclamation_10308557
 	Warning = "1120062360531521546",
+	// https://www.flaticon.com/free-icon/cross_10308387
 	Error = "1118182956670914634",
+}
+
+export enum ImageURLs {
+	YouTubeLogo = "https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg",
 }
 
 // ! Objects
