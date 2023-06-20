@@ -13,7 +13,7 @@ export const leaderboard: Command = {
 				.setDescription("📄 The page of the leaderboard to view.")
 				.setMinValue(1),
 		),
-	async execute(interaction, client) {
+	async execute(interaction) {
 		const guildData = await GuildDataSchema.findOne({id: interaction.guildId});
 
 		if (!guildData) {
