@@ -139,7 +139,7 @@ export type SelectMenu = {
  * => Provides autocompletion for the events, which is very useful.
  * @template {keyof ClientEvents} E - Event - The name of the event.
  */
-export type Event<E extends keyof ClientEvents> = {
+export type ClientEvent<E extends keyof ClientEvents> = {
 	once?: boolean;
 	execute(client: BotClient, ...args: ClientEvents[E]): Promise<unknown>;
 };
@@ -149,7 +149,7 @@ export type ProcessEvent = {
 	execute(...args: unknown[]): void;
 };
 
-export type MongoEvent = {
+export type MongooseEvent = {
 	once?: boolean;
 	execute(...args: unknown[]): void;
 };
