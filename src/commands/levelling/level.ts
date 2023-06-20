@@ -1,7 +1,11 @@
 import {AttachmentBuilder, Guild, SlashCommandBuilder} from "discord.js";
-import {DisplayAvatarURLOptions, ErrorMessage} from "../../utility.js";
+import {
+	DisplayAvatarURLOptions,
+	ErrorMessage,
+	experienceToLevel,
+	levelToExperience,
+} from "../../utility.js";
 import {Command} from "types";
-import Decimal from "decimal.js";
 import GuildDataSchema from "../../schemas/GuildDataSchema.js";
 import canvacord from "canvacord";
 
@@ -48,14 +52,10 @@ export const level: Command = {
 
 		const userExperience = levels?.[user.id]?.experience ?? 0;
 
-		const userLevel = new Decimal(-1.5)
-			.plus(new Decimal(userExperience).plus(56.25).sqrt().dividedBy(5))
-			.floor()
-			.toNumber();
+		const userLevel = experienceToLevel(userExperience);
 
-		const userLevelRequiredXP = 25 * userLevel ** 2 + 75 * userLevel;
-		const nextLevelRequiredXP =
-			25 * (userLevel + 1) ** 2 + 75 * (userLevel + 1);
+		const userLevelRequiredXP = levelToExperience(userLevel);
+		const nextLevelRequiredXP = levelToExperience(userLevel + 1);
 
 		const currentLevelProgress = userExperience - userLevelRequiredXP;
 
