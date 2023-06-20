@@ -1,8 +1,8 @@
-import {Event} from "types";
+import {ClientEvent} from "types";
 import GuildDataSchema from "../../../schemas/GuildDataSchema.js";
 import mongoose from "mongoose";
 
-export const guildCreate: Event<"guildCreate"> = {
+export const guildCreate: ClientEvent<"guildCreate"> = {
 	async execute(_client, guild) {
 		const guildData = new GuildDataSchema({
 			_id: new mongoose.Types.ObjectId(),

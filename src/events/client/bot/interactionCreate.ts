@@ -1,8 +1,8 @@
 import {
 	AnyContextMenuCommand,
 	AutoCompleteCommand,
+	ClientEvent,
 	Command,
-	Event,
 } from "types";
 import {AutocompleteInteraction, InteractionType} from "discord.js";
 import {Emojis, handleError} from "../../../utility.js";
@@ -12,7 +12,7 @@ const {yellow, bold} = chalk;
 
 // Very basic interactionCreate file, will be worked on later.
 // TODO: Make the code better & more concise (don't repeat yourself).
-export const interactionCreate: Event<"interactionCreate"> = {
+export const interactionCreate: ClientEvent<"interactionCreate"> = {
 	async execute(client, interaction) {
 		if (process.env.debug) {
 			console.log(

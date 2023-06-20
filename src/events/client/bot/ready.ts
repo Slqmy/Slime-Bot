@@ -1,9 +1,9 @@
-import {Event} from "types";
+import {ClientEvent} from "types";
 import chalk from "chalk";
 
 const {bold, whiteBright, greenBright} = chalk;
 
-export const ready: Event<"ready"> = {
+export const ready: ClientEvent<"ready"> = {
 	once: true,
 	async execute(client) {
 		console.log(
