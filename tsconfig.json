@@ -30,7 +30,8 @@
 			"@components/*": ["components/*"]
 		},
 		"resolveJsonModule": true,
-		"sourceRoot": "./src"
+		"sourceRoot": "./src",
+		"types": ["node"]
 	},
 	"exclude": ["node_modules", "dist"],
 	"include": ["src"],
