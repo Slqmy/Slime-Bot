@@ -8,7 +8,7 @@ dotenv.config();
 
 import {loopFolders} from "./utility.js";
 
-const {discordBotToken, mongoDatabaseToken} = process.env;
+const {discordBotToken, mongoDBToken} = process.env;
 
 const client = new Client({
 	intents: Object.keys(GatewayIntentBits) as unknown as Partials[],
@@ -38,4 +38,4 @@ await client.login(discordBotToken);
 
 client.onlineTimestamp = Date.now();
 
-await connect(mongoDatabaseToken as string).catch(console.error);
+await connect(mongoDBToken as string).catch(console.error);
