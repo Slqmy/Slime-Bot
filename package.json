@@ -61,7 +61,7 @@
 		"check-eslint": "npx eslint-config-prettier ./src/utility.ts"
 	},
 	"devDependencies": {
-		"@types/node": "^20.2.6",
+		"@types/node": "^20.3.1",
 		"@typescript-eslint/eslint-plugin": "^5.59.9",
 		"@typescript-eslint/parser": "^5.59.9",
 		"eslint": "^8.42.0",
