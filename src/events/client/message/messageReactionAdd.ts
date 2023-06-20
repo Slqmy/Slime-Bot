@@ -1,10 +1,12 @@
 import {
 	APIEmbed,
 	APIEmbedField,
-	Guild,
 	GuildEmoji,
+	Role,
 	TextChannel,
+	User,
 } from "discord.js";
+import {ClientEvent, MongooseDocument} from "types";
 import {
 	Colours,
 	DisplayAvatarURLOptions,
@@ -14,34 +16,40 @@ import {
 	addSuffix,
 	isImageLink,
 } from "../../../utility.js";
-import {Event} from "types";
-import GuildDataSchema from "../../../schemas/GuildDataSchema.js";
+import GuildDataSchema, {
+	IGuildDataSchema,
+} from "../../../schemas/GuildDataSchema.js";
 
-export const messageReactionAdd: Event<"messageReactionAdd"> = {
+export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 	async execute(client, reaction, user) {
 		const {message} = reaction;
 		const {guild} = message;
 
 		if (guild) {
-			const guildData = await GuildDataSchema.findOne({id: guild.id});
+			const guildData = (await GuildDataSchema.findOne({
+				id: guild.id,
+			})) as MongooseDocument<IGuildDataSchema>;
 
+			const {settings} = guildData;
+
+			// Checking if a new starboard message needs to be added or if one needs to be updated.
 			if (
-				guildData?.settings?.starboard?.channels.length &&
-				!guildData?.settings?.starboard?.disabled
+				settings?.starboard?.channels.length &&
+				!settings.starboard.disabled
 			) {
 				const {emoji} = reaction;
 
-				for (const channel of guildData.settings.starboard.channels) {
+				for (const channel of settings.starboard.channels) {
 					if (
 						// The emoji is the one of the starboard channel. (By default (AKA channel.emojiID is undefined), the starboard emoji is a star emoji ⭐)
 						(emoji.id ?? emoji.name) === (channel.emoji ?? "⭐") &&
-						channel.channelID !== message.channelId // The message is not in the starboard channel
+						channel.channelID !== message.channelId // The message is not in the starboard channel.
 					) {
 						// When the owner or an admin adds a channel, the bot would have checked that the channel is not of type CategoryChannel or type ForumChannel.
 						// That means that the assertion that the channel is of type TextChannel is safe.
-						const starboardChannel = (await (
-							await client.guilds.fetch(guild.id)
-						).channels.fetch(channel.channelID)) as TextChannel;
+						const starboardChannel = (await client.channels.fetch(
+							channel.channelID,
+						)) as TextChannel;
 
 						const starredMessageID = channel.starredMessageIDs?.[message.id];
 
@@ -55,7 +63,7 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 
 							const {title} = starredMessage.embeds[0].data;
 
-							// Assertion necessary because the embed needs to be edited.
+							// The assertion necessary because the embed needs to be edited.
 							// Updating the reaction count.
 							(starredMessage.embeds[0].data as APIEmbed).title =
 								title?.replace(/> \d+/, `> ${reaction.count}`);
@@ -66,7 +74,7 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 						} else if (
 							// Message hasn't been sent to the starboard channel => needs to be sent.
 							// Both of these values are going to be numbers so the assertion is safe.
-							(reaction.count as number) >= (channel.emojiCount as number)
+							(reaction.count as number) >= (channel.emojiCount ?? 3)
 						) {
 							const {
 								author,
@@ -87,6 +95,9 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 							);
 
 							const starboardMessage = await starboardChannel.send({
+								content: channel.pingRoleID
+									? `<@&${channel.pingRoleID}>`
+									: undefined,
 								embeds: [
 									{
 										// If emoji.id is truthy, that means that it is a string, and therefore the starboardEmoji is a GuildEmoji, since the bot checks whenever a starboard emoji is deleted.
@@ -188,113 +199,110 @@ export const messageReactionAdd: Event<"messageReactionAdd"> = {
 
 							channel.starredMessageIDs ??= {};
 							channel.starredMessageIDs[message.id] = starboardMessage.id;
-
-							const {starboard} = guildData.settings;
-							await GuildDataSchema.updateOne({id: guild.id}, {starboard});
 						}
 					}
 				}
 			}
 
-			const messageEmbed = reaction.message.embeds?.[0]?.data;
-
-			const emojisList = messageEmbed?.description?.match(
-				/^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟)/gm,
-			) as RegExpMatchArray;
-
-			const member = await (reaction.message.guild as Guild).members.fetch(
-				user.id,
-			);
-
-			const userReactions = reaction.message.reactions.cache.filter(
-				(reactionData) =>
-					reactionData.users.cache.has(member.id) &&
-					emojisList?.includes(reactionData.emoji.name as string),
-			);
+			const messageEmbed = message.embeds?.[0]?.data;
 
 			if (
-				messageEmbed?.author?.name === `${client.user?.username} Poll - Ended`
+				messageEmbed?.author?.name ===
+					`${(client.user as User).username} Poll - Ended` ||
+				messageEmbed?.author?.name === `${(client.user as User).username} Poll`
 			) {
-				for (const messageReaction of userReactions.values()) {
-					if (messageReaction.emoji.name === reaction.emoji.name) {
-						await messageReaction.users.remove(member.id);
-					}
-				}
+				const emojisList = (messageEmbed.description as string).match(
+					/^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟)/gm,
+				) as RegExpMatchArray;
 
-				return member.send(new ErrorMessage("Sorry, this poll has ended."));
-			}
+				const member = await guild.members.fetch(user.id);
 
-			if (
-				messageEmbed.description &&
-				messageEmbed?.author?.name === `${client.user?.username} Poll` &&
-				reaction.me &&
-				[...reaction.users.cache.values()].map(
-					(reactionUser) => reactionUser.id,
-				).length !== 1 &&
-				new RegExp(`^${reaction.emoji.name}.+`, "gm").test(
-					messageEmbed.description,
-				)
-			) {
-				const requiredRole = (
-					/(`None`|(?<=<@&)\d+(?=>))/.exec(
-						(messageEmbed.fields as APIEmbedField[])[1].value,
-					) as RegExpMatchArray
-				)[0];
+				const userReactions = message.reactions.cache.filter(
+					(reactionData) =>
+						reactionData.users.cache.has(member.id) &&
+						emojisList.includes(reactionData.emoji.name as string),
+				);
 
 				if (
-					requiredRole !== "`None`" &&
-					!member.roles.cache.has(requiredRole)
+					messageEmbed.author.name ===
+					`${(client.user as User).username} Poll - Ended`
 				) {
 					for (const messageReaction of userReactions.values()) {
-						await messageReaction.users.remove(member.id);
+						if (messageReaction.emoji.name === reaction.emoji.name) {
+							await messageReaction.users.remove(member.id);
+						}
 					}
 
-					const role = (reaction.message.guild as Guild).roles.cache.get(
-						requiredRole,
-					);
-
-					return member.send(
-						new ErrorMessage(
-							`You must have the <@&${role?.id}> role to participate in this poll!`,
-						),
-					);
+					return member.send(new ErrorMessage("Sorry, this poll has ended."));
 				}
 
-				const memberReactions = [
-					...reaction.message.reactions.cache.values(),
-				].filter(
-					(messageReaction) =>
-						emojisList.includes(messageReaction.emoji.name as string) &&
-						messageReaction.users.cache.has(member.id),
-				).length;
+				if (
+					messageEmbed.author.name === `${client.user?.username} Poll` &&
+					reaction.me &&
+					[...reaction.users.cache.values()].map(
+						(reactionUser) => reactionUser.id,
+					).length !== 1 &&
+					new RegExp(`^${reaction.emoji.name}.+`, "gm").test(
+						messageEmbed.description as string,
+					)
+				) {
+					const requiredRole = (
+						/(`None`|(?<=<@&)\d+(?=>))/.exec(
+							(messageEmbed.fields as APIEmbedField[])[1].value,
+						) as RegExpMatchArray
+					)[0];
 
-				const maxOptions =
-					parseInt(
-						(
-							/(`Unlimited`|\d+)/.exec(
-								(messageEmbed.fields as APIEmbedField[])[1].value,
-							) as RegExpMatchArray
-						)[0],
-					) || 10;
+					if (
+						requiredRole !== "`None`" &&
+						!member.roles.cache.has(requiredRole)
+					) {
+						for (const messageReaction of userReactions.values()) {
+							await messageReaction.users.remove(member.id);
+						}
 
-				if (memberReactions > maxOptions) {
-					for (const userReaction of userReactions.values()) {
-						await userReaction.users.remove(member.id);
+						const role = guild.roles.cache.get(requiredRole) as Role;
+
+						return member.send(
+							new ErrorMessage(
+								`You must have the <@&${role.id}> role to participate in this poll!`,
+							),
+						);
 					}
 
-					return member.send(
-						new ErrorMessage(
-							`You may not choose more than **${maxOptions}** option${addSuffix(
-								maxOptions,
-							)} for this poll!`,
-						),
-					);
-				}
+					const memberReactions = [...message.reactions.cache.values()].filter(
+						(messageReaction) =>
+							emojisList.includes(messageReaction.emoji.name as string) &&
+							messageReaction.users.cache.has(member.id),
+					).length;
 
-				await reaction.message.edit(
-					await new PollMessage().create(reaction, client),
-				);
+					const maxOptions =
+						parseInt(
+							(
+								/(`Unlimited`|\d+)/.exec(
+									(messageEmbed.fields as APIEmbedField[])[1].value,
+								) as RegExpMatchArray
+							)[0],
+						) || 10;
+
+					if (memberReactions > maxOptions) {
+						for (const userReaction of userReactions.values()) {
+							await userReaction.users.remove(member.id);
+						}
+
+						return member.send(
+							new ErrorMessage(
+								`You may not choose more than **${maxOptions}** option${addSuffix(
+									maxOptions,
+								)} for this poll!`,
+							),
+						);
+					}
+
+					await message.edit(await new PollMessage().create(reaction, client));
+				}
 			}
+
+			await GuildDataSchema.updateOne({id: guild.id}, guildData);
 		}
 	},
 };

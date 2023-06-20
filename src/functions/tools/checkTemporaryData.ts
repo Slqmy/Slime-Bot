@@ -7,32 +7,34 @@ import {PollMessage} from "../../utility.js";
 
 export default (client: BotClient) => {
 	client.checkTemporaryData = async () => {
-		const tempArray = await TemporaryDataSchema.find();
+		const temporaryDataArray = await TemporaryDataSchema.find();
 
-		for (const temporary of tempArray) {
+		for (const temporaryData of temporaryDataArray) {
 			if (
-				Date.now() - (temporary.creationDate as number) >
-				temporary.lifeSpan
+				Date.now() - (temporaryData.creationDate as number) >
+				temporaryData.lifeSpan
 			) {
-				await TemporaryDataSchema.deleteOne({_id: temporary._id});
+				await TemporaryDataSchema.deleteOne({_id: temporaryData._id});
 
 				// More types of temporary data will possibly be used in the future
-				if (temporary.type === "poll") {
-					const typedTemporaryData = temporary as MongooseDocument<
-						ITemporaryDataSchema<{channelID: string; messageID: string}>
-					>;
+				switch (temporaryData.type) {
+					case "poll":
+						const typedTemporaryData = temporaryData as MongooseDocument<
+							ITemporaryDataSchema<{channelID: string; messageID: string}>
+						>;
 
-					await client.channels
-						.fetch(typedTemporaryData.data.channelID)
-						.then((channel) =>
-							(channel as TextChannel | null)?.messages
-								?.fetch(typedTemporaryData.data.messageID)
-								.then(async (message: Message) => {
-									await message.edit(
-										await new PollMessage().create({message}, client),
-									);
-								}),
-						);
+						await client.channels
+							.fetch(typedTemporaryData.data.channelID)
+							.then((channel) =>
+								(channel as TextChannel | null)?.messages
+									?.fetch(typedTemporaryData.data.messageID)
+									.then(async (message: Message) => {
+										await message.edit(
+											await new PollMessage().create({message}, client),
+										);
+									}),
+							);
+						break;
 				}
 			}
 		}

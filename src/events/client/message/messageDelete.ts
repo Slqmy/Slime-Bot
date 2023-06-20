@@ -1,72 +1,58 @@
-import {evaluate, isComplex, isResultSet} from "mathjs";
-import {Event} from "types";
-import GuildDataSchema from "../../../schemas/GuildDataSchema.js";
-import {invertObject} from "../../../utility.js";
+import {ClientEvent, MongooseDocument} from "types";
+import GuildDataSchema, {
+	IGuildDataSchema,
+} from "../../../schemas/GuildDataSchema.js";
+import {getExpressionValue, invertObject} from "../../../utility.js";
 
-export const messageDelete: Event<"messageDelete"> = {
+export const messageDelete: ClientEvent<"messageDelete"> = {
 	async execute(_client, message) {
 		const {guildId, channel} = message;
 
 		if (guildId) {
-			const guildData = await GuildDataSchema.findOne({id: guildId});
+			const guildData = (await GuildDataSchema.findOne({
+				id: guildId,
+			})) as MongooseDocument<IGuildDataSchema>;
 
-			if (guildData?.settings?.starboard?.channels.length) {
-				guildData.settings?.starboard.channels.forEach(
-					(starboardChannel, index) => {
-						if (starboardChannel.starredMessageIDs) {
-							// Normally - original message ID: starboard channel message ID.
-							// After inverting - starboard channel message ID: original message ID.
-							const invertedStarredMessageIDs = invertObject(
-								starboardChannel.starredMessageIDs,
-							);
+			const {settings} = guildData;
 
-							// Get the ID of the original message based on the ID of the starboard channel message.
-							const originalMessageID = invertedStarredMessageIDs[message.id];
+			// Checking if a starboard message has been deleted.
+			settings?.starboard?.channels.forEach((starboardChannel) => {
+				if (starboardChannel.starredMessageIDs) {
+					// Normally - original message ID: starboard channel message ID.
+					// After inverting - starboard channel message ID: original message ID.
+					const invertedStarredMessageIDs = invertObject(
+						starboardChannel.starredMessageIDs,
+					);
 
-							if (
-								originalMessageID // A starred message is deleted.
-							) {
-								// Delete the normal key - value pair of the original message ID - the starboard channel message ID.
-								// It has to be done this weird way because I couldn't get it to work properly any other way.
-								delete starboardChannel.starredMessageIDs[originalMessageID];
+					// Get the ID of the original message based on the ID of the starboard channel message. (If the message ID is one of the message IDs saved in saved in the starboard channel)
+					const originalMessageID = invertedStarredMessageIDs[message.id];
 
-								// TypeScript would not shut up about guildData.settings?.starboard possibly being null even though that is impossible, so there is an if check here.
-								if (guildData.settings?.starboard) {
-									guildData.settings.starboard.channels[index] =
-										starboardChannel;
-								}
-							}
-						}
-					},
-				);
+					if (
+						originalMessageID // A message in the starboard channel is deleting.
+					) {
+						// Delete the normal key - value pair of the original message ID - the starboard channel message ID.
+						// This is because this value doesn't have to be stored anymore, as the message in the starboard channel was deleted.
+						delete starboardChannel.starredMessageIDs[originalMessageID];
+					}
+				}
+			});
 
-				await guildData.save();
-			}
+			// Checking if a message in a counting channel has been deleted.
+			if (
+				message.content &&
+				settings?.counting?.channels.filter(
+					(countingChannel) => countingChannel.channelID === message.channelId,
+				).length
+			) {
+				const expressionValue = getExpressionValue(message.content);
 
-			if (message.content && guildData?.settings?.counting?.channels.length) {
-				for (const countingChannel of guildData.settings.counting.channels) {
-					if (countingChannel.channelID === message.channelId) {
-						let evaluatedExpression;
-
-						try {
-							evaluatedExpression = evaluate(message.content);
-						} catch (_error) {
-							return;
-						}
-
-						const expressionValue = isComplex(evaluatedExpression)
-							? evaluatedExpression.re
-							: isResultSet(evaluatedExpression)
-							? evaluatedExpression.entries[
-									evaluatedExpression.entries.length - 1
-							  ]
-							: evaluatedExpression;
-
+				if (!isNaN(expressionValue)) {
+					// A for loop is needed here instead of forEach() because channel.send is asynchronous.
+					for await (const countingChannel of settings.counting.channels) {
 						if (expressionValue === countingChannel.count) {
 							await channel.send({
 								content: `<@${message.author?.id}> » ${expressionValue}`,
 								allowedMentions: {
-									parse: [],
 									users: [],
 								},
 							});

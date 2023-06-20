@@ -1,5 +1,5 @@
+import {Emojis, ImageURLs} from "../../utility.js";
 import {BotClient} from "types";
-import {Emojis} from "../../utility.js";
 import GuildDataSchema from "../../schemas/GuildDataSchema.js";
 import Parser from "rss-parser";
 import {TextChannel} from "discord.js";
@@ -73,8 +73,7 @@ export default (client: BotClient) => {
 									},
 									footer: {
 										text: "YouTube",
-										icon_url:
-											"https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/1024px-YouTube_full-color_icon_%282017%29.svg.png",
+										icon_url: ImageURLs.YouTubeLogo,
 									},
 								},
 							],
@@ -83,10 +82,7 @@ export default (client: BotClient) => {
 					index++;
 				}
 
-				await GuildDataSchema.updateOne(
-					{id: guildData.id},
-					{youtube: settings.youtube},
-				);
+				await GuildDataSchema.updateOne({id: guildData.id}, guildData);
 			}
 		}
 	};

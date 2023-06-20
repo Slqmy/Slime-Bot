@@ -1,82 +1,73 @@
-import {Colours, PunctuationRegExp, URLRegExp} from "../../../utility.js";
-import {evaluate, isComplex, isResultSet} from "mathjs";
+import {ClientEvent, MongooseDocument} from "types";
+import {
+	Colours,
+	PunctuationRegExp,
+	URLRegExp,
+	experienceToLevel,
+	getExpressionValue,
+	limitNumber,
+} from "../../../utility.js";
+import GuildDataSchema, {
+	IGuildDataSchema,
+} from "../../../schemas/GuildDataSchema.js";
 import Decimal from "decimal.js";
-import {Event} from "types";
-import GuildDataSchema from "../../../schemas/GuildDataSchema.js";
 
-export const messageCreate: Event<"messageCreate"> = {
+export const messageCreate: ClientEvent<"messageCreate"> = {
 	async execute(_client, message) {
-		const {guildId, author, content, attachments, channel} = message;
+		const {guildId} = message;
 
-		const guildData = await GuildDataSchema.findOne({id: guildId});
+		if (guildId) {
+			const guildData = (await GuildDataSchema.findOne({
+				id: guildId,
+			})) as MongooseDocument<IGuildDataSchema>;
 
-		console.log(guildData);
+			const {author} = message;
 
-		if (guildData) {
-			if (guildData?.settings?.counting?.channels.length) {
-				guildData.settings?.counting.channels.forEach(
-					(countingChannel, index) => {
-						if (
-							message.channelId === countingChannel.channelID &&
-							!author.bot
-						) {
+			if (!author.bot) {
+				const {content, channel} = message;
+				const {settings} = guildData;
+
+				// Updating counting channel count.
+				const expressionValue = getExpressionValue(content);
+
+				if (!isNaN(expressionValue)) {
+					settings?.counting?.channels.forEach((countingChannel) => {
+						if (channel.id === countingChannel.channelID) {
 							const count = countingChannel.count ?? 0;
-
-							let evaluatedExpression;
-
-							try {
-								evaluatedExpression = evaluate(message.content);
-							} catch (_error) {
-								message.delete().catch(console.error);
-							}
-
-							const expressionValue = isComplex(evaluatedExpression)
-								? evaluatedExpression.re
-								: isResultSet(evaluatedExpression)
-								? evaluatedExpression.entries[
-										evaluatedExpression.entries.length - 1
-								  ]
-								: evaluatedExpression;
 
 							if (
 								author.id !== countingChannel.latestCountAuthorID &&
 								expressionValue === count + 1 &&
-								guildData.settings?.counting
+								// TypeScript thinks that guildData.settings.counting could be null, even though that's impossible here.
+								settings?.counting
 							) {
-								guildData.settings.counting.channels[index].count = count + 1;
-								guildData.settings.counting.channels[
-									index
-								].latestCountAuthorID = author.id;
+								countingChannel.count = count + 1;
+								countingChannel.latestCountAuthorID = author.id;
 							} else message.delete().catch(console.error);
 						}
-					},
-				);
+					});
+				}
 
-				await guildData.save();
-			}
-
-			if (!author.bot) {
 				guildData.userExperienceData ??= {};
-				guildData.userExperienceData[author.id] ??= {experience: 0};
+				const {userExperienceData} = guildData;
 
-				const userData = guildData.userExperienceData[author.id];
+				userExperienceData[author.id] ??= {experience: 0};
+				const userData = userExperienceData[author.id];
 
 				if (
 					message.createdTimestamp - (userData?.lastMessageTimestamp ?? 0) >
-					(guildData.settings?.levelling?.coolDown ?? 20000)
+					(settings?.levelling?.coolDown ?? 20000)
 				) {
+					const {attachments} = message;
+
 					userData.lastMessageTimestamp = message.createdTimestamp;
+					const {experience} = userData;
 
-					const userExperience = userData.experience;
+					// Use the inverse function to calculate the user level.
+					const userLevel = experienceToLevel(experience);
 
-					// Use an inverse function to calculate the user level.
-					const userLevel = new Decimal(-1.5)
-						.plus(new Decimal(userExperience).plus(56.25).sqrt().dividedBy(5))
-						.floor()
-						.toNumber();
-
-					const minRandomXP = guildData.settings?.levelling?.minRandomXP ?? 5;
-					const maxRandomXP = guildData.settings?.levelling?.maxRandomXP ?? 10;
+					const minRandomXP = settings?.levelling?.minRandomXP ?? 5;
+					const maxRandomXP = settings?.levelling?.maxRandomXP ?? 10;
 
 					const randomNumber = new Decimal(minRandomXP).plus(
 						new Decimal(maxRandomXP).minus(minRandomXP).times(Math.random()),
@@ -87,85 +78,64 @@ export const messageCreate: Event<"messageCreate"> = {
 					// 1XP per punctuation.
 					let earnedExperience: Decimal | number = new Decimal(
 						new Decimal(
-							guildData.settings?.levelling?.punctuationBonus ?? 1,
+							settings?.levelling?.punctuationBonus ?? 1,
+							// Do not use RegExp.exec() here, as it behaves weird with regular expressions with global flags.
 						).times(content.match(PunctuationRegExp)?.length ?? 0),
 					)
 						// 0.1 XP per character.
 						.plus(
-							new Decimal(
-								guildData.settings?.levelling?.characterBonus ?? 0.1,
-							).times(content.length),
+							new Decimal(settings?.levelling?.characterBonus ?? 0.1).times(
+								content.length,
+							),
 						)
 						// TODO: Get a better sentence end regex.
 						// 2 XP per sentence.
 						.plus(
-							new Decimal(
-								guildData.settings?.levelling?.sentenceBonus ?? 2,
-							).times(
+							new Decimal(settings?.levelling?.sentenceBonus ?? 2).times(
 								content.match(/[^ \r\n][^!?.\r\n]+[\w!?.]+/g)?.length ?? 0,
 							),
 						)
 						// 3 XP per newline.
 						.plus(
-							new Decimal(guildData.settings?.levelling?.lineBonus ?? 3).times(
+							new Decimal(settings?.levelling?.lineBonus ?? 3).times(
 								content.match(/\n\s*/g)?.length ?? 0,
 							),
 						)
 						// 4 XP per two newlines in a row.
 						.plus(
-							new Decimal(
-								guildData.settings?.levelling?.paragraphBonus ?? 4,
-							).times(content.match(/\s+\n\s*\n\s+/g)?.length ?? 0),
+							new Decimal(settings?.levelling?.paragraphBonus ?? 4).times(
+								content.match(/\s+\n\s*\n\s+/g)?.length ?? 0,
+							),
 						)
 						// TODO: Get a better word end regex.
 						// 0.1 XP per word.
 						.plus(
-							new Decimal(
-								guildData.settings?.levelling?.wordBonus ?? 0.1,
-							).times(content.split(/ +/g).length ?? 0),
+							new Decimal(settings?.levelling?.wordBonus ?? 0.1).times(
+								content.split(/ +/g).length ?? 0,
+							),
 						)
 						// 1 XP per link.
 						.plus(
-							new Decimal(guildData.settings?.levelling?.linkBonus ?? 1).times(
+							new Decimal(settings?.levelling?.linkBonus ?? 1).times(
+								// Do not use RegExp.exec() here, as it behaves weird with regular expressions with global flags.
 								content.match(URLRegExp)?.length ?? 0,
 							),
 						)
 						// 3 XP per attachment.
 						.plus(
-							new Decimal(
-								guildData.settings?.levelling?.attachmentBonus ?? 3,
-							).times(attachments.size),
+							new Decimal(settings?.levelling?.attachmentBonus ?? 3).times(
+								attachments.size,
+							),
 						)
 						.plus(randomNumber);
 
 					// Min 5 XP, Max 50 XP.
-					earnedExperience = (
-						earnedExperience.greaterThan(
-							guildData.settings?.levelling?.maxMessageXP ?? 50,
-						)
-							? new Decimal(guildData.settings?.levelling?.maxMessageXP ?? 50)
-							: earnedExperience.lessThan(
-									guildData.settings?.levelling?.minMessageXP ?? 5,
-							  )
-							? new Decimal(guildData.settings?.levelling?.minMessageXP ?? 5)
-							: earnedExperience
-					)
-						.round()
-						.toNumber();
+					earnedExperience = Math.round(limitNumber(earnedExperience, 5, 50));
 
-					guildData.userExperienceData[author.id].experience +=
-						earnedExperience;
+					userData.experience += earnedExperience;
 
 					// Use the inverse function again to calculate the new user level.
-					const newUserLevel = new Decimal(-1.5)
-						.plus(
-							new Decimal(userExperience + earnedExperience)
-								.plus(56.25)
-								.sqrt()
-								.dividedBy(5),
-						)
-						.floor()
-						.toNumber();
+					const newUserLevel = experienceToLevel(experience + earnedExperience);
 
 					if (newUserLevel !== userLevel) {
 						await channel.send({
@@ -177,13 +147,9 @@ export const messageCreate: Event<"messageCreate"> = {
 							],
 						});
 					}
-
-					console.log(guildData);
-
-					await GuildDataSchema.updateOne({id: guildData.id}, guildData);
-
-					await guildData.save();
 				}
+
+				await GuildDataSchema.updateOne({id: guildId}, guildData);
 			}
 		}
 	},

@@ -1,22 +1,24 @@
-import {APIEmbed, APIEmbedField, Guild, TextChannel} from "discord.js";
-import {Event} from "types";
-import GuildDataSchema from "../../../schemas/GuildDataSchema.js";
+import {APIEmbed, APIEmbedField, TextChannel, User} from "discord.js";
+import {ClientEvent, MongooseDocument} from "types";
+import GuildDataSchema, {
+	IGuildDataSchema,
+} from "../../../schemas/GuildDataSchema.js";
 import {PollMessage} from "../../../utility.js";
 
-export const messageReactionRemove: Event<"messageReactionRemove"> = {
+export const messageReactionRemove: ClientEvent<"messageReactionRemove"> = {
 	async execute(client, reaction, user) {
 		const {message} = reaction;
 		const {guild} = message;
 
 		if (guild) {
-			const guildData = await GuildDataSchema.findOne({id: guild.id});
+			const guildData = (await GuildDataSchema.findOne({
+				id: guild.id,
+			})) as MongooseDocument<IGuildDataSchema>;
 
-			const starboardChannels = guildData?.settings?.starboard?.channels;
+			const {settings} = guildData;
+			const starboardChannels = settings?.starboard?.channels;
 
-			if (
-				starboardChannels?.length &&
-				!guildData?.settings?.starboard?.disabled
-			) {
+			if (starboardChannels?.length && !settings?.starboard?.disabled) {
 				for (const channel of starboardChannels) {
 					const starredMessageID = channel.starredMessageIDs?.[message.id];
 
@@ -37,10 +39,9 @@ export const messageReactionRemove: Event<"messageReactionRemove"> = {
 
 						// Assertion necessary because the embed needs to be edited.
 						// Updating the reaction count.
-						(starredMessage.embeds[0].data as APIEmbed).title = title?.replace(
-							/> \d+/,
-							`> ${reaction.count}`,
-						);
+						(starredMessage.embeds[0].data as APIEmbed).title = (
+							title as string
+						).replace(/> \d+/, `> ${reaction.count}`);
 
 						await starredMessage.edit({
 							embeds: starredMessage.embeds,
@@ -49,54 +50,51 @@ export const messageReactionRemove: Event<"messageReactionRemove"> = {
 				}
 			}
 
-			const embed = reaction.message.embeds?.[0]?.data;
+			const embed = message.embeds?.[0]?.data;
 
-			const member = await (reaction.message.guild as Guild).members.fetch(
-				user.id,
-			);
+			if (embed?.author?.name === `${(client.user as User).username} Poll`) {
+				const member = await guild.members.fetch(user.id);
 
-			const emojis = (embed?.description ?? "").match(
-				/^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟)/gm,
-			) as RegExpMatchArray;
+				const emojis = (embed.description as string).match(
+					/^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟)/gm,
+				) as RegExpMatchArray;
 
-			if (
-				embed?.author?.name === `${client.user?.username ?? ""} Poll` &&
-				reaction.me
-			) {
-				const requiredRole = (
-					/(`None`|(?<=<@&)\d+(?=>))/.exec(
-						(embed.fields as APIEmbedField[])[1].value,
-					) as RegExpMatchArray
-				)[0];
-
-				if (
-					requiredRole === "`None`" ||
-					member?.roles?.cache?.has(requiredRole)
-				) {
-					const memberReactions = [
-						...reaction.message.reactions.cache.values(),
-					].filter(
-						(messageReaction) =>
-							emojis.includes(messageReaction.emoji.name as string) &&
-							messageReaction.users.cache.has(member?.id),
-					).length;
-
-					const maxOptions =
-						parseInt(
-							(
-								/(`Unlimited`|\d+)/.exec(
-									(embed.fields as APIEmbedField[])[1].value,
-								) as RegExpMatchArray
-							)[0],
-						) || 10;
+				if (reaction.me) {
+					const requiredRole = (
+						/(`None`|(?<=<@&)\d+(?=>))/.exec(
+							(embed.fields as APIEmbedField[])[1].value,
+						) as RegExpMatchArray
+					)[0];
 
 					if (
-						memberReactions <= maxOptions &&
-						emojis.includes(reaction.emoji.name as string)
+						requiredRole === "`None`" ||
+						member.roles.cache.has(requiredRole)
 					) {
-						await reaction.message.edit(
-							await new PollMessage().create(reaction, client),
-						);
+						const memberReactions = [
+							...message.reactions.cache.values(),
+						].filter(
+							(messageReaction) =>
+								emojis.includes(messageReaction.emoji.name as string) &&
+								messageReaction.users.cache.has(member.id),
+						).length;
+
+						const maxOptions =
+							parseInt(
+								(
+									/(`Unlimited`|\d+)/.exec(
+										(embed.fields as APIEmbedField[])[1].value,
+									) as RegExpMatchArray
+								)[0],
+							) || 10;
+
+						if (
+							memberReactions <= maxOptions &&
+							emojis.includes(reaction.emoji.name as string)
+						) {
+							await message.edit(
+								await new PollMessage().create(reaction, client),
+							);
+						}
 					}
 				}
 			}
