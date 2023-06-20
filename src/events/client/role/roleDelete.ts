@@ -11,14 +11,16 @@ export const roleDelete: Event<"roleDelete"> = {
 			id: guild.id,
 		})) as MongooseDocument<IGuildDataSchema>;
 
-		for (const channel of guildData.settings?.youtube?.channels ?? []) {
-			if (channel.pingRoleID === role.id) delete channel.pingRoleID;
-		}
+		const {settings} = guildData;
 
-		for (const channel of guildData.settings?.starboard?.channels ?? []) {
+		settings?.youtube?.channels.forEach((channel) => {
 			if (channel.pingRoleID === role.id) delete channel.pingRoleID;
-		}
+		});
 
-		await guildData.save();
+		settings?.starboard?.channels.forEach((channel) => {
+			if (channel.pingRoleID === role.id) delete channel.pingRoleID;
+		});
+
+		await GuildDataSchema.updateOne({id: guild.id}, guildData);
 	},
 };

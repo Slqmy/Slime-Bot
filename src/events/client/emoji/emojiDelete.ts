@@ -1,22 +1,24 @@
-import {Event} from "types";
-import GuildDataSchema from "../../../schemas/GuildDataSchema.js";
+import {ClientEvent, MongooseDocument} from "types";
+import GuildDataSchema, {
+	IGuildDataSchema,
+} from "../../../schemas/GuildDataSchema.js";
 
-export const emojiDelete: Event<"emojiDelete"> = {
+export const emojiDelete: ClientEvent<"emojiDelete"> = {
 	async execute(_client, emoji) {
-		const guildData = await GuildDataSchema.findOne({
+		const {guild} = emoji;
+
+		const guildData = (await GuildDataSchema.findOne({
 			id: emoji.guild.id,
+		})) as MongooseDocument<IGuildDataSchema>;
+
+		const {settings} = guildData;
+
+		settings?.starboard?.channels.forEach((starboardChannel, index) => {
+			if (starboardChannel.emoji === emoji.id) {
+				settings?.starboard?.channels.splice(index, 1);
+			}
 		});
 
-		if (guildData?.settings?.starboard?.channels.length) {
-			guildData.settings?.starboard?.channels.forEach(
-				(starboardChannel, index) => {
-					if (starboardChannel.emoji === emoji.id) {
-						guildData.settings?.starboard?.channels.splice(index, 1);
-					}
-				},
-			);
-
-			await guildData.save();
-		}
+		await GuildDataSchema.updateOne({id: guild.id}, guildData);
 	},
 };

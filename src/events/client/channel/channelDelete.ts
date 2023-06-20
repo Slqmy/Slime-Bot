@@ -1,48 +1,42 @@
-import {Event} from "types";
+import {ClientEvent, MongooseDocument} from "types";
+import GuildDataSchema, {
+	IGuildDataSchema,
+} from "../../../schemas/GuildDataSchema.js";
 import {GuildChannel} from "discord.js";
-import GuildDataSchema from "../../../schemas/GuildDataSchema.js";
 
-export const channelDelete: Event<"channelDelete"> = {
+export const channelDelete: ClientEvent<"channelDelete"> = {
 	async execute(_client, channel) {
 		if (channel instanceof GuildChannel) {
 			const {guild} = channel;
 
-			const guildData = await GuildDataSchema.findOne({id: guild.id});
+			const guildData = (await GuildDataSchema.findOne({
+				id: guild.id,
+			})) as MongooseDocument<IGuildDataSchema>;
+
+			const {settings} = guildData;
 
 			// Starboard channel deletion check.
-			if (guildData?.settings?.starboard?.channels.length) {
-				guildData.settings?.starboard.channels.forEach(
-					(starboardChannel, index) => {
-						if (starboardChannel.channelID === channel.id) {
-							guildData.settings?.starboard?.channels.splice(index, 1);
-						}
-					},
-				);
-
-				await guildData.save();
-			}
+			settings?.starboard?.channels.forEach((starboardChannel, index) => {
+				if (starboardChannel.channelID === channel.id) {
+					settings?.starboard?.channels.splice(index, 1);
+				}
+			});
 
 			// YouTube notification poster Discord channel deletion check.
-			if (guildData?.settings?.youtube?.channels.length) {
-				guildData.settings?.youtube.channels.forEach(
-					(channelSettings, index) => {
-						if (channelSettings.discordChannelID === channel.id) {
-							guildData.settings?.youtube?.channels.splice(index, 1);
-						}
-					},
-				);
-			}
+			settings?.youtube?.channels.forEach((channelSettings, index) => {
+				if (channelSettings.discordChannelID === channel.id) {
+					settings?.youtube?.channels.splice(index, 1);
+				}
+			});
 
 			// Counting channel deletion check.
-			if (guildData?.settings?.counting?.channels.length) {
-				guildData.settings?.counting.channels.forEach(
-					(countingChannel, index) => {
-						if (countingChannel.channelID === channel.id) {
-							guildData.settings?.counting?.channels.splice(index, 1);
-						}
-					},
-				);
-			}
+			settings?.counting?.channels.forEach((countingChannel, index) => {
+				if (countingChannel.channelID === channel.id) {
+					settings?.counting?.channels.splice(index, 1);
+				}
+			});
+
+			await GuildDataSchema.updateOne({id: guild.id}, guildData);
 		}
 	},
 };
