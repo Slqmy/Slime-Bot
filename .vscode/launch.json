@@ -7,9 +7,18 @@
 		{
 			"type": "node",
 			"request": "launch",
-			"name": "Debug Slime Bot",
-			"skipFiles": ["<node_internals>/**"],
-			"program": "${file}"
+			"name": "🐛 Debug Slime Bot",
+			"program": "${workspaceFolder}/dist/bot.js",
+			"runtimeArgs": ["--nolazy", "--experimental-modules"],
+			"internalConsoleOptions": "openOnSessionStart",
+			"outFiles": ["${workspaceFolder}/dist/**/*.js"],
+			"sourceMaps": true,
+			"resolveSourceMapLocations": [
+				"${workspaceFolder}/*",
+				"!**/node_modules/*"
+			],
+			"envFile": "${workspaceFolder}/.env",
+			"skipFiles": ["<node_internals>/**"]
 		}
 	]
 }
