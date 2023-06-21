@@ -1,6 +1,7 @@
 import {ClientEvent, MongooseDocument} from "types";
 import {
 	Colours,
+	Emojis,
 	NewLineRegExp,
 	ParagraphRegExp,
 	PunctuationRegExp,
@@ -143,7 +144,7 @@ export const messageCreate: ClientEvent<"messageCreate"> = {
 						await channel.send({
 							embeds: [
 								{
-									description: `Congratulations, <@${author.id}>, You have reached level ${newUserLevel}!`,
+									description: `${Emojis.Slime} Congratulations, <@${author.id}>, You have reached level ${newUserLevel}!`,
 									color: Colours.Transparent,
 								},
 							],
