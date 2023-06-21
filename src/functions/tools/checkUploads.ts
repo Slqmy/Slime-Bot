@@ -50,7 +50,7 @@ export default (client: BotClient) => {
 						const {pingRoleID} = channel;
 
 						await discordChannel.send({
-							content: `<:_:${Emojis.YouTubeLogo}> ${
+							content: `${Emojis.YouTubeLogo} ${
 								pingRoleID
 									? pingRoleID === "everyone"
 										? "@everyone "

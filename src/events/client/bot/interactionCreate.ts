@@ -138,7 +138,7 @@ export const interactionCreate: ClientEvent<"interactionCreate"> = {
 			const maintenanceReply = {
 				embeds: [
 					{
-						title: `<:_:${Emojis.Error}> Maintenance Mode!`,
+						title: `${Emojis.Error} Maintenance Mode!`,
 						description: `Sorry, <@${
 							client.user?.id
 						}> is currently in maintenance mode!\n\n<@${
