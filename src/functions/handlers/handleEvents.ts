@@ -1,4 +1,4 @@
-import {BotClient, Event, MongoEvent, ProcessEvent} from "types";
+import {BotClient, ClientEvent, MongooseEvent, ProcessEvent} from "types";
 import {ClientEvents} from "discord.js";
 import {loopFolders} from "../../utility.js";
 import mongoose from "mongoose";
@@ -8,7 +8,7 @@ const {connection} = mongoose;
 export default (client: BotClient) => {
 	client.handleEvents = async () => {
 		await loopFolders("events/client", (event, filePath) => {
-			const typedEvent = event as Event<keyof ClientEvents>;
+			const typedEvent = event as ClientEvent<keyof ClientEvents>;
 			const eventName = /\w+(?=\.js)/.exec(filePath)?.[0] as keyof ClientEvents;
 
 			if (typedEvent.once) {
@@ -36,7 +36,7 @@ export default (client: BotClient) => {
 		});
 
 		await loopFolders("events/mongo", (event, filePath) => {
-			const typedEvent = event as MongoEvent;
+			const typedEvent = event as MongooseEvent;
 			const eventName = /\w+(?=\.js)/.exec(filePath)?.[0] as string;
 
 			if (typedEvent.once) {
