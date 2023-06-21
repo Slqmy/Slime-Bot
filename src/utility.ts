@@ -52,11 +52,11 @@ const {whiteBright, bold} = chalk;
 // ! Functions
 
 /**
- * A function to loop over a folder containing categories, which themselves contain files. The file exports (if there are any) and the file path are passed as parameters to a callback function.
+ * A function to loop over a folder containing categories, which themselves contain files. The file exports (if there are any), the file name and the file path are passed as parameters to a callback function.
  *
  * Information about the files is logged to the console.
  * @param {string} path The path to the folder containing the categories. (from the src directory)
- * @param {(_exports: unknown, _filePath: string) => void | Promise<void>} callback The callback function to be called on each file. The function is called with two arguments: the file exports (if there are any) and the file path.
+ * @param {(exports: unknown, fileName: string, filePath: string) => void | Promise<void>} callback The callback function to be called on each file. The function is called with three arguments: the file exports (if there are any), the file name and the file path.
  * @returns {Promise<void>}
  * @example
  * // ./src/bot.ts.
@@ -66,13 +66,17 @@ const {whiteBright, bold} = chalk;
  * // ...
  *
  * // Loops through the client functions folder and calls the functions.
- * await loopFolders("functions", (callback) => (callback as Function)(client));
+ * await loopFolders("functions", (callback) => (callback as (client: SlimeBotClient) => void)(client));
  *
  * // ...
  */
 export const loopFolders = async (
 	path: string,
-	callback: (exports: unknown, filePath: string) => void | Promise<void>,
+	callback: (
+		exports: unknown,
+		fileName: string,
+		filePath: string,
+	) => void | Promise<void>,
 ): Promise<void> => {
 	const categories = readdirSync(`./dist/${path}/`);
 	// The path starts at src (dist) because most use cases of this function will start there anyway.
@@ -102,6 +106,7 @@ export const loopFolders = async (
 
 			await callback(
 				exportKeys.length === 1 ? fileExports[exportKeys[0]] : fileExports,
+				(/[\s\S]+(?=\.[^.]+$)/i.exec(file) as RegExpMatchArray)[0],
 				`./dist/${path}/${category}/${file}`,
 			);
 		}
