@@ -1571,6 +1571,8 @@ export enum Emojis {
 	Forward = "<:_:1121126580991819867>",
 	// https://www.flaticon.com/free-icon/fast-forward_190517
 	LastPage = "<:_:1121126592480022568>",
+	// https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/dd/Slime_JE3_BE2.png/revision/latest?cb=20191230025505
+	Slime = "<:_:1112438888359792640>",
 }
 
 export enum EmojiIDs {
@@ -1582,6 +1584,7 @@ export enum EmojiIDs {
 	Back = "1121126569906290708",
 	Forward = "1121126580991819867",
 	LastPage = "1121126592480022568",
+	Slime = "1112438888359792640",
 }
 
 export enum ImageURLs {
