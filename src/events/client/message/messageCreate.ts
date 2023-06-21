@@ -1,8 +1,12 @@
 import {ClientEvent, MongooseDocument} from "types";
 import {
 	Colours,
+	NewLineRegExp,
+	ParagraphRegExp,
 	PunctuationRegExp,
+	SentenceRegExp,
 	URLRegExp,
+	WordRegExp,
 	experienceToLevel,
 	getExpressionValue,
 	limitNumber,
@@ -88,30 +92,28 @@ export const messageCreate: ClientEvent<"messageCreate"> = {
 								content.length,
 							),
 						)
-						// TODO: Get a better sentence end regex.
 						// 2 XP per sentence.
 						.plus(
 							new Decimal(settings?.levelling?.sentenceBonus ?? 2).times(
-								content.match(/[^ \r\n][^!?.\r\n]+[\w!?.]+/g)?.length ?? 0,
+								content.match(SentenceRegExp)?.length ?? 0,
 							),
 						)
 						// 3 XP per newline.
 						.plus(
 							new Decimal(settings?.levelling?.lineBonus ?? 3).times(
-								content.match(/\n\s*/g)?.length ?? 0,
+								content.match(NewLineRegExp)?.length ?? 0,
 							),
 						)
 						// 4 XP per two newlines in a row.
 						.plus(
 							new Decimal(settings?.levelling?.paragraphBonus ?? 4).times(
-								content.match(/\s+\n\s*\n\s+/g)?.length ?? 0,
+								content.match(ParagraphRegExp)?.length ?? 0,
 							),
 						)
-						// TODO: Get a better word end regex.
 						// 0.1 XP per word.
 						.plus(
 							new Decimal(settings?.levelling?.wordBonus ?? 0.1).times(
-								content.split(/ +/g).length ?? 0,
+								content.split(WordRegExp).length ?? 0,
 							),
 						)
 						// 1 XP per link.
