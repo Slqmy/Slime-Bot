@@ -1,5 +1,6 @@
 import {
 	ErrorMessage,
+	GuildInviteRegExp,
 	RegExpCharactersRegExp,
 	SuccessMessage,
 	URLRegExp,
@@ -278,9 +279,6 @@ export const purge: Command = {
 			? new RegExp(noMatch?.replace(RegExpCharactersRegExp, "\\$&"))
 			: null;
 
-		const guildInviteRegExp =
-			/(https?:\/\/)?(www.)?(discord.(gg|io|me|li)|discordapp.com\/invite)\/[^\s/]+?(?=\s)/;
-
 		let messages: Message[] = [];
 		let earliestMessageID: string | undefined;
 
@@ -322,9 +320,9 @@ export const purge: Command = {
 						(bot === true && author.bot)) &&
 					(containGuildInvites === null ||
 						(containGuildInvites === false &&
-							!guildInviteRegExp.test(content)) ||
+							!GuildInviteRegExp.test(content)) ||
 						(containGuildInvites === true &&
-							guildInviteRegExp.test(content))) &&
+							GuildInviteRegExp.test(content))) &&
 					(containLinks === null ||
 						(!containLinks && !URLRegExp.test(content)) ||
 						(containLinks && URLRegExp.test(content))) &&
