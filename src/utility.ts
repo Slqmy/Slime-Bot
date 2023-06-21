@@ -2,9 +2,13 @@ import {
 	APIEmbed,
 	APIEmbedField,
 	APIEmbedFooter,
+	APISelectMenuOption,
+	ActionRowBuilder,
 	AttachmentBuilder,
 	AutocompleteInteraction,
+	ButtonBuilder,
 	ButtonInteraction,
+	ButtonStyle,
 	ChatInputCommandInteraction,
 	ColorResolvable,
 	Guild,
@@ -17,16 +21,19 @@ import {
 	MessageReaction,
 	PartialMessageReaction,
 	PermissionsBitField,
+	SelectMenuComponentOptionData,
+	StringSelectMenuBuilder,
 	TextChannel,
 	User,
 	resolveColor,
 } from "discord.js";
 import {BotClient, MongooseDocument} from "types";
 import GuildDataSchema, {IGuildDataSchema} from "./schemas/GuildDataSchema.js";
+import {createCanvas, loadImage} from "canvas";
 import {evaluate, isComplex, isResultSet} from "mathjs";
 import Decimal from "decimal.js";
+import canvacord from "canvacord";
 import chalk from "chalk";
-import {createCanvas} from "canvas";
 import {readdirSync} from "fs";
 
 const {whiteBright, bold} = chalk;
@@ -414,7 +421,7 @@ export const handleError = async (
 	const errorReply = {
 		embeds: [
 			{
-				title: `<:_:${Emojis.Error}> Error!`,
+				title: `${Emojis.Error} Error!`,
 				description: `\`${
 					client.user?.username as string
 				}\` has encountered an error while executing the interaction${
@@ -866,15 +873,15 @@ export const getExpressionValue = (expression: string) => {
 
 export const limitNumber = (
 	number: number | Decimal,
-	minimumValue: number | Decimal,
-	maximumValue: number | Decimal,
+	minimumValue?: number | Decimal,
+	maximumValue?: number | Decimal,
 ) =>
 	Math.min(
 		Math.max(
 			new Decimal(number).toNumber(),
-			new Decimal(minimumValue).toNumber(),
+			new Decimal(minimumValue ?? -Infinity).toNumber(),
 		),
-		new Decimal(maximumValue).toNumber(),
+		new Decimal(maximumValue ?? Infinity).toNumber(),
 	);
 
 // ! Classes
@@ -891,7 +898,7 @@ export class SuccessMessage {
 	constructor(message: string) {
 		this.embeds = [
 			{
-				description: `<:_:${Emojis.Success}> ${message}`,
+				description: `${Emojis.Success} ${message}`,
 				color: Colours.Transparent,
 			},
 		];
@@ -910,7 +917,7 @@ export class ErrorMessage {
 	constructor(message: string) {
 		this.embeds = [
 			{
-				description: `<:_:${Emojis.Error}> ${message}`,
+				description: `${Emojis.Error} ${message}`,
 				color: Colours.Transparent,
 			},
 		];
@@ -923,13 +930,12 @@ export class ErrorMessage {
 export class PollMessage {
 	emojis: (string | null)[];
 	options: (string | null)[];
-	content: string;
+	content?: string;
 	embeds: APIEmbed[];
 	files: string[];
 	constructor() {
 		this.emojis = [];
 		this.options = [];
-		this.content = "";
 		this.embeds = [];
 		this.files = [];
 	}
@@ -1317,12 +1323,25 @@ export class PollMessage {
 }
 
 export class LevelLeaderboardMessage {
-	embeds: APIEmbed[];
-	constructor() {
-		this.embeds = [];
-	}
-	async create(interaction: ChatInputCommandInteraction | ButtonInteraction) {
-		const page =
+	files?: [AttachmentBuilder];
+	embeds?: [APIEmbed];
+	components?: [
+		ActionRowBuilder<ButtonBuilder>,
+		ActionRowBuilder<StringSelectMenuBuilder>,
+	];
+	async create(
+		interaction: ChatInputCommandInteraction | ButtonInteraction,
+		pageFunction?: (page: number) => number,
+	) {
+		if (!interaction.guild) {
+			this.embeds = new ErrorMessage(
+				"You must be in a guild to do this!",
+			).embeds;
+
+			return this;
+		}
+
+		let pageNumber =
 			interaction instanceof ChatInputCommandInteraction
 				? interaction.options.getNumber("page") ?? 1
 				: parseInt(
@@ -1333,6 +1352,8 @@ export class LevelLeaderboardMessage {
 							) as RegExpExecArray
 						)[0],
 				  );
+
+		if (pageFunction) pageNumber = pageFunction(pageNumber);
 
 		const guildData = (await GuildDataSchema.findOne({
 			id: interaction.guildId,
@@ -1354,19 +1375,112 @@ export class LevelLeaderboardMessage {
 			(a, b) => b.experience - a.experience,
 		);
 
-		const pageLevels = leaderboardArray.slice(page * 10 - 10, page * 10 + 1);
+		const pageLevels = leaderboardArray.slice(
+			pageNumber * 10 - 10,
+			pageNumber * 10 + 1,
+		);
 
-		this.embeds = [
-			{
-				title: "🏆 Leaderboard",
-				description: pageLevels
-					.map(
-						(user, index) =>
-							`${index + 1} - <@${user.userID}> - ${user.experience}`,
-					)
-					.join("\n"),
-			},
-		];
+		if (!pageLevels.length) {
+			if (pageNumber === 1) {
+				this.embeds = new ErrorMessage(
+					"This server has no levelling data!",
+				).embeds;
+				return this;
+			}
+
+			this.embeds = new ErrorMessage("Please enter a valid page!").embeds;
+			return this;
+		}
+
+		const canvas = createCanvas(934, leaderboardArray.length * 282);
+		const context = canvas.getContext("2d");
+
+		let index = 0;
+
+		// For loop with an index has to be used here because of async functions.
+		for (const user of pageLevels) {
+			const guildMember = await interaction.guild.members.fetch(user.userID);
+
+			const userAvatar = guildMember.displayAvatarURL(DisplayAvatarURLOptions);
+
+			const userLevel = experienceToLevel(user.experience);
+
+			const userLevelRequiredXP = levelToExperience(userLevel);
+
+			const currentLevelProgress = user.experience - userLevelRequiredXP;
+
+			const nextLevelRequiredXP = levelToExperience(userLevel + 1);
+
+			const levelCard = await new canvacord.Rank()
+				.setAvatar(userAvatar)
+				.setLevel(userLevel)
+				.setCurrentXP(currentLevelProgress)
+				.setRank(1)
+				.setRequiredXP(nextLevelRequiredXP - userLevelRequiredXP)
+				.setStatus(guildMember.presence?.status ?? "online")
+				.setProgressBar("#10df50", "COLOR")
+				.setUsername(guildMember.user.username)
+				.setDiscriminator(guildMember.user.discriminator)
+				.build();
+
+			context.drawImage(await loadImage(levelCard), 0, index * 282);
+
+			index++;
+		}
+
+		const attachment = new AttachmentBuilder(await canvas.toBuffer(), {
+			name: `leaderboard-${pageNumber}-${Date.now()}.png`,
+		});
+
+		let selectMenuOptions: (
+			| SelectMenuComponentOptionData
+			| APISelectMenuOption
+		)[] = [];
+
+		while (selectMenuOptions.length < 25) {
+			selectMenuOptions.push({
+				label: `${pageNumber + 13 - selectMenuOptions.length}`,
+				value: `${pageNumber + 13 - selectMenuOptions.length}`,
+			});
+		}
+
+		selectMenuOptions = selectMenuOptions
+			.filter((choice) => parseInt(choice.value) > 0)
+			.reverse()
+			.slice(0, Math.ceil(pageLevels.length / 10));
+
+		this.files = [attachment];
+
+		if (Math.floor(pageLevels.length / 10) > 1 || true) {
+			this.components = [
+				new ActionRowBuilder<ButtonBuilder>().setComponents(
+					new ButtonBuilder()
+						.setCustomId("leaderboardFirstPage")
+						.setEmoji(Emojis.FirstPage)
+						.setStyle(ButtonStyle.Secondary),
+					new ButtonBuilder()
+						.setCustomId("leaderboardBack")
+						.setEmoji(Emojis.Back)
+						.setStyle(ButtonStyle.Secondary),
+					new ButtonBuilder()
+						.setCustomId("leaderboardForward")
+						.setEmoji(Emojis.Forward)
+						.setStyle(ButtonStyle.Secondary),
+					new ButtonBuilder()
+						.setCustomId("leaderboardLastPage")
+						.setEmoji(Emojis.LastPage)
+						.setStyle(ButtonStyle.Secondary),
+				),
+				new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+					new StringSelectMenuBuilder()
+						.setCustomId("leaderboardPageSelection")
+						.setPlaceholder("Select a Page")
+						.setOptions(...selectMenuOptions)
+						.setMaxValues(1)
+						.setMinValues(1),
+				),
+			];
+		}
 
 		return this;
 	}
@@ -1432,7 +1546,7 @@ export enum Colours {
  *		// The emoji name does not need to be in between the two colons.
  *		// In fact, basically any string can go there.
  *		// To save space, just use underscores.
- *		content: `<:_:${Emojis.YouTubeLogo}:> ${pingRoleID ? `<@&${pingRoleID}> ` : ""}${title} has uploaded a new video!`,
+ *		content: `${Emojis.YouTubeLogo} ${pingRoleID ? `<@&${pingRoleID}> ` : ""}${title} has uploaded a new video!`,
  *		embeds: [
  *	// ...
  * ]
@@ -1442,13 +1556,32 @@ export enum Colours {
  */
 export enum Emojis {
 	// https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg
-	YouTubeLogo = "1115689277397926022",
+	YouTubeLogo = "<:_:1115689277397926022>",
 	// Edited version of https://www.flaticon.com/free-icon/check_10337354
-	Success = "1118183966705467532",
+	Success = "<:_:1118183966705467532>",
 	// Edited version of https://www.flaticon.com/free-icon/exclamation_10308557
-	Warning = "1120062360531521546",
+	Warning = "<:_:1120062360531521546>",
 	// https://www.flaticon.com/free-icon/cross_10308387
+	Error = "<:_:1118182956670914634>",
+	// https://www.flaticon.com/free-icon/rewind_190518
+	FirstPage = "<:_:1121126417770500096>",
+	// https://www.flaticon.com/free-icon/previous_189260
+	Back = "<:_:1121126569906290708>",
+	// https://www.flaticon.com/free-icon/previous_189259
+	Forward = "<:_:1121126580991819867>",
+	// https://www.flaticon.com/free-icon/fast-forward_190517
+	LastPage = "<:_:1121126592480022568>",
+}
+
+export enum EmojiIDs {
+	YouTubeLogo = "1115689277397926022",
+	Success = "1118183966705467532",
+	Warning = "1120062360531521546",
 	Error = "1118182956670914634",
+	FirstPage = "1121126417770500096",
+	Back = "1121126569906290708",
+	Forward = "1121126580991819867",
+	LastPage = "1121126592480022568",
 }
 
 export enum ImageURLs {
@@ -1534,6 +1667,21 @@ export const RegExpCharactersRegExp = /[.*+?^${}()|[\]\\]/g;
 
 export const PunctuationRegExp =
 	/[\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-./:;<=>?@[\]^_`{|}~]/g;
+
+export const GuildInviteRegExp =
+	/(https?:\/\/)?(www\.)?(dis((cord(\.(((media|com)\/invite)|gg)\/[a-z]{7,}|((io|me(?!dia))\/[a-z\d-+=_[\]{}\\|:"<>?!@#$%^&*()~`]{3,})(?!\/servers)(?=\S\S))|app\.(com|net)\/invite\/[a-z]{7,})|board\.(org)\/server\/(\s*\S\s*){2,})|top\.gg\/servers)(\/[-a-z\d%_.~+]*)*(\?[;&a-z\d%_.~+=-]*)?(#[-a-z\d_]*)?/gi;
+
+export const SentenceRegExp =
+	/((…|\.{3,})(?=\s([^A-Z]|I))|([.…?!](?=\S))|\d+\.\d+\.{3,}|[^….?!\n]|(?<=\d+|(?<=\s|(\n|\r\n|\r|\n\r|\u000C|\u0085|\u2028|\u2029|\u001E)(Dr|Esq|Hon|Jr|Mr|Mrs|Ms|Messrs|Mmes|Msgr|Prof|Rev|Rt\. Hon|Sr|St)))\.|[.…?!](?=”|"|'|\)))+([….?!]+|$|(\)|”|"|')(?=(\n|\r\n|\r|\n\r|\u000C|\u0085|\u2028|\u2029|\u001E)))(?=\s|(\n|\r\n|\r|\n\r|\u000C|\u0085|\u2028|\u2029|\u001E)|$)(\s\(([^….?!]|(\n|\r\n|\r|\n\r|\u000C|\u0085|\u2028|\u2029|\u001E))+\))?/g;
+
+export const WordRegExp =
+	/[a-z-’']+(?= |\n|$|[\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-./:;<=>?@[\]^_`{|}~])/gi;
+
+export const NewLineRegExp =
+	/(\n|\r\n|\r|\n\r|\u000C|\u0085|\u2028|\u2029|\u001E|\s)+/g;
+
+export const ParagraphRegExp =
+	/(\s*(\n|\r\n|\r|\n\r|\u000C|\u0085|\u2028|\u2029|\u001E)\s*){2,}/g;
 
 // ! Arrays
 
