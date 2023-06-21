@@ -7,26 +7,25 @@ const {connection} = mongoose;
 
 export default (client: BotClient) => {
 	client.handleEvents = async () => {
-		await loopFolders("events/client", (event, filePath) => {
+		await loopFolders("events/client", (event, eventName) => {
+			const typedEventName = eventName as keyof ClientEvents;
 			const typedEvent = event as ClientEvent<keyof ClientEvents>;
-			const eventName = /\w+(?=\.js)/.exec(filePath)?.[0] as keyof ClientEvents;
 
 			if (typedEvent.once) {
 				client.once(
-					eventName,
+					typedEventName,
 					(...args) => typedEvent.execute(client, ...args) as Promise<void>,
 				);
 			} else {
 				client.on(
-					eventName,
+					typedEventName,
 					(...args) => typedEvent.execute(client, ...args) as Promise<void>,
 				);
 			}
 		});
 
-		await loopFolders("events/process", (event, filePath) => {
+		await loopFolders("events/process", (event, eventName) => {
 			const typedEvent = event as ProcessEvent;
-			const eventName = /\w+(?=\.js)/.exec(filePath)?.[0] as string;
 
 			if (typedEvent.once) {
 				process.once(eventName, typedEvent.execute);
@@ -35,9 +34,8 @@ export default (client: BotClient) => {
 			}
 		});
 
-		await loopFolders("events/mongo", (event, filePath) => {
+		await loopFolders("events/mongo", (event, eventName) => {
 			const typedEvent = event as MongooseEvent;
-			const eventName = /\w+(?=\.js)/.exec(filePath)?.[0] as string;
 
 			if (typedEvent.once) {
 				connection.once(eventName, typedEvent.execute);

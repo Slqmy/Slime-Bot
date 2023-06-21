@@ -114,12 +114,10 @@ export type AnyContextMenuCommand = {
 export type AnyCommand = Command | AutoCompleteCommand | AnyContextMenuCommand;
 
 export type Button = {
-	name: string;
 	execute(interaction: ButtonInteraction, client: BotClient): Promise<void>;
 };
 
 export type Modal = {
-	name: string;
 	execute(
 		interaction: ModalSubmitInteraction,
 		client: BotClient,
@@ -127,7 +125,6 @@ export type Modal = {
 };
 
 export type SelectMenu = {
-	name: string;
 	execute(
 		interaction: StringSelectMenuInteraction,
 		client: BotClient,

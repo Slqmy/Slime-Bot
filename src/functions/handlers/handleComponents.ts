@@ -5,22 +5,22 @@ export default (client: BotClient) => {
 	client.handleComponents = async () => {
 		const {buttons, selectMenus, modals} = client;
 
-		await loopFolders("components/buttons", (button) => {
+		await loopFolders("components/buttons", (button, customID) => {
 			const typedButton = button as Button;
 
-			buttons.set(typedButton.name, typedButton);
+			buttons.set(customID, typedButton);
 		});
 
-		await loopFolders("components/selectMenus", (menu) => {
+		await loopFolders("components/selectMenus", (menu, customID) => {
 			const typedMenu = menu as SelectMenu;
 
-			selectMenus.set(typedMenu.name, typedMenu);
+			selectMenus.set(customID, typedMenu);
 		});
 
-		await loopFolders("components/modals", (modal) => {
+		await loopFolders("components/modals", (modal, customID) => {
 			const typedModal = modal as Modal;
 
-			modals.set(typedModal.name, typedModal);
+			modals.set(customID, typedModal);
 		});
 	};
 };
