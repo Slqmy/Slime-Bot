@@ -1403,7 +1403,7 @@ export class LevelLeaderboardMessage {
 		let index = 0;
 
 		// For loop with an index has to be used here because of async functions.
-		for (const user of pageLevels) {
+		for await (const user of pageLevels) {
 			const guildMember = await interaction.guild.members.fetch(user.userID);
 
 			const userAvatar = guildMember.displayAvatarURL(DisplayAvatarURLOptions);
@@ -1420,7 +1420,7 @@ export class LevelLeaderboardMessage {
 				.setAvatar(userAvatar)
 				.setLevel(userLevel)
 				.setCurrentXP(currentLevelProgress)
-				.setRank(1)
+				.setRank(index + 1)
 				.setRequiredXP(nextLevelRequiredXP - userLevelRequiredXP)
 				.setStatus(guildMember.presence?.status ?? "online")
 				.setProgressBar("#10df50", "COLOR")
