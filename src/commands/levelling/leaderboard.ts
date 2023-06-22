@@ -13,7 +13,7 @@ export const leaderboard: Command = {
 				.setDescription("📄 The page of the leaderboard to view.")
 				.setMinValue(1),
 		),
-	async execute(interaction) {
+	async execute(interaction, client) {
 		const guildData = await GuildDataSchema.findOne({id: interaction.guildId});
 
 		if (!guildData) {
@@ -23,7 +23,7 @@ export const leaderboard: Command = {
 		}
 
 		return interaction.reply(
-			await new LevelLeaderboardMessage().create(interaction),
+			await new LevelLeaderboardMessage().create(interaction, client),
 		);
 	},
 };

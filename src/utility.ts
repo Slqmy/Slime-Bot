@@ -1192,18 +1192,14 @@ export class PollMessage {
 			}
 		}
 
-		let attachment: AttachmentBuilder | string = new AttachmentBuilder(
-			canvas.toBuffer(),
-			{
-				name: `slime-bot-poll-${new Date(Date.now())}.png`,
-			},
-		);
-
-		const user = await client.users.fetch("500690028960284672");
-
-		const message: Message = await user.send({files: [attachment]});
-
-		attachment = [...message.attachments.values()][0].url;
+		const thumbnailURL: string = (
+			await attachmentsToURLs(
+				client,
+				new AttachmentBuilder(canvas.toBuffer(), {
+					name: `slime-bot-poll-${new Date(Date.now())}.png`,
+				}),
+			)
+		)[0];
 
 		const pollTime =
 			timestamp || pollEnd
@@ -1320,7 +1316,7 @@ export class PollMessage {
 						inline: true,
 					},
 				],
-				thumbnail: {url: attachment},
+				thumbnail: {url: thumbnailURL},
 			},
 		];
 
