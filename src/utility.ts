@@ -21,7 +21,6 @@ import {
 	MessageReaction,
 	PartialMessageReaction,
 	PermissionsBitField,
-	SelectMenuComponentOptionData,
 	StringSelectMenuBuilder,
 	TextChannel,
 	User,
@@ -889,6 +888,23 @@ export const limitNumber = (
 		new Decimal(maximumValue ?? Infinity).toNumber(),
 	);
 
+export const attachmentsToURLs = async (
+	client: BotClient,
+	...files: AttachmentBuilder[]
+) => {
+	if (!process.env.discordBotOwnerID) {
+		throw new Error(
+			"You must specify a Discord Bot owner to be able to use this function!",
+		);
+	}
+
+	const botOwner = await client.users.fetch(process.env.discordBotOwnerID);
+
+	const message = await botOwner.send({files});
+
+	return message.attachments.map((attachment) => attachment.url);
+};
+
 // ! Classes
 
 /**
@@ -1329,58 +1345,60 @@ export class PollMessage {
 
 export class LevelLeaderboardMessage {
 	files?: [AttachmentBuilder];
-	embeds?: [APIEmbed];
+	embeds: [APIEmbed];
 	components?: [
 		ActionRowBuilder<ButtonBuilder>,
 		ActionRowBuilder<StringSelectMenuBuilder>,
 	];
+	constructor() {
+		this.embeds = [{}];
+	}
 	async create(
 		interaction: ChatInputCommandInteraction | ButtonInteraction,
-		pageFunction?: (page: number) => number,
+		client: BotClient,
+		pageFunction: (page: number) => number = (page) => page,
 	) {
-		if (!interaction.guild) {
+		const {guild} = interaction;
+
+		if (!guild) {
 			this.embeds = new ErrorMessage(
-				"You must be in a guild to do this!",
+				"You must be in a guild to run this command!",
 			).embeds;
 
 			return this;
 		}
 
-		let pageNumber =
+		const pageNumber =
 			interaction instanceof ChatInputCommandInteraction
 				? interaction.options.getNumber("page") ?? 1
-				: parseInt(
-						(
-							/\d+/.exec(
-								(interaction.message.embeds[0]?.data.footer as APIEmbedFooter)
-									.text,
-							) as RegExpExecArray
-						)[0],
+				: pageFunction(
+						parseInt(
+							(
+								/\d+/.exec(
+									(interaction.message.embeds[0].data.footer as APIEmbedFooter)
+										.text,
+								) as RegExpExecArray
+							)[0],
+						),
 				  );
-
-		if (pageFunction) pageNumber = pageFunction(pageNumber);
 
 		const guildData = (await GuildDataSchema.findOne({
 			id: interaction.guildId,
 		})) as MongooseDocument<IGuildDataSchema>;
 
-		const levels = guildData.userExperienceData;
+		let guildMembers = [...guild.members.cache.values()];
 
-		let leaderboardArray: {
-			userID: string;
-			experience: number;
-			lastMessageTimestamp?: number;
-		}[] = [];
+		const {userExperienceData} = guildData;
 
-		for (const key in levels) {
-			leaderboardArray.push({userID: key, ...levels[key]});
-		}
+		guildMembers = guildMembers
+			.filter((member) => !member.user.bot)
+			.sort(
+				(a, b) =>
+					(userExperienceData?.[b.id]?.experience ?? 0) -
+					(userExperienceData?.[a.id]?.experience ?? 0),
+			);
 
-		leaderboardArray = leaderboardArray.sort(
-			(a, b) => b.experience - a.experience,
-		);
-
-		const pageLevels = leaderboardArray.slice(
+		const pageLevels = guildMembers.slice(
 			pageNumber * 10 - 10,
 			pageNumber * 10 + 1,
 		);
@@ -1390,6 +1408,7 @@ export class LevelLeaderboardMessage {
 				this.embeds = new ErrorMessage(
 					"This server has no levelling data!",
 				).embeds;
+
 				return this;
 			}
 
@@ -1397,23 +1416,21 @@ export class LevelLeaderboardMessage {
 			return this;
 		}
 
-		const canvas = createCanvas(934, leaderboardArray.length * 282);
+		const canvas = createCanvas(934, pageLevels.length * 282);
 		const context = canvas.getContext("2d");
 
 		let index = 0;
 
 		// For loop with an index has to be used here because of async functions.
-		for await (const user of pageLevels) {
-			const guildMember = await interaction.guild.members.fetch(user.userID);
+		for await (const guildMember of pageLevels) {
+			const experience = userExperienceData?.[guildMember.id]?.experience ?? 0;
 
 			const userAvatar = guildMember.displayAvatarURL(DisplayAvatarURLOptions);
 
-			const userLevel = experienceToLevel(user.experience);
+			const userLevel = experienceToLevel(experience);
 
 			const userLevelRequiredXP = levelToExperience(userLevel);
-
-			const currentLevelProgress = user.experience - userLevelRequiredXP;
-
+			const currentLevelProgress = experience - userLevelRequiredXP;
 			const nextLevelRequiredXP = levelToExperience(userLevel + 1);
 
 			const levelCard = await new canvacord.Rank()
@@ -1437,10 +1454,7 @@ export class LevelLeaderboardMessage {
 			name: `leaderboard-${pageNumber}-${Date.now()}.png`,
 		});
 
-		let selectMenuOptions: (
-			| SelectMenuComponentOptionData
-			| APISelectMenuOption
-		)[] = [];
+		let selectMenuOptions: APISelectMenuOption[] = [];
 
 		while (selectMenuOptions.length < 25) {
 			selectMenuOptions.push({
@@ -1454,26 +1468,33 @@ export class LevelLeaderboardMessage {
 			.reverse()
 			.slice(0, Math.ceil(pageLevels.length / 10));
 
-		this.files = [attachment];
+		const url = (await attachmentsToURLs(client, attachment))[0];
+
+		this.embeds = [
+			{
+				color: Colours.Transparent,
+				image: {url},
+			},
+		];
 
 		if (Math.floor(pageLevels.length / 10) > 1 || true) {
 			this.components = [
 				new ActionRowBuilder<ButtonBuilder>().setComponents(
 					new ButtonBuilder()
 						.setCustomId("leaderboardFirstPage")
-						.setEmoji(Emojis.FirstPage)
+						.setEmoji(EmojiIDs.FirstPage)
 						.setStyle(ButtonStyle.Secondary),
 					new ButtonBuilder()
 						.setCustomId("leaderboardBack")
-						.setEmoji(Emojis.Back)
+						.setEmoji(EmojiIDs.Back)
 						.setStyle(ButtonStyle.Secondary),
 					new ButtonBuilder()
 						.setCustomId("leaderboardForward")
-						.setEmoji(Emojis.Forward)
+						.setEmoji(EmojiIDs.Forward)
 						.setStyle(ButtonStyle.Secondary),
 					new ButtonBuilder()
 						.setCustomId("leaderboardLastPage")
-						.setEmoji(Emojis.LastPage)
+						.setEmoji(EmojiIDs.LastPage)
 						.setStyle(ButtonStyle.Secondary),
 				),
 				new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
