@@ -1,7 +1,9 @@
 import {
+	ALLOWED_EXTENSIONS,
 	APIEmbed,
 	APIEmbedField,
 	APIEmbedFooter,
+	APIEmbedImage,
 	APISelectMenuOption,
 	ActionRowBuilder,
 	AttachmentBuilder,
@@ -11,6 +13,7 @@ import {
 	ButtonStyle,
 	ChatInputCommandInteraction,
 	ColorResolvable,
+	Colors,
 	Guild,
 	GuildChannel,
 	GuildMember,
@@ -38,25 +41,28 @@ import {readdirSync} from "fs";
 const {whiteBright, bold} = chalk;
 
 /**
- * ! By default, exports are sorted by:
+ * ! Export Sorting Guide
+ *
+ * By default, exports are sorted by:
  * * 1. Functions -> Classes -> Enums -> Objects -> Regular Expressions -> Arrays.
  * * 2. The order they were created in, with oldest being first.
- * However, if two exports are related, E.g., the `isValidURL` function & the `URLRegExp` regular expression, they should be put together, with the export that has *higher priority* in the normal order being first, **unless** the *higher priority* export is in some way a more advanced form of the *lower priority* export, **or** if the *lower priority* export is used by the *higher priority* export.
+ * However, if two exports are related, E.g., the {@link isValidURL} function & the {@link URLRegExp} regular expression, they should be put together, with the export that has *higher priority* in the normal order being first, **unless** the *higher priority* export is in some way a more advanced form of the *lower priority* export, **or** if the *lower priority* export is used by the *higher priority* export.
  * They should be located in the section that the higher order export would normally be located in.
- * For example, the `isValidURL` function and the `URLRegExp` regular expression are related because they both involve URLs in strings, so they should be sorted together.
- * `isValidURL` is a function and has higher priority than `URLRegExp`. It would normally go first, but `isValidURL` is basically a more advanced form of `URLRegExp`, so it goes second.
- * Because `isValidURL` has a higher priority, both exports are located in the *functions* section.
+ * For example, the {@link isValidURL} function and the {@link URLRegExp} regular expression are related because they both involve URLs in strings, so they should be sorted together.
+ * {@link isValidURL} is a function and has higher priority than {@link URLRegExp}. It would normally go first, but {@link isValidURL} is basically a more advanced form of {@link URLRegExp}, so it goes second.
+ * Because {@link isValidURL} has a higher priority, both exports are located in the *functions* section.
  */
 
 // ! Functions
 
 /**
- * A function to loop over a folder containing categories, which themselves contain files. The file exports (if there are any), the file name and the file path are passed as parameters to a callback function.
+ * A function to loop over a folder containing categories, which themselves contain files. The file exports `exports` (if there are any), the file name `fileName` and the file path `filePath` are passed as parameters to a `callback function`.
  *
- * Information about the files is logged to the console.
- * @param {string} path The path to the folder containing the categories. (from the src directory)
- * @param {(exports: unknown, fileName: string, filePath: string) => void | Promise<void>} callback The callback function to be called on each file. The function is called with three arguments: the file exports (if there are any), the file name and the file path.
+ * *Information about the files is logged to the console.*
+ * @param {string} path The path to the folder containing the categories. (from the `src` (or `dist`) directory)
+ * @param {(exports: unknown, fileName: string, filePath: string) => void | Promise<void>} callback The `callback function` to be called on each file. The function is called with **3** arguments: the file exports `exports` (if there are any), the file name `fileName` and the file path `filePath`.
  * @returns {Promise<void>}
+ * @see {@link ./bot.ts bot.ts} For a use case of this function. (See below `⬇` for a summary of the use case)
  * @example
  * // ./src/bot.ts.
  * // Registering the client functions.
@@ -64,10 +70,31 @@ const {whiteBright, bold} = chalk;
  *
  * // ...
  *
- * // Loops through the client functions folder and calls the functions.
- * await loopFolders("functions", (callback) => (callback as (client: SlimeBotClient) => void)(client));
+ * // Register the client functions. The loopFolder function loops over the client functions in the ./src/functions directory, and calls all the functions.
+ * // The functions define method properties for the client variable, taking advantage of the fact that the client variable is passed by reference, not by value, meaning that any new properties will be available everywhere where the client variable is used.
+ * await loopFolders("functions", (callback) => (callback as (client: BotClient) => void)(client));
  *
  * // ...
+ * @see {@link ./functions/handlers/handleFonts.ts handleFonts.ts} or below `⬇` for another, more thorough use case of this function.
+ * @example
+ * // ./src/functions/handlers/handleFonts.ts
+ * // Registering canvas fonts.
+ *
+ * import {BotClient} from "types";
+ * import {loopFolders} from "../../utility.js";
+ * import {registerFont} from "canvas";
+ *
+ * export default (client: BotClient) => {
+ * client.handleFonts = async () =>
+ * 	// The two trailing periods and slash at the start of the file path are necessary, as by default the loopFolders function starts in the src directory, so the function needs to go one layer out.
+ * 	// Exports is actually of type "never", as files for fonts (those ending with ".otf", ".ttf", and possibly other font file extensions) obviously don't have any exports. Exports isn't used here anyway, so the parameter should be ignored.
+ * 	loopFolders("../fonts", (_exports, fontName, fontFilePath) =>
+ * 		// The fontFilePath variable is sliced to get rid of the trailing periods and slash of "../fonts".
+ * 		// This is necessary as the file path is treated as if it starts from the root of the project folder.
+ * 		// The name of the font file is used as the font family.
+ * 		registerFont(fontFilePath.slice(3), {family: fontName}),
+ * 	);
+ * };
  */
 export const loopFolders = async (
 	path: string,
@@ -112,17 +139,28 @@ export const loopFolders = async (
 	}
 };
 
+export const URLRegExpString =
+	`(https?:\\/\\/)` + // Validate protocol.
+	`((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|` + // Validate domain name.
+	`((\\d{1,3}\\.){3}\\d{1,3}))` + // Validate OR IP (v4) address.
+	`(:\\d+)?(\\/[-a-z\\d%_.~+]*)*` + // Validate port and path.
+	`(\\?[;&a-z\\d%_.~+=-]*)?` + // Match a possible query string.
+	`(#[-a-z\\d_]*)?`; // Match a possible fragment locator.
+
 /**
- * A regular expression that matches all URLs in a string. +(Global and ignore case flags)
+ * A regular expression that matches all `URL`s in a string. (global `g` and ignore case `i` flags as `URL`s are *case insensitive*)
+ * @see {@link isValidURL} for a function to test whether a string is *exactly* a valid `URL`.
+ * @see {@link isImageLink} for a function to test whether a `URL` leads to an image.
  * @example
  * // Matching all URLs in a string.
  * import {URLRegExp} from "../../../utility.js";
  *
  * const string = "http://foo.co.uk/ Some example text in between https://marketplace.visualstudio.com/items?itemName=chrmarti.regex Some more random text - https://github.com/chrmarti/vscode-regex";
  *
- * const urls = URLRegExp.exec(string);
+ * const urls = string.match(URLRegExp);
  * console.log(urls);
  * // => ["http://foo.co.uk/", "https://marketplace.visualstudio.com/items?itemName=chrmarti.regex", "https://github.com/chrmarti/vscode-regex"].
+ * @see {@link ./events/client/message/messageReactionAdd.ts messageReactionAdd.ts} for a use case of this regular expression. (See below `⬇` for a summary of the use case)
  * @example
  * // Matching all URLs in a string.
  * // ./src/events/client/message/messageReactionAdd.ts.
@@ -134,77 +172,72 @@ export const loopFolders = async (
  *
  * // ...
  *
+ * // isImageLink is shorthand syntax for (link) => isImageLink(link).
  * const messageImageURLs = (content?.match(URLRegExp) ?? []).filter(isImageLink);
  *
  * // ...
  */
-export const URLRegExp =
-	/(https?:\/\/)((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|((\d{1,3}\.){3}\d{1,3}))(:\d+)?(\/[-a-z\d%_.~+]*)*(\?[;&a-z\d%_.~+=-]*)?(#[-a-z\d_]*)?/gi;
+export const URLRegExp = new RegExp(URLRegExpString, "gi");
 
 /**
- * A function to check if a string is a valid URL or not.
- * @param {string} urlString The string to check.
- * @returns {boolean} Whether the string is a valid URL.
+ * A function to check if a string is *exactly* a valid `URL` or not.
+ * @see {@link URLRegExp} for a regular expression to match *all* `URL`s in a string.
+ * @see {@link isImageLink} for a function to test whether a `URL` leads to an image.
+ * @param {string} urlString The string to check whether it is a valid URL or not.
+ * @returns {boolean} Whether the string is a valid `URL`.
  * @example
- *
+ * // Checking whether strings are valid URLs.
  * isValidURL("styles.css");
  * // => false.
  *
  * isValidURL("https://www.youtube.com");
  * // => true.
+ * @see {@link PollMessage} (right at the end of the {@link PollMessage.create create} method, where `this.files` is populated with attachment `URL`s, if they have been specified when running the `/poll` command or if they exist on the poll message) for a use case of this function. (See below `⬇` for a summary of the use case)
+ * @example
+ * // Filtering attachment data by valid URLs.
+ * // Used in the PollMessage class.
+ *
+ * // ...
+ *
+ *	this.files =
+ *		data instanceof ChatInputCommandInteraction
+ *			? (data.options.getString("attachments") ?? "")
+ *					.split(",")
+ *					// "isValidURL" is short for (url) => isValidURL(url).
+ *					.filter(isValidURL)
+ *			: [...data.message.attachments.values()].map(
+ *					(attachmentData) => attachmentData.url,
+ *			  );
+ *
+ * // ...
  */
 export const isValidURL = (urlString: string): boolean =>
-	/^(https?:\/\/)((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|((\d{1,3}\.){3}\d{1,3}))(:\d+)?(\/[-a-z\d%_.~+]*)*(\?[;&a-z\d%_.~+=-]*)?(#[-a-z\d_]*)?$/i.test(
-		urlString,
-	);
+	new RegExp(`^(?:${URLRegExpString})$`, "i").test(urlString);
+
+export const GuildInviteRegExpString =
+	`(?:https?:\\/\\/)?` + // Validate protocol.
+	`(?:www\\.)?(?:(?:dis(?:(?:cord(?:(?:\\.(?:(?:(?:(?:media|com|gg)\\/invite)|gg)\\/[a-z]{7,}` + // Match all invites on the official Discord website (support for all of Discord's domains).
+	`|(?:(?:io|li|me)\\/(?!servers)([a-z\\d-+=_/[\\]{}\\\\|:"<>?!@#$%^&*()~\`]{3,}))))` + // Match server links on `discord.io` (same as `discord.li`) and `discord.me`. Both are websites for advertising Discord servers.
+	`|app\\.(?:com|net)\\/invite\\/[a-z]{7,}))` + // Match invites on `discordapp.com`.
+	`|board\\.org\\/server\\/[-a-z\\d%_.~+/]{2,}))` + // Match server links from `disboard.org`. (Another server advertisement website)
+	`|top\\.gg\\/servers\\/(?:[-a-z\\d%_.~+]{2,}))` + // Match server links from `top.gg`. (A bot and server website)
+	`\\/?` + // Match a possible slash at the end of the URL which makes no difference, (but is still part of the URL).
+	`(?:\\?[;&a-z\\d%_.~+=-]*)?` + // Validate a possible query string.
+	`(?:#[-a-z\\d_]*)?`; // Validate a possible fragment locator.
+
+export const GuildInviteRegExp = new RegExp(GuildInviteRegExpString, "gi");
+
+export const isValidGuildInviteURL = (urlString: string): boolean =>
+	new RegExp(`^(?:${GuildInviteRegExpString})$`, "i").test(urlString);
 
 /**
- * A list of all (probably most) valid image file extensions.
- *
- * Used in the `isImageLink` function. `./src/utility.ts`
- * @example
- * // Checking if a link is an image link.
- * import {ImageExtensions} from "../../../utility.js";
- *
- * const string = "https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/dd/Slime_JE3_BE2.png/revision/latest?cb=20191230025505";
- *
- * console.log(ImageExtensions.some((extension) => new RegExp(`.${extension}`, "i").test(string)));
- * // => true.
- * @example
- * // Used in the isImageLink function.
- * // ./src/utility.ts.
- *
- * // ...
- *
- * ImageExtensions.some((extension) =>
- *  	new RegExp(`\\.${extension}($|\\/[^/]+)`, "i").test(urlString),
- * );
- *
- * // ...
- */
-export const ImageExtensions = [
-	"jpg",
-	"jpeg",
-	"png",
-	"gif",
-	"tiff",
-	"tif",
-	"psd",
-	"pdf",
-	"eps",
-	"ai",
-	"indd",
-	"cr2",
-	"crw",
-	"nef",
-	"pef",
-];
-
-/**
- * A function to check whether a link leads to an image file based off of it's file extension.
+ * A function to check whether a link leads to an image file based off of its *file extension*.
+ * @see {@link URLRegExp} for a regular expression to match all valid `URL`s in a string.
+ * @see {@link isValidURL} for a function to check whether a string is a valid `URL` or not.
  * @param {string} urlString The link to check whether it is an image or not.
  * @returns {boolean} Whether the link stores an image file or not.
  * @example
+ * // Checking whether URLs lead to an image file:
  * import {isImageLink} from "../../../utility.js";
  *
  * isImageLink("https://www.youtube.com");
@@ -212,6 +245,7 @@ export const ImageExtensions = [
  *
  * isImageLink("https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/dd/Slime_JE3_BE2.png/revision/latest?cb=20191230025505");
  * // => true.
+ * @see {@link ./events/client/message/messageReactionAdd.ts messageReactionAdd.ts} for an example use case of this function. (See below `⬇` for a summary of the use case)
  * @example
  * // Filtering out non-image links.
  * // ./src/events/client/message/messageReactionAdd.ts.
@@ -230,17 +264,15 @@ export const ImageExtensions = [
  * // ...
  */
 export const isImageLink = (urlString: string): boolean =>
-	// For loop instead of forEach or reduce because jump target can not cross function boundary.
-	// I.e. -> "return true" in the callback passed as an argument to the forEach function will return true in the scope of that callback, not that of the whole forEach function.
-	// A regex pattern is used here instead of String.prototype.endsWith because there are certain cases where there can be more text after the file extension, as seen in the second example above.
-	ImageExtensions.some((extension) =>
+	ALLOWED_EXTENSIONS.some((extension) =>
 		new RegExp(`\\.${extension}($|\\/[^/]+)`, "i").test(urlString),
 	);
 
 /**
- * A function that inverts an objects keys and values. Used in the `⭐ Starboard`.
+ * A function that inverts an object's keys and values. Used in the `⭐ Starboard` system.
+ * @see {@link logObject} for a function that can nicely log objects to the console.
  * @param {{[key: string]: string}} object The object to invert the values of.
- * @returns {{[key: string]: string}} A **new** object with the inverted keys and values.
+ * @returns {{[key: string]: string}} A **_new_** object with the inverted keys and values.
  * @example
  * // Inverting a user object.
  * import {invertObject} from "../../../utility.js";
@@ -249,6 +281,7 @@ export const isImageLink = (urlString: string): boolean =>
  *
  * invertObject(rolyPolyVole);
  * // => { roly: "firstName", Poly: "secondName", Vole: "thirdName" }.
+ * @see {@link ./events/client/message/messageDelete.ts messageDelete.ts} for an example use case of this function. (See below `⬇` for a summary of the use case)
  * @example
  * // Inverting starboard message IDs object.
  * // ./src/events/client/message/messageDelete.ts.
@@ -278,6 +311,7 @@ export const invertObject = (object: {
  * A function to log objects nicely to the console. Supports nested objects & indents accordingly.
  *
  * Logs the object keys as bold and white, and the object properties as white.
+ * @see {@link invertObject} for a utility function that inverts object properties and values.
  * @param {{[key: string]: string}} object The object to log to the console.
  * @param {number} indent The level of indentation to start with. (Used for recursion)
  * @returns {void}
@@ -317,6 +351,7 @@ export const invertObject = (object: {
  * //  school: 10
  * //  discord: -50
  * //  opinion: -1000
+ * @see {@link handleError} for an example use case of this function. (See below `⬇` for a summary of the use case)
  * @example
  * // Used in handleError.
  * // ./src/utility.ts.
@@ -325,7 +360,7 @@ export const invertObject = (object: {
  *
  * // Logs interaction details object to the console.
  * logObject({
- * 	// ...
+ * 	// Interaction details object to log.
  * })
  *
  * // ...
@@ -335,10 +370,13 @@ export const logObject = (
 	indent = 0,
 ): void => {
 	for (const key in object) {
-		if (typeof object[key] === "object" && object[key]) {
+		if (typeof object[key] === "object") {
+			// Log the key with a space times the current indent.
 			console.log(`${" ".repeat(indent)}${bold(key)}`);
+			// Use recursion with an increased indent level to log the object that the key is associated with.
 			logObject(object[key] as {[key: string]: unknown}, indent + 1);
 		} else if (object[key]) {
+			// Log the key: value pair normally.
 			console.log(
 				`${" ".repeat(indent)}${bold(key)}:`,
 				whiteBright(`${object[key]}`),
@@ -346,21 +384,23 @@ export const logObject = (
 		}
 	}
 
+	// When the function has finished logging everything, a gap is created between the interaction information message and the next message.
 	if (!indent) console.log();
 };
 
 /**
  * A function to attempt to handle errors as best as possible.
  *
- * If the user is just a normal user, the function will reply with a simple error prompting the user to report the error.
+ * *If the user is just a normal user, the function will reply with a simple error prompting the user to report the error.*
  *
- * If the user ID is one of the IDs included in `process.env.discordBotTesters`, then a more detailed error message is sent with interaction details.
+ * *If the user ID is one of the IDs included in* `process.env.discordBotTesters` *or if the user ID is the same as the one specified in* `process.env.discordBotOwnerID`*,* *then a more detailed error message is sent with interaction details to try and help with debugging the error.*
  *
  * Sends an embed with some of the error details and a prompt for the user to report the error. Used in `interactionCreate.ts`.
  * @param {Interaction} interaction The interaction that caused the error.
  * @param {BotClient} client The bot client.
  * @param {unknown} error The error that occurred.
- * @returns {Promise<void>} Replies to the interaction with an error message. (A simple message if the user is an average user, a more detailed one if the user is included in `process.env.discordBotTesters`).
+ * @returns {Promise<void>} Replies to the interaction with an error message. (A simple message, if the user is an average user, a more detailed one if the user is included in `process.env.discordBotTesters` or if the user ID is the same as the one specified in `process.env.discordBotOwnerID`).
+ * @see {@link ./events/client/bot/interactionCreate.ts interactionCreate.ts} for an example use case of this function. (See below `⬇` for a summary of the use case)
  * @example
  * // Handing errors in interactionCreate.
  * import {Command} from "types";
@@ -381,6 +421,7 @@ export const handleError = async (
 	client: BotClient,
 	error: unknown,
 ): Promise<void> => {
+	// Create a gap between the last message and the error message.
 	console.log();
 	console.error(error);
 
@@ -399,6 +440,7 @@ export const handleError = async (
 		? await client.guilds.fetch(discordGuildID)
 		: null;
 
+	// Get the optimal guild invite.
 	const discordGuildInvite = discordGuildID
 		? [...((await discordGuild?.invites?.fetch())?.values() ?? [])].sort(
 				(a, b) =>
@@ -422,6 +464,7 @@ export const handleError = async (
 			false) ||
 		user.id === discordBotOwnerID;
 
+	// Sends a message depending on whether the user is a bot tester and whether they are in the support server.
 	const errorReply = {
 		embeds: [
 			{
@@ -460,6 +503,7 @@ export const handleError = async (
 	};
 
 	if (process.env.debug) {
+		// Create a gap between the error message and the interaction information message.
 		console.log();
 		logObject({
 			"📜 Interaction Information": {
@@ -502,7 +546,8 @@ export const handleError = async (
 };
 
 /**
- * The standard, untouched console log function. Used in the refactored `console.log` function.
+ * The standard, untouched console log function. Used in the refactored {@link console.log} function.
+ * @see {@link console.log the refactored console.log function} for an example use case of this function. (See below `⬇` for a summary of the use case)
  *
  * Prints to `stdout` with newline. Multiple arguments can be passed, with the
  * first used as the primary message and all additional used as substitution
@@ -531,7 +576,8 @@ export const handleError = async (
 const standardLog = console.log.bind(console);
 
 /**
- * List of all logged messages on the console. Used in the refactored `console.log` function.
+ * List of all logged messages on the console. Used in {@link console.log the refactored console.log function} function.
+ * @see {@link console.log the refactored console.log function} for an example use case of this array. (See below `⬇` for a summary of the use case)
  * @example
  * // Used in the refactored console.log function.
  * // ./src/utility.ts.
@@ -546,11 +592,11 @@ const standardLog = console.log.bind(console);
 const consoleLogs: unknown[][] = [];
 
 /**
- * Refactored version of `console.log` that ensures that there are never more than two new lines between logged strings.
+ * Refactored version of {@link console.log} that ensures that there are never more than two new lines between logged strings.
  * *(in reality, the function reduces the number of new lines between two logged strings by 1 (if needed), which, in most cases, results in two new lines remaining, which is the intended behavior)*
  * This creates a *very clean* and *professional* looking console with *consistent newlines*.
  * *Otherwise, there would be inconsistent new lines.*
- * E.g,
+ * E.g.,
  *
  * [Database Status] Connecting...
  *
@@ -561,7 +607,7 @@ const consoleLogs: unknown[][] = [];
  *
  * [Database Status] Connected.
  *
- * Between the client and database status messages, there are **three** new lines, which is *inconsistent* with the overall console style.
+ * Between the client and database status messages, there are **3** new lines, which is *inconsistent* with the overall console style.
  * This refactoring of the function fixes that issue:
  *
  * [Database Status] Connecting...
@@ -571,6 +617,9 @@ const consoleLogs: unknown[][] = [];
  * [Client] Ready! Online and logged in as 🌳 Slime Bot [/].
  *
  * [Database Status] Connected.
+ *
+ * @see {@link standardLog} for the standard {@link console.log} function.
+ * @see {@link consoleLogs} for an array of all logged messages.
  */
 console.log = (...data) => {
 	const previousLogs = consoleLogs[consoleLogs.length - 1];
@@ -595,6 +644,8 @@ console.log = (...data) => {
 
 /**
  * Resolves a duration from a given string.
+ * @see {@link isColorResolvable} for a function to check whether a value is {@link ColorResolvable}.
+ * @see {@link resolveColour} for a function to resolve colours.
  * @param {string} string The string to resolve the duration of.
  * @returns {number} The resolved duration.
  * @example
@@ -604,6 +655,7 @@ console.log = (...data) => {
  * resolveDuration("Now"); // Returns Date.now().
  * resolveDuration("5 min"); // Returns 5 * 60 * 1000.
  *
+ * @see {@link ./commands/utility/poll.ts poll.ts} for an example use case of this function. (See below `⬇` for a summary of the use case)
  * @example
  * // Resolving user duration input.
  * // Used in the /poll command. (./src/commands/utility/poll.ts)
@@ -679,6 +731,7 @@ export const resolveDuration = (string: string): number | null => {
  * @param {GuildChannel | null} channel The channel to check the permissions in, if applicable. *Pass in `null` if you're checking the permissions in the guild.*
  * @param {Guild?} guild The guild to check the permissions in. If you specify this parameter, **don't** specify the `channel` parameter (pass in `null`), as the function prioritises checking the channel permissions.
  * @returns {Promise<{value: boolean;permission?: keyof typeof PermissionsBitField.Flags;user?: GuildMember | User;message?: string;}>} Object with information about the permissions.
+ * @see {@link ./commands/utility/poll.ts poll.ts} for an example use case of this function. (See below `⬇` for a summary of the use case)
  * @example
  * // Used to check the permissions of the user performing the /poll command.
  * // ./src/commands/utility/poll.ts
@@ -773,6 +826,7 @@ export const checkPermissions = async (
  * Returns the appropriate suffix to a word that is either plural or singular. Only supports words which the plural ending is "s".
  * @param {number} number The string to convert.
  * @returns {"s"|""} The appropriate ending to the provided string.
+ * @see {@link ./commands/admin/purge.ts purge.ts} for an example use case of this function. (See below `⬇` for a summary of the use case)
  * @example
  * // Displaying the correct suffix for the number of messages deleted.
  * // Used in the /purge command.
@@ -794,17 +848,83 @@ export const checkPermissions = async (
 export const addSuffix = (number: number): "s" | "" =>
 	Math.abs(number) === 1 ? "" : "s";
 
+export const capitaliseFirstCharacter = (string: string) =>
+	`${string[0]?.toUpperCase() ?? ""}${string.slice(1)}`;
+
+export const toTitleCase = (string: string) => {
+	const splitString = string
+		.split(PunctuationLookaheadRegExp)
+		.map((subString) =>
+			subString.split(CamelCaseSubStringSeparatorLookaheadRegExp),
+		)
+		.flat();
+
+	return splitString
+		.map((word) => {
+			console.log(word);
+
+			if (
+				word === word.toUpperCase() ||
+				(word.endsWith("s") &&
+					word.slice(0, word.length - 1) ===
+						word.slice(0, word.length - 1).toUpperCase())
+			) {
+				return word;
+			}
+
+			return capitaliseFirstCharacter(word.toLowerCase());
+		})
+		.join("")
+		.replace(/[-_]+/g, "");
+};
+
 /**
- * A simple function that extends the Discord JS `resolveColor` function, now including colours from the `Colours` enum.
+ * The maximum numerical value for colours. (`#ffffff` in `hexadecimal`)
+ *
+ * Equal to `16,777,215` in `decimal` representation.
+ * @see {@link isColorResolvable} for an example use case of this value. (See below `⬇` for a summary of the use case)
+ * @example
+ * // Checking whether a colour is valid. (Checking whether it is less than or equal to the maximum colour value)
+ * // isColorResolvable function. (./src/utility.ts)
+ */
+export const MaximumColourValue = 0xffffff;
+
+export const isColorResolvable = (value: unknown): value is ColorResolvable =>
+	(typeof value === "string" &&
+		(value in Colors || /^#[0-9a-f]{6}$/.test(value))) ||
+	value === "Random" ||
+	(Array.isArray(value) &&
+		value.length === 3 &&
+		value.every(
+			(colour) =>
+				typeof colour === "number" &&
+				0 <= colour &&
+				colour <= MaximumColourValue,
+		)) ||
+	(typeof value === "number" && 0 <= value && value <= MaximumColourValue);
+
+/**
+ * A simple function that extends the Discord JS {@link resolveColor} function, now including colours from the `Colours` enum.
  * @param {ColorResolvable | keyof typeof Colours} colour The colour to resolve.
  * @returns {number} The resolved colour value.
+ * @see {@link PollMessage.create} (where {@link  PollMessage.embeds this.embeds} is populated with an embed) for an example use case of this function. (See below `⬇` for a summary of the use case)
+ * @example
+ *
+ *
  */
-export const resolveColour = (
-	colour: ColorResolvable | keyof typeof Colours,
-): number =>
-	typeof colour === "string" && colour in Colours
-		? Colours[colour as keyof typeof Colours]
-		: resolveColor(colour as ColorResolvable);
+export const resolveColour = (colour: unknown): number => {
+	if (typeof colour === "string" && /random/i.test(colour)) colour = "Random";
+	if (typeof colour === "string" && toTitleCase(colour) in Colours) {
+		colour = toTitleCase(colour);
+	}
+
+	if (isColorResolvable(colour)) return resolveColor(colour);
+	if (typeof colour === "string" && colour in Colours) {
+		return Colours[colour as keyof typeof Colours];
+	}
+
+	return Colours.Transparent;
+};
 
 /**
  * A function for the sigma notation used in math (Σ). Can be used as a summative operator.
@@ -828,7 +948,7 @@ export const sigma = (
 	startValue: Decimal.Value,
 	endValue: Decimal.Value,
 	variable?: string,
-) => {
+): Decimal => {
 	startValue = new Decimal(startValue);
 	endValue = new Decimal(endValue);
 
@@ -841,6 +961,26 @@ export const sigma = (
 	}
 
 	return sum;
+};
+
+export const pi = (
+	expression: string,
+	startValue: Decimal.Value,
+	endValue: Decimal.Value,
+	variable?: string,
+): Decimal => {
+	startValue = new Decimal(startValue);
+	endValue = new Decimal(endValue);
+
+	let product = new Decimal(0);
+
+	for (let i = startValue; i <= endValue; i = i.plus(1)) {
+		product = product.times(
+			evaluate(variable ? expression.replace(variable, `(${i})`) : expression),
+		);
+	}
+
+	return product;
 };
 
 export const levelToExperience = (level: Decimal | number) =>
@@ -887,23 +1027,6 @@ export const limitNumber = (
 		),
 		new Decimal(maximumValue ?? Infinity).toNumber(),
 	);
-
-export const attachmentsToURLs = async (
-	client: BotClient,
-	...files: AttachmentBuilder[]
-) => {
-	if (!process.env.discordBotOwnerID) {
-		throw new Error(
-			"You must specify a Discord Bot owner to be able to use this function!",
-		);
-	}
-
-	const botOwner = await client.users.fetch(process.env.discordBotOwnerID);
-
-	const message = await botOwner.send({files});
-
-	return message.attachments.map((attachment) => attachment.url);
-};
 
 // ! Classes
 
@@ -953,7 +1076,7 @@ export class PollMessage {
 	options: (string | null)[];
 	content?: string;
 	embeds: APIEmbed[];
-	files: string[];
+	files: (string | AttachmentBuilder)[];
 	constructor() {
 		this.emojis = [];
 		this.options = [];
@@ -1192,15 +1315,6 @@ export class PollMessage {
 			}
 		}
 
-		const thumbnailURL: string = (
-			await attachmentsToURLs(
-				client,
-				new AttachmentBuilder(canvas.toBuffer(), {
-					name: `slime-bot-poll-${new Date(Date.now())}.png`,
-				}),
-			)
-		)[0];
-
 		const pollTime =
 			timestamp || pollEnd
 				? pollEnd ??
@@ -1219,6 +1333,17 @@ export class PollMessage {
 				  )
 				: null;
 
+		this.files = [
+			...(data instanceof ChatInputCommandInteraction
+				? (data.options.getString("attachments") ?? "")
+						.split(",")
+						// "isValidURL" is short for (url) => isValidURL(url).
+						.filter(isValidURL)
+				: [...data.message.attachments.values()].map(
+						(attachmentData) => attachmentData.url,
+				  )),
+		];
+
 		this.embeds = [
 			{
 				title:
@@ -1236,18 +1361,8 @@ export class PollMessage {
 						  )?.[0] ?? "") + description,
 				color:
 					data instanceof ChatInputCommandInteraction
-						? (() => {
-								// *Try* to resolve the colour.
-								try {
-									return resolveColour(
-										(data.options.getString("colour") ??
-											Colours.Blurple) as ColorResolvable,
-									);
-								} catch (_error) {}
-
-								return undefined;
-						  })()
-						: embed?.color,
+						? resolveColour(data.options.getString("colour") ?? Colors.Blurple)
+						: (embed as Readonly<APIEmbed>).color,
 
 				author: {
 					name: `${client.user?.username} Poll${
@@ -1316,25 +1431,20 @@ export class PollMessage {
 						inline: true,
 					},
 				],
-				thumbnail: {url: thumbnailURL},
+				image: {
+					url: "",
+				},
 			},
 		];
 
-		this.files = !(data instanceof ChatInputCommandInteraction)
-			? [...data.message.attachments.values()].map(
-					(attachmentData) => attachmentData.url,
-			  )
-			: [];
+		const attachmentName = `slime-bot-poll-${Date.now()}.png`;
+		const attachment = new AttachmentBuilder(canvas.toBuffer()).setName(
+			attachmentName,
+		);
 
-		if (data instanceof ChatInputCommandInteraction) {
-			for (const attachmentData of (
-				data.options.getString("attachments") ?? ""
-			).split(",")) {
-				if (isValidURL(attachmentData)) {
-					this.files.push(attachmentData);
-				}
-			}
-		}
+		this.files.push(attachment);
+		this.embeds[0].thumbnail = {url: `attachment://${attachmentName}`};
+
 		return this;
 	}
 }
@@ -1446,10 +1556,6 @@ export class LevelLeaderboardMessage {
 			index++;
 		}
 
-		const attachment = new AttachmentBuilder(await canvas.toBuffer(), {
-			name: `leaderboard-${pageNumber}-${Date.now()}.png`,
-		});
-
 		let selectMenuOptions: APISelectMenuOption[] = [];
 
 		while (selectMenuOptions.length < 25) {
@@ -1464,14 +1570,7 @@ export class LevelLeaderboardMessage {
 			.reverse()
 			.slice(0, Math.ceil(pageLevels.length / 10));
 
-		const url = (await attachmentsToURLs(client, attachment))[0];
-
-		this.embeds = [
-			{
-				color: Colours.Transparent,
-				image: {url},
-			},
-		];
+		this.embeds = [{color: Colours.Transparent, image: {url: ""}}];
 
 		if (Math.floor(pageLevels.length / 10) > 1 || true) {
 			this.components = [
@@ -1503,6 +1602,16 @@ export class LevelLeaderboardMessage {
 				),
 			];
 		}
+
+		const attachmentName = `leaderboard-${pageNumber}-${Date.now()}.png`;
+		const attachment = new AttachmentBuilder(canvas.toBuffer(), {
+			name: attachmentName,
+		});
+
+		this.files = [attachment];
+		(
+			this.embeds[0].image as APIEmbedImage
+		).url = `attachment://${attachmentName}`;
 
 		return this;
 	}
@@ -1579,7 +1688,7 @@ export enum Colours {
 export enum Emojis {
 	// https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg
 	YouTubeLogo = "<:_:1115689277397926022>",
-	// Edited version of https://www.flaticon.com/free-icon/check_10337354
+	// Edited version of https://cdn-icons-png.flaticon.com/512/10337/10337354.png
 	Success = "<:_:1118183966705467532>",
 	// Edited version of https://www.flaticon.com/free-icon/exclamation_10308557
 	Warning = "<:_:1120062360531521546>",
@@ -1611,6 +1720,14 @@ export enum EmojiIDs {
 
 export enum ImageURLs {
 	YouTubeLogo = "https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg",
+	SuccessOriginal = "https://cdn-icons-png.flaticon.com/512/10337/10337354.png",
+	WarningOriginal = "https://cdn-icons-png.flaticon.com/512/10308/10308557.png",
+	Error = "https://cdn-icons-png.flaticon.com/512/10308/10308387.png",
+	FirstPage = "https://cdn-icons-png.flaticon.com/512/190/190518.png",
+	Back = "https://cdn-icons-png.flaticon.com/512/189/189260.png",
+	Forward = "https://cdn-icons-png.flaticon.com/512/189/189259.png",
+	LastPage = "https://cdn-icons-png.flaticon.com/512/190/190517.png",
+	Slime = "https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/dd/Slime_JE3_BE2.png/revision/latest?cb=20191230025505",
 }
 
 // ! Objects
@@ -1652,12 +1769,26 @@ export const DisplayAvatarURLOptions: ImageURLOptions = {
 
 // ! Regular Expressions
 
+// ? Note
+/*
+
+Try to omit capturing groups from all regular expressions (add `?:` to the beginning of the capturing group, right after the opening bracket).
+
+In other words, make them "non-capturing-groups", as otherwise there may be some unintended behaviour, especially when using `String#split` with the regular expression.
+
+Unless you actually *need* a capturing group, remove all capturing groups from regular expressions and use non-capturing groups instead. (add `?:` right after the opening bracket of the group)
+If you actually need a capturing group, then you can use them freely, otherwise, if you simply need to group several expressions together, as is in most cases, use non-capturing groups.
+
+This goes for all regular expressions in this project, not just those in this file or just those in this section.
+
+*/
+
 /**
  * A regular expression to match `ANSI control characters`.
  *
  * This is useful for cleaning up strings that were changed in some way by the `chalk` module.
  *
- * Used in the `console.log` function refactor.
+ * Used in the {@link console.log} function refactor.
  * @example
  * // Removing control characters added by chalk.
  * import {ANSIControlCharacterRegExp} from "../../../utility.js";
@@ -1690,23 +1821,120 @@ export const ANSIControlCharacterRegExp = /\x1B|\[\d{1,2}m/g;
 
 export const RegExpCharactersRegExp = /[.*+?^${}()|[\]\\]/g;
 
-export const PunctuationRegExp =
-	/[\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-./:;<=>?@[\]^_`{|}~]/g;
+export const PunctuationRegExpString =
+	"[\u2000-\u206F\u2E00-\u2E7F'!\"#$%&()*+,\\-./:;<=>?@[\\]^_`{|}~«»《》〈〉]";
 
-export const GuildInviteRegExp =
-	/(https?:\/\/)?(www\.)?(dis((cord(\.(((media|com)\/invite)|gg)\/[a-z]{7,}|((io|me(?!dia))\/[a-z\d-+=_[\]{}\\|:"<>?!@#$%^&*()~`]{3,})(?!\/servers)(?=\S\S))|app\.(com|net)\/invite\/[a-z]{7,})|board\.(org)\/server\/(\s*\S\s*){2,})|top\.gg\/servers)(\/[-a-z\d%_.~+]*)*(\?[;&a-z\d%_.~+=-]*)?(#[-a-z\d_]*)?/gi;
+export const PunctuationRegExp = new RegExp(`${PunctuationRegExpString}`, "g");
 
-export const SentenceRegExp =
-	/((…|\.{3,})(?=\s([^A-Z]|I))|([.…?!](?=\S))|\d+\.\d+\.{3,}|[^….?!\n]|(?<=\d+|(?<=\s|(\n|\r\n|\r|\n\r|\u000C|\u0085|\u2028|\u2029|\u001E)(Dr|Esq|Hon|Jr|Mr|Mrs|Ms|Messrs|Mmes|Msgr|Prof|Rev|Rt\. Hon|Sr|St)))\.|[.…?!](?=”|"|'|\)))+([….?!]+|$|(\)|”|"|')(?=(\n|\r\n|\r|\n\r|\u000C|\u0085|\u2028|\u2029|\u001E)))(?=\s|(\n|\r\n|\r|\n\r|\u000C|\u0085|\u2028|\u2029|\u001E)|$)(\s\(([^….?!]|(\n|\r\n|\r|\n\r|\u000C|\u0085|\u2028|\u2029|\u001E))+\))?/g;
+export const PunctuationLookaheadRegExp = new RegExp(
+	`(?=${PunctuationRegExpString})`,
+	"g",
+);
 
-export const WordRegExp =
-	/[a-z-’']+(?= |\n|$|[\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-./:;<=>?@[\]^_`{|}~])/gi;
+export const WordRegExp = new RegExp(
+	`(?:[a-z][’']?(?:-[a-z])?)+(?=(${PunctuationRegExpString}|[\n ]|$))`,
+	"gi",
+);
 
-export const NewLineRegExp =
-	/(\n|\r\n|\r|\n\r|\u000C|\u0085|\u2028|\u2029|\u001E|\s)+/g;
+export const CamelCaseSubStringSeparatorRegExpString =
+	"[A-Z][a-rt-z]|A|(?<=[a-z])[B-Z]{2,}|(?<=[a-z])I";
 
-export const ParagraphRegExp =
-	/(\s*(\n|\r\n|\r|\n\r|\u000C|\u0085|\u2028|\u2029|\u001E)\s*){2,}/g;
+export const CamelCaseSubStringSeparatorRegExp = new RegExp(
+	CamelCaseSubStringSeparatorRegExpString,
+	"g",
+);
+
+export const CamelCaseSubStringSeparatorLookaheadRegExp = new RegExp(
+	`(?=${CamelCaseSubStringSeparatorRegExpString})`,
+	"g",
+);
+
+export const LineBreakRegExpString =
+	"\r\n|\n\r|[\n\r\u000C\u0085\u2028\u2029\u001E]";
+
+export const LineBreakRegExp = new RegExp(LineBreakRegExpString, "g");
+
+export const NotLineBreakRegExpString = "[^\n\r\u000C\u0085\u2028\u2029\u001E]";
+
+export const NotLineBreakRegExp = new RegExp(NotLineBreakRegExpString, "g");
+
+export const NameAbbreviationsRegExpString = `(?:Dr|Esq|Hon|Jr|Mr|Mrs|Ms|Messrs|Mmes|Msgr|Prof|Rev|Rt\\. Hon|Sr|St)`;
+
+export const NameAbbreviationsRegExp = new RegExp(
+	NameAbbreviationsRegExpString,
+	"g",
+);
+
+export const OpeningQuoteRegExpString = `[「“‘"'«《〈]`;
+
+export const OpeningQuoteRegExp = new RegExp(OpeningQuoteRegExpString, "g");
+
+export const ClosingQuoteRegExpString = `[」”’"'»》〉]`;
+
+export const ClosingQuoteRegExp = new RegExp(ClosingQuoteRegExpString, "g");
+
+export const QuoteRegExpString = `[「」“”‘’"'«»《》〈〉]`;
+
+export const QuoteRegExp = new RegExp(QuoteRegExpString, "g");
+
+export const SentenceEndCharactersRegExpString = "[.…?!]";
+
+export const SentenceEndCharactersRegExp = new RegExp(
+	SentenceEndCharactersRegExpString,
+	"g",
+);
+
+export const NotSentenceEndCharactersRegExpString = `[^\\d.…?!${NotLineBreakRegExpString.slice(
+	2,
+	NotLineBreakRegExpString.length - 1,
+)}]`;
+
+export const NotSentenceEndCharactersRegExp = new RegExp(
+	NotSentenceEndCharactersRegExpString,
+	"g",
+);
+
+export const SentenceCharacterRegExpString =
+	`(?:` + // Opening outermost non-capturing group bracket.
+	`(?:…|\\.{3,})+(?=\\s(?:[^A-Z]|I(?=\\s)))` + // Matches ellipses (...) with a whitespace character after them and no capital letter (or the word "I", as it is always capital). Note: it isn't needed to match ellipses without a whitespace character after them, as that is matched anyway in the next expression below:
+	`|\\d(?!\\.)` +
+	`|(?<!^|${LineBreakRegExpString})\\d` +
+	`|\\s+${NameAbbreviationsRegExpString}\\.` + // Matches name abbreviations, E.g., `Mr. ${name}` isn't a full sentence, even though the period follows the general pattern of a sentence-ending character. Name abbreviations have to have a whitespace character or a newline before them. Note: it isn't needed to check for line breaks specifically, as the whitespace RegExp character covers them.
+	`|${SentenceEndCharactersRegExpString}\\s*(?:${ClosingQuoteRegExpString}|\\))` + // Matches sentence-ending characters inside quotes.
+	`(?<=\\s+)${SentenceEndCharactersRegExp}` + // Matches sentence-ending characters with a whitespace in front of them.
+	`|(?:${SentenceEndCharactersRegExpString}(?=\\S))` + // Matches sentence-ending characters without a whitespace character after them. Note: it isn't needed to check for decimal point usage as well as recurring decimal notation (0.999...) as the decimal would be matched anyway by this expression and the ellipsis would be matched either by the sentence-ending character part of the SentenceRegExp or by the previous expression.
+	`|${NotSentenceEndCharactersRegExpString}` + // Matches all non-sentence-ending characters.
+	`)`; // Closing outermost non-capturing group bracket.
+
+export const SentenceRegExp = new RegExp(
+	`(?<=^|\\s)` + // Checks for the necessary whitespace character or start of the string before a sentence. Note: it isn't needed to check for line breaks specifically, as the whitespace RegExp character covers them.
+		`${SentenceCharacterRegExpString}+` + // Matches as many valid sentence characters as possible.
+		`(?:${SentenceEndCharactersRegExpString}+|$)` + // Matches the sentence end character(s).
+		`(?:(?:(?:\\s*\\(\\s*${SentenceCharacterRegExpString}+)?\\s*\\))` + // Matches a possible further string of words inside parentheses, after the main sentence.
+		`|${ClosingQuoteRegExpString}*(?=\\s|$))`, // Matches the necessary space or line break after the sentence end character. Note: it isn't needed to check for line breaks specifically, as the whitespace RegExp character covers them.
+	"g",
+);
+
+export const LineSeparatorRegExpString = `(?:\\s*(?:${LineBreakRegExpString})\\s*)+`;
+
+export const LineSeparatorRegExp = new RegExp(LineSeparatorRegExpString, "g");
+
+export const LineSeparatorLookaheadRegExp = new RegExp(
+	`(?=${LineSeparatorRegExpString})+`,
+	"g",
+);
+
+export const ParagraphSeparatorRegExpString = `(?:\\s*(?:${LineBreakRegExpString})\\s*){2,}`;
+
+export const ParagraphSeparatorRegExp = new RegExp(
+	ParagraphSeparatorRegExpString,
+	"g",
+);
+
+export const ParagraphSeparatorLookaheadRegExp = new RegExp(
+	`(?=${ParagraphSeparatorRegExpString})`,
+	"g",
+);
 
 // ! Arrays
 
