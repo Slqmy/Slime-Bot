@@ -76,9 +76,9 @@
 		"no-extra-bind": "error",
 		"no-eq-null": "error",
 		/**
-		 * Empty catch blocks in try-catch statements are allowed.
+		 * Use `_error` for try-catch blocks where the error isn't handled.
 		 */
-		"no-empty": ["error", {"allowEmptyCatch": true}],
+		"no-empty": ["error", {"ignorePattern": "^_[\\s\\S]+$"}],
 		"array-callback-return": "error",
 		"no-mixed-spaces-and-tabs": "off",
 		"constructor-super": "error",
