@@ -1,5 +1,5 @@
 import {Button} from "types";
 
-export const leaderboardLastPage: Button = {
+export const leaderboardPageSelectButton: Button = {
 	async execute(interaction, client) {},
 };
