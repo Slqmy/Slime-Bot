@@ -18,7 +18,7 @@
 	},
 	"plugins": ["@typescript-eslint"],
 	"globals": {"process": "readonly", "NodeJS": "readonly"},
-	"ignorePatterns": ["dist"],
+	"ignorePatterns": ["dist", "archive"],
 	"rules": {
 		"no-div-regex": "error",
 		"for-direction": "error",

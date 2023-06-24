@@ -33,7 +33,12 @@
 		"sourceRoot": "./src",
 		"types": ["node"]
 	},
-	"exclude": ["node_modules", "dist"],
-	"include": ["src"],
+	"exclude": ["node_modules", "dist", "archive"],
+	"include": [
+		"src",
+		"archive/admin.ts",
+		"archive/createGuild.ts",
+		"archive/createAdminRole.ts"
+	],
 	"watch": true
 }
