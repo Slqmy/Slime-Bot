@@ -23,8 +23,10 @@ export const ready: ClientEvent<"ready"> = {
 			),
 		);
 
+		await client.checkUploads();
 		setInterval(client.checkUploads, 60000);
 
+		await client.checkTemporaryData();
 		setInterval(client.checkTemporaryData, 60000);
 	},
 };
