@@ -27,7 +27,7 @@ export default (client: BotClient) => {
 					const channelPageHTML = await channelPage.text();
 
 					const channelProfilePictureURLs = channelPageHTML.match(
-						/(?<=\{"url":"https:\/\/yt3\.googleusercontent\.com\/)(ytc\/)?[a-zA-Z_=0-9-]+(?=","width":\d+,"height":\d+\})/g,
+						/(?<=\{"url":"https:\/\/yt3\.googleusercontent\.com\/)(ytc\/)?[a-zA-Z_=\d-]+(?=","width":\d+,"height":\d+\})/g,
 					);
 
 					const channelProfilePictureURL =
