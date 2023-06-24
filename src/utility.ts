@@ -696,22 +696,22 @@ export const resolveDuration = (string: string): number | null => {
 		month: 2592000000,
 	};
 
+	string = string
+		.replace(/([\d.]+)/g, "+ $1 *")
+		.replace(/ /g, "")
+		.trim();
+
+	for (const time in durations) {
+		string = string.replace(RegExp(`${time}s?`, "ig"), `${durations[time]}`);
+	}
+
 	try {
-		string = string
-			.replace(/([\d.]+)/g, "+ $1 *")
-			.replace(/ /g, "")
-			.trim();
-
-		for (const time in durations) {
-			string = string.replace(RegExp(`${time}s?`, "ig"), `${durations[time]}`);
-		}
-
 		if (string.startsWith("in")) {
-			return Date.now() + evaluate(/(?<=in).+/.exec(string)?.[0] ?? "0");
+			return Date.now() + evaluate(string.slice(2).trim());
 		}
 
 		if (string.endsWith("ago")) {
-			return Date.now() - evaluate(/.+(?=ago)/.exec(string)?.[0] ?? "0");
+			return Date.now() - evaluate(string.slice(0, -3).trim());
 		}
 
 		return evaluate(string);
