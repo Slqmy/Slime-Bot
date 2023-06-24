@@ -989,15 +989,15 @@ export const sigma = (
 	startValue = new Decimal(startValue);
 	endValue = new Decimal(endValue);
 
-	let sum = new Decimal(0);
+	let sumValue = new Decimal(0);
 
 	for (let i = startValue; i <= endValue; i = i.plus(1)) {
-		sum = sum.plus(
+		sumValue = sumValue.plus(
 			evaluate(variable ? expression.replace(variable, `(${i})`) : expression),
 		);
 	}
 
-	return sum;
+	return sumValue;
 };
 
 export const pi = (
@@ -1571,9 +1571,7 @@ export class LevelLeaderboardMessage {
 		);
 
 		if (!pageLevels.length) {
-			this.embeds = new ErrorMessage(
-				"Please enter a valid page number!",
-			).embeds;
+			this.embeds = new ErrorMessage("This page does not exist!").embeds;
 			return this;
 		}
 
@@ -1630,7 +1628,7 @@ export class LevelLeaderboardMessage {
 
 		this.embeds = [{color: Colours.Transparent, image: {url: ""}}];
 
-		if (Math.floor(pageLevels.length / 5) > 1 || true) {
+		if (pageLevels.length || true) {
 			this.components = [
 				new ActionRowBuilder<ButtonBuilder>().setComponents(
 					new ButtonBuilder()
@@ -1793,38 +1791,41 @@ export enum ColourHexStrings {
  */
 export enum Emojis {
 	// https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg
-	YouTubeLogo = "<:_:1115689277397926022>",
+	YouTubeLogo = "<:_:1122177058974474300>",
 	// Edited version of https://cdn-icons-png.flaticon.com/512/10337/10337354.png
-	Success = "<:_:1118183966705467532>",
+	Success = "<:_:1122174591591260170>",
 	// Edited version of https://www.flaticon.com/free-icon/exclamation_10308557
-	Warning = "<:_:1120062360531521546>",
+	Warning = "<:_:1122174876757803018>",
 	// https://www.flaticon.com/free-icon/cross_10308387
-	Error = "<:_:1118182956670914634>",
+	Error = "<:_:1122174658331021312>",
 	// https://www.flaticon.com/free-icon/rewind_190518
-	FirstPage = "<:_:1121126417770500096>",
+	FirstPage = "<:_:1122174586914623610>",
 	// https://www.flaticon.com/free-icon/previous_189260
-	Back = "<:_:1121126569906290708>",
+	Back = "<:_:1122174617604337716>",
 	// Edited version of https://www.flaticon.com/free-icon/ellipsis_8699925
-	SelectPage = "<:_:1121871545774653450>",
+	SelectPage = "<:_:1122174222903558165>",
 	// https://www.flaticon.com/free-icon/previous_189259
-	Forward = "<:_:1121126580991819867>",
+	Forward = "<:_:1122174619563069583>",
 	// https://www.flaticon.com/free-icon/fast-forward_190517
-	LastPage = "<:_:1121126592480022568>",
+	LastPage = "<:_:1122174588294537367>",
 	// https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/dd/Slime_JE3_BE2.png/revision/latest?cb=20191230025505
 	Slime = "<:_:1112438888359792640>",
+	// https://cdn-icons-png.flaticon.com/512/1587/1587509.png
+	Envelope = "<:_:1122178406512087071>",
 }
 
 export enum EmojiIDs {
-	YouTubeLogo = "1115689277397926022",
-	Success = "1118183966705467532",
-	Warning = "1120062360531521546",
-	Error = "1118182956670914634",
-	FirstPage = "1121126417770500096",
-	Back = "1121126569906290708",
-	SelectPage = "1121871545774653450",
-	Forward = "1121126580991819867",
-	LastPage = "1121126592480022568",
+	YouTubeLogo = "1122177058974474300",
+	Success = "1122174591591260170",
+	Warning = "1122174876757803018",
+	Error = "1122174658331021312",
+	FirstPage = "1122174586914623610",
+	Back = "1122174617604337716",
+	SelectPage = "1122174222903558165",
+	Forward = "1122174619563069583",
+	LastPage = "1122174588294537367",
 	Slime = "1112438888359792640",
+	Envelope = "1122178406512087071",
 }
 
 export enum ImageURLs {
@@ -1838,6 +1839,7 @@ export enum ImageURLs {
 	Forward = "https://cdn-icons-png.flaticon.com/512/189/189259.png",
 	LastPage = "https://cdn-icons-png.flaticon.com/512/190/190517.png",
 	Slime = "https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/dd/Slime_JE3_BE2.png/revision/latest?cb=20191230025505",
+	Envelope = "https://cdn-icons-png.flaticon.com/512/1587/1587509.png",
 }
 
 // ! Objects
