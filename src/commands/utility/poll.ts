@@ -166,101 +166,104 @@ export const poll: Command = {
 			);
 		}
 
-		if (options.getSubcommand() === "create") {
-			let duration: string | number | null = options.getString("duration");
+		// More subcommands may be added in the future.
+		switch (options.getSubcommand()) {
+			case "create":
+				let duration: string | number | null = options.getString("duration");
 
-			if (duration) {
-				try {
-					duration = evaluate(
-						`${resolveDuration(duration.replace(/( *in *)|( *ago *)/g, ""))}`,
-					);
-				} catch (error) {
+				if (duration) {
+					try {
+						duration = evaluate(
+							`${resolveDuration(duration.replace(/ *(in|ago) */g, ""))}`,
+						);
+					} catch (error) {
+						return interaction.reply(
+							new ErrorMessage(
+								`**Invalid duration provided:** ${duration}\n\n> ${error}`,
+							),
+						);
+					}
+				}
+
+				const channel = (options.getChannel("channel") ??
+					interaction.channel) as TextChannel;
+
+				const permissions = await checkPermissions(
+					[user],
+					user,
+					[
+						"ViewChannel",
+						"SendMessages",
+						"EmbedLinks",
+						"AddReactions",
+						"UseApplicationCommands",
+					],
+					channel,
+				);
+
+				if (!permissions.value) {
 					return interaction.reply(
-						new ErrorMessage(
-							`**Invalid duration provided:** ${duration}\n\n> ${error}`,
-						),
+						new ErrorMessage(permissions.message as string),
 					);
 				}
-			}
 
-			const channel = (options.getChannel("channel") ??
-				interaction.channel) as TextChannel;
-
-			const permissions = await checkPermissions(
-				[user],
-				user,
-				[
-					"ViewChannel",
-					"SendMessages",
-					"EmbedLinks",
-					"AddReactions",
-					"UseApplicationCommands",
-				],
-				channel,
-			);
-
-			if (!permissions.value) {
-				return interaction.reply(
-					new ErrorMessage(permissions.message as string),
+				const botPermissions = await checkPermissions(
+					[client.user as User],
+					null,
+					["ViewChannel", "SendMessages", "EmbedLinks", "AddReactions"],
+					channel,
 				);
-			}
 
-			const botPermissions = await checkPermissions(
-				[client.user as User],
-				null,
-				["ViewChannel", "SendMessages", "EmbedLinks", "AddReactions"],
-				channel,
-			);
-
-			if (!botPermissions.value) {
-				return interaction.reply(
-					new ErrorMessage(botPermissions.message as string),
-				);
-			}
-
-			await interaction.deferReply({
-				ephemeral: true,
-			});
-
-			const pollMessage = await new PollMessage().create(interaction, client);
-
-			const embedMessage = await channel.send(pollMessage);
-
-			for (const emoji of pollMessage.emojis) {
-				if (emoji) await embedMessage.react(emoji);
-			}
-
-			if (duration) {
-				const temporary = new TemporaryDataSchema<
-					ITemporaryDataSchema<{channelID: string; messageID: string}>
-				>({
-					_id: new mongoose.Types.ObjectId(),
-					type: "poll",
-					data: {channelID: channel.id, messageID: embedMessage.id},
-					lifeSpan: Math.round(parseInt(`${duration}`)),
-				});
-
-				await temporary.save();
-			}
-
-			if (options.getString("thread-name")) {
-				const thread = await embedMessage.startThread({
-					name: `${options.getString("thread-name")}`,
-					autoArchiveDuration: 60,
-				});
-
-				if (options.getRole("ping-role")) {
-					await thread.send(
-						`<@&${(options.getRole("ping-role") as Role | APIRole).id}>`,
+				if (!botPermissions.value) {
+					return interaction.reply(
+						new ErrorMessage(botPermissions.message as string),
 					);
 				}
-			}
 
-			await interaction.editReply(
-				new SuccessMessage(
-					`Successfully created and sent the poll in <#${channel.id}>.`,
-				),
-			);
+				await interaction.deferReply({
+					ephemeral: true,
+				});
+
+				const pollMessage = await new PollMessage().create(interaction, client);
+
+				const embedMessage = await channel.send(pollMessage);
+
+				for (const emoji of pollMessage.emojis) {
+					if (emoji) await embedMessage.react(emoji);
+				}
+
+				if (duration) {
+					const temporary = new TemporaryDataSchema<
+						ITemporaryDataSchema<{channelID: string; messageID: string}>
+					>({
+						_id: new mongoose.Types.ObjectId(),
+						type: "poll",
+						data: {channelID: channel.id, messageID: embedMessage.id},
+						lifeSpan: Math.round(parseInt(`${duration}`)),
+					});
+
+					await temporary.save();
+				}
+
+				if (options.getString("thread-name")) {
+					const thread = await embedMessage.startThread({
+						name: `${options.getString("thread-name")}`,
+						autoArchiveDuration: 60,
+					});
+
+					if (options.getRole("ping-role")) {
+						await thread.send(
+							`<@&${(options.getRole("ping-role") as Role | APIRole).id}>`,
+						);
+					}
+				}
+
+				await interaction.editReply(
+					new SuccessMessage(
+						`Successfully created and sent the poll in <#${channel.id}>.`,
+					),
+				);
+				break;
 		}
 	},
 };
