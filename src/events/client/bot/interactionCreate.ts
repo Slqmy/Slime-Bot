@@ -5,7 +5,7 @@ import {
 	Command,
 } from "types";
 import {AutocompleteInteraction, InteractionType} from "discord.js";
-import {Emojis, handleError} from "../../../utility.js";
+import {Emojis, handleError, isBotTester} from "../../../utility.js";
 import chalk from "chalk";
 
 const {yellow, bold} = chalk;
@@ -36,10 +36,7 @@ export const interactionCreate: ClientEvent<"interactionCreate"> = {
 		if (
 			!process.env.maintenance ||
 			// interaction.user.id === process.env.discordBotOwnerID ||
-			(process.env.discordBotTesters ?? "")
-				.split(",")
-				.map((id) => id.trim())
-				.includes(interaction.user.id)
+			isBotTester(interaction.user.id)
 		) {
 			if (interaction.isChatInputCommand()) {
 				const {commands} = client;

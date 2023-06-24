@@ -139,7 +139,7 @@ export const loopFolders = async (
 	}
 };
 
-export const URLRegExpString =
+const URLRegExpString =
 	`(https?:\\/\\/)` + // Validate protocol.
 	`((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|` + // Validate domain name.
 	`((\\d{1,3}\\.){3}\\d{1,3}))` + // Validate OR IP (v4) address.
@@ -214,7 +214,7 @@ export const URLRegExp = RegExp(URLRegExpString, "gi");
 export const isValidURL = (urlString: string): boolean =>
 	RegExp(`^(?:${URLRegExpString})$`, "i").test(urlString);
 
-export const GuildInviteRegExpString =
+const GuildInviteRegExpString =
 	`(?:https?:\\/\\/)?` + // Validate protocol.
 	`(?:www\\.)?(?:(?:dis(?:(?:cord(?:(?:\\.(?:(?:(?:(?:media|com|gg)\\/invite)|gg)\\/[a-z]{7,}` + // Match all invites on the official Discord website (support for all of Discord's domains).
 	`|(?:(?:io|li|me)\\/(?!servers)([a-z\\d-+=_/[\\]{}\\\\|:"<>?!@#$%^&*()~\`]{3,}))))` + // Match server links on `discord.io` (same as `discord.li`) and `discord.me`. Both are websites for advertising Discord servers.
@@ -425,12 +425,8 @@ export const handleError = async (
 	console.log();
 	console.error(error);
 
-	const {
-		discordBotOwnerID,
-		discordBotTesters,
-		discordGuildID,
-		discordSupportChannelID,
-	} = process.env;
+	const {discordBotOwnerID, discordGuildID, discordSupportChannelID} =
+		process.env;
 
 	const discordBotOwner = discordBotOwnerID
 		? await client.users.fetch(discordBotOwnerID)
@@ -456,14 +452,6 @@ export const handleError = async (
 
 	const {user, channel, guild, channelId, guildId} = interaction;
 
-	const isBotTester =
-		(discordBotTesters
-			?.split(",")
-			.map((id) => id.trim())
-			.includes(user.id) ??
-			false) ||
-		user.id === discordBotOwnerID;
-
 	// Sends a message depending on whether the user is a bot tester and whether they are in the support server.
 	const errorReply = {
 		embeds: [
@@ -472,7 +460,7 @@ export const handleError = async (
 				description: `\`${
 					client.user?.username as string
 				}\` has encountered an error while executing the interaction${
-					isBotTester
+					isBotTester(user.id)
 						? `:\n\n\`\`\`css\n${error}\`\`\`\n> Interaction Custom ID / Name: \`${
 								// This is needed or else TypeScript will complain.
 								interaction.type === 2 || interaction.isAutocomplete()
@@ -904,10 +892,7 @@ export const isColorResolvable = (value: unknown): value is ColorResolvable =>
  * A simple function that extends the Discord JS {@link resolveColor} function, now including colours from the `Colours` enum.
  * @param {ColorResolvable | keyof typeof Colours} colour The colour to resolve.
  * @returns {number} The resolved colour value.
- * @see {@link PollMessage.create} (where {@link  PollMessage.embeds this.embeds} is populated with an embed) for an example use case of this function. (See below `⬇` for a summary of the use case)
- * @example
- *
- *
+ * @see {@link PollMessage.create} (where {@link  PollMessage.embeds this.embeds} is populated with an embed) for an example use case of this function. (see below `⬇` for a summary of the use case)
  */
 export const resolveColour = (colour: unknown): number => {
 	if (typeof colour === "string") {
@@ -1090,6 +1075,12 @@ export const objectMatch = (
 	return false;
 };
 
+export const isBotTester = (userID: string) =>
+	process.env.discordBotTesters
+		?.replace(/\s+/, "")
+		.split(",")
+		.includes(userID) ?? userID === process.env.discordBotOwnerID;
+
 // ! Classes
 
 /**
@@ -1180,10 +1171,10 @@ export class PollMessage {
 
 		this.options = [];
 
-		const emojiReg =
+		const emojiRegExp =
 			/^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟)/;
 
-		const afterEmojiReg =
+		const afterEmojiRegExp =
 			/(?<=^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟)).+/;
 
 		if (embed) {
@@ -1194,24 +1185,24 @@ export class PollMessage {
 			).filter((option: string) => !option.startsWith("█"));
 
 			for (const option of optionArray) {
-				const emoji = (emojiReg.exec(option) as RegExpMatchArray)[0];
+				const emoji = (emojiRegExp.exec(option) as RegExpMatchArray)[0];
 
 				if (emojiArray.includes(emoji)) {
 					const index = emojiArray.indexOf(emoji);
 					this.emojis[index] = emoji;
-					this.options[index] = afterEmojiReg.exec(option)?.[0] ?? " ";
+					this.options[index] = afterEmojiRegExp.exec(option)?.[0] ?? " ";
 				} else {
 					this.emojis.push(emoji);
-					this.options.push(afterEmojiReg.exec(option)?.[0] ?? " ");
+					this.options.push(afterEmojiRegExp.exec(option)?.[0] ?? " ");
 				}
 			}
 		} else if (data instanceof ChatInputCommandInteraction) {
 			for (let i = 1; i <= 10; i++) {
 				const option = data.options.getString(`choice-${i}`);
 
-				const emoji = emojiReg.exec(option ?? "")?.[0];
+				const emoji = emojiRegExp.exec(option ?? "")?.[0];
 
-				const afterEmojiMatch = afterEmojiReg.exec(option ?? "")?.[0];
+				const afterEmojiMatch = afterEmojiRegExp.exec(option ?? "")?.[0];
 
 				if (
 					emoji &&
@@ -2047,6 +2038,11 @@ export const ParagraphSeparatorLookaheadRegExp = RegExp(
 	`(?=${ParagraphSeparatorRegExpString})`,
 	"g",
 );
+
+export const EmojiRegExpString =
+	"\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟";
+
+const BeginningEmojiRegExp = new RegExp(`^${EmojiRegExpString}`);
 
 // ! Arrays
 
