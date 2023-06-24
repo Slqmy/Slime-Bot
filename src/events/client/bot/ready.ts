@@ -27,6 +27,6 @@ export const ready: ClientEvent<"ready"> = {
 		setInterval(client.checkUploads, 60000);
 
 		await client.checkTemporaryData();
-		setInterval(client.checkTemporaryData, 60000);
+		setInterval(client.checkTemporaryData, 10000);
 	},
 };
