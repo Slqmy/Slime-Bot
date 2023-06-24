@@ -1,5 +1,6 @@
 import {AttachmentBuilder, Guild, SlashCommandBuilder} from "discord.js";
 import {
+	ColourHexStrings,
 	DisplayAvatarURLOptions,
 	ErrorMessage,
 	experienceToLevel,
@@ -70,7 +71,10 @@ export const level: Command = {
 			.setRank(rank)
 			.setRequiredXP(nextLevelRequiredXP - userLevelRequiredXP)
 			.setStatus(guildMember.presence?.status ?? "online")
-			.setProgressBar("#10df50", "COLOR")
+			.setProgressBar(
+				[ColourHexStrings.Lime, ColourHexStrings.OceanBlue],
+				"GRADIENT",
+			)
 			.setUsername(user.username)
 			.setDiscriminator(user.discriminator)
 			.build();

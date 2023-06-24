@@ -1506,6 +1506,21 @@ export class LevelLeaderboardMessage {
 			return this;
 		}
 
+		const guildData = (await GuildDataSchema.findOne({
+			id: interaction.guildId,
+		})) as MongooseDocument<IGuildDataSchema>;
+
+		let guildMembers = [...guild.members.cache.values()];
+		const {userExperienceData} = guildData;
+
+		guildMembers = guildMembers
+			.filter((member) => !member.user.bot)
+			.sort(
+				(a, b) =>
+					(userExperienceData?.[b.id]?.experience ?? 0) -
+					(userExperienceData?.[a.id]?.experience ?? 0),
+			);
+
 		const pageNumber =
 			interaction instanceof ChatInputCommandInteraction
 				? interaction.options.getNumber("page") ?? 1
@@ -1520,37 +1535,15 @@ export class LevelLeaderboardMessage {
 						),
 				  );
 
-		const guildData = (await GuildDataSchema.findOne({
-			id: interaction.guildId,
-		})) as MongooseDocument<IGuildDataSchema>;
-
-		let guildMembers = [...guild.members.cache.values()];
-
-		const {userExperienceData} = guildData;
-
-		guildMembers = guildMembers
-			.filter((member) => !member.user.bot)
-			.sort(
-				(a, b) =>
-					(userExperienceData?.[b.id]?.experience ?? 0) -
-					(userExperienceData?.[a.id]?.experience ?? 0),
-			);
-
 		const pageLevels = guildMembers.slice(
 			5 * (pageNumber - 1),
 			5 * pageNumber + 1,
 		);
 
 		if (!pageLevels.length) {
-			if (pageNumber === 1) {
-				this.embeds = new ErrorMessage(
-					"This server has no levelling data!",
-				).embeds;
-
-				return this;
-			}
-
-			this.embeds = new ErrorMessage("Please enter a valid page!").embeds;
+			this.embeds = new ErrorMessage(
+				"Please enter a valid page number!",
+			).embeds;
 			return this;
 		}
 
@@ -1573,12 +1566,15 @@ export class LevelLeaderboardMessage {
 
 			const levelCard = await new canvacord.Rank()
 				.setAvatar(userAvatar)
-				.setLevel(userLevel)
+				.setLevel(userLevel, "Level ")
 				.setCurrentXP(currentLevelProgress)
-				.setRank(index + 1)
+				.setRank(index + 1, "Rank #")
 				.setRequiredXP(nextLevelRequiredXP - userLevelRequiredXP)
-				.setStatus(guildMember.presence?.status ?? "online")
-				.setProgressBar("#10df50", "COLOR")
+				.setStatus(guildMember.presence?.status ?? "online", true, 75)
+				.setProgressBar(
+					[ColourHexStrings.Lime, ColourHexStrings.OceanBlue],
+					"GRADIENT",
+				)
 				.setUsername(guildMember.user.username)
 				.setDiscriminator(guildMember.user.discriminator)
 				.build();
@@ -1600,34 +1596,55 @@ export class LevelLeaderboardMessage {
 		selectMenuOptions = selectMenuOptions
 			.filter((choice) => parseInt(choice.value) > 0)
 			.reverse()
-			.slice(0, Math.ceil(pageLevels.length / 10));
+			.slice(0, Math.ceil(pageLevels.length / 5));
 
 		this.embeds = [{color: Colours.Transparent, image: {url: ""}}];
 
-		if (Math.floor(pageLevels.length / 10) > 1 || true) {
+		if (Math.floor(pageLevels.length / 5) > 1 || true) {
 			this.components = [
 				new ActionRowBuilder<ButtonBuilder>().setComponents(
 					new ButtonBuilder()
 						.setCustomId("leaderboardFirstPage")
 						.setEmoji(EmojiIDs.FirstPage)
-						.setStyle(ButtonStyle.Secondary),
+						.setStyle(ButtonStyle.Secondary)
+						.setLabel(" "),
 					new ButtonBuilder()
 						.setCustomId("leaderboardBack")
 						.setEmoji(EmojiIDs.Back)
-						.setStyle(ButtonStyle.Secondary),
+						.setStyle(ButtonStyle.Secondary)
+						.setLabel(" "),
+					new ButtonBuilder()
+						.setCustomId("leaderboardPageSelectButton")
+						.setEmoji(EmojiIDs.SelectPage)
+						.setStyle(ButtonStyle.Secondary)
+						.setLabel(" "),
 					new ButtonBuilder()
 						.setCustomId("leaderboardForward")
 						.setEmoji(EmojiIDs.Forward)
-						.setStyle(ButtonStyle.Secondary),
+						.setStyle(ButtonStyle.Secondary)
+						.setLabel(" "),
 					new ButtonBuilder()
 						.setCustomId("leaderboardLastPage")
 						.setEmoji(EmojiIDs.LastPage)
-						.setStyle(ButtonStyle.Secondary),
+						.setStyle(ButtonStyle.Secondary)
+						.setLabel(" "),
 				),
 				new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
 					new StringSelectMenuBuilder()
-						.setCustomId("leaderboardPageSelection")
-						.setPlaceholder("Select a Page")
+						.setCustomId("leaderboardPageSelectMenu")
+						.setPlaceholder(
+							`${pageNumber - 2 > 0 ? `${pageNumber - 2} ` : ""}${
+								pageNumber - 1 ? `${pageNumber - 1} ` : ""
+							}« ${pageNumber} »${
+								pageNumber + 1 < Math.ceil(guild.members.cache.size / 5)
+									? ` ${pageNumber + 1}`
+									: ""
+							} ${
+								pageNumber + 2 < Math.ceil(guild.members.cache.size / 5)
+									? ` ${pageNumber + 2}`
+									: ""
+							}`,
+						)
 						.setOptions(...selectMenuOptions)
 						.setMaxValues(1)
 						.setMinValues(1),
@@ -1695,6 +1712,32 @@ export enum Colours {
 	 * Somewhere in between blue and purple.
 	 */
 	Blurple = 0x5865f2,
+	/**
+	 * A nice lime colour. Used for the levelling progress bar.
+	 *
+	 * @see {@link LevelLeaderboardMessage} for an example usage of this colour.
+	 * @see {@link ./src/commands/levelling/level.ts level.ts} for another example usage of this colour.
+	 */
+	Lime = 0x10df50,
+	/**
+	 * A deep ocean blue colour.
+	 */
+	OceanBlue = 0x1055d8,
+}
+
+/**
+ * An enum with hex strings representing colour values.
+ *
+ * The colours here are the same as in the {@link Colours the Colours enum}.
+ * @see {@link Colours} for an enum with numbers representing colour values.
+ */
+export enum ColourHexStrings {
+	Default = "#2b2d31",
+	Transparent = "#2b2d31",
+	TransparentBright = "#f2f3f5",
+	Blurple = "#5865f2",
+	Lime = "#10df50",
+	OceanBlue = "#1050df",
 }
 
 /**
