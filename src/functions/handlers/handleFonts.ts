@@ -10,6 +10,6 @@ export default (client: BotClient) => {
 			// The fontFilePath variable is sliced to get rid of the trailing periods and slash of "../fonts".
 			// This is necessary as the file path is treated as if it starts from the root of the project folder.
 			// The name of the font file is used as the font family.
-			registerFont(fontFilePath.slice(3), {family: fontName}),
+			registerFont(fontFilePath.slice(8), {family: fontName}),
 		);
 };
