@@ -177,7 +177,7 @@ export const URLRegExpString =
  *
  * // ...
  */
-export const URLRegExp = new RegExp(URLRegExpString, "gi");
+export const URLRegExp = RegExp(URLRegExpString, "gi");
 
 /**
  * A function to check if a string is *exactly* a valid `URL` or not.
@@ -212,7 +212,7 @@ export const URLRegExp = new RegExp(URLRegExpString, "gi");
  * // ...
  */
 export const isValidURL = (urlString: string): boolean =>
-	new RegExp(`^(?:${URLRegExpString})$`, "i").test(urlString);
+	RegExp(`^(?:${URLRegExpString})$`, "i").test(urlString);
 
 export const GuildInviteRegExpString =
 	`(?:https?:\\/\\/)?` + // Validate protocol.
@@ -225,10 +225,10 @@ export const GuildInviteRegExpString =
 	`(?:\\?[;&a-z\\d%_.~+=-]*)?` + // Validate a possible query string.
 	`(?:#[-a-z\\d_]*)?`; // Validate a possible fragment locator.
 
-export const GuildInviteRegExp = new RegExp(GuildInviteRegExpString, "gi");
+export const GuildInviteRegExp = RegExp(GuildInviteRegExpString, "gi");
 
 export const isValidGuildInviteURL = (urlString: string): boolean =>
-	new RegExp(`^(?:${GuildInviteRegExpString})$`, "i").test(urlString);
+	RegExp(`^(?:${GuildInviteRegExpString})$`, "i").test(urlString);
 
 /**
  * A function to check whether a link leads to an image file based off of its *file extension*.
@@ -265,7 +265,7 @@ export const isValidGuildInviteURL = (urlString: string): boolean =>
  */
 export const isImageLink = (urlString: string): boolean =>
 	ALLOWED_EXTENSIONS.some((extension) =>
-		new RegExp(`\\.${extension}($|\\/[^/]+)`, "i").test(urlString),
+		RegExp(`\\.${extension}($|\\/[^/]+)`, "i").test(urlString),
 	);
 
 /**
@@ -296,7 +296,7 @@ export const isImageLink = (urlString: string): boolean =>
  * // ...
  */
 export const invertObject = (object: {
-	[key: string]: string;
+	[key: string | symbol]: string;
 }): {[key: string]: string} => {
 	const newObject: {[key: string]: string} = {};
 
@@ -703,10 +703,7 @@ export const resolveDuration = (string: string): number | null => {
 			.trim();
 
 		for (const time in durations) {
-			string = string.replace(
-				new RegExp(`${time}s?`, "ig"),
-				`${durations[time]}`,
-			);
+			string = string.replace(RegExp(`${time}s?`, "ig"), `${durations[time]}`);
 		}
 
 		if (string.startsWith("in")) {
@@ -958,14 +955,13 @@ export const resolveColour = (colour: unknown): number => {
 	return Colours.Default;
 };
 
-export const sum = (numbers: (number | Decimal)[]): number => {
+export const sum = (numbers: (number | Decimal)[]): number =>
 	numbers
 		.reduce(
 			(accumulator: Decimal, number) => accumulator.plus(number),
 			new Decimal(0),
 		)
 		.toNumber();
-};
 
 /**
  * A function for the sigma notation used in math (Σ). Can be used as a summative operator.
@@ -1067,6 +1063,31 @@ export const getExpressionValue = (expression: string) => {
 		: isResultSet(evaluatedExpression)
 		? evaluatedExpression.entries[evaluatedExpression.entries.length - 1]
 		: evaluatedExpression;
+};
+
+export const objectMatch = (
+	object: {
+		[key: string | symbol]: unknown;
+	},
+	match: RegExp | string,
+): boolean => {
+	for (const key in object) {
+		if (typeof object[key] === "object") {
+			const matchString = objectMatch(
+				object[key] as {[key: string | symbol]: unknown},
+				match,
+			);
+
+			if (matchString) return true;
+		} else if (
+			typeof object[key] === "string" &&
+			RegExp(match).exec(object[key] as string)
+		) {
+			return true;
+		}
+	}
+
+	return false;
 };
 
 // ! Classes
@@ -1394,7 +1415,7 @@ export class PollMessage {
 				description:
 					(data instanceof ChatInputCommandInteraction
 						? data.options.getString("description") ?? ""
-						: new RegExp(
+						: RegExp(
 								`^[\\s\\S]+(?=${this.emojis.filter((emoji) => emoji)[0]})`,
 								"gm",
 						  ).exec(
@@ -1913,14 +1934,14 @@ export const RegExpCharactersRegExp = /[.*+?^${}()|[\]\\]/g;
 export const PunctuationRegExpString =
 	"[\u2000-\u206F\u2E00-\u2E7F'!\"#$%&()*+,\\-./:;<=>?@[\\]^_`{|}~«»《》〈〉]";
 
-export const PunctuationRegExp = new RegExp(`${PunctuationRegExpString}`, "g");
+export const PunctuationRegExp = RegExp(`${PunctuationRegExpString}`, "g");
 
-export const PunctuationLookaheadRegExp = new RegExp(
+export const PunctuationLookaheadRegExp = RegExp(
 	`(?=${PunctuationRegExpString})`,
 	"g",
 );
 
-export const WordRegExp = new RegExp(
+export const WordRegExp = RegExp(
 	`(?:[a-z][’']?(?:-[a-z])?)+(?=(${PunctuationRegExpString}|[\n ]|$))`,
 	"gi",
 );
@@ -1928,12 +1949,12 @@ export const WordRegExp = new RegExp(
 export const CamelCaseSubStringSeparatorRegExpString =
 	"[A-Z][a-rt-z]|A|(?<=[a-z])[B-Z]{2,}|(?<=[a-z])I";
 
-export const CamelCaseSubStringSeparatorRegExp = new RegExp(
+export const CamelCaseSubStringSeparatorRegExp = RegExp(
 	CamelCaseSubStringSeparatorRegExpString,
 	"g",
 );
 
-export const CamelCaseSubStringSeparatorLookaheadRegExp = new RegExp(
+export const CamelCaseSubStringSeparatorLookaheadRegExp = RegExp(
 	`(?=${CamelCaseSubStringSeparatorRegExpString})`,
 	"g",
 );
@@ -1941,34 +1962,34 @@ export const CamelCaseSubStringSeparatorLookaheadRegExp = new RegExp(
 export const LineBreakRegExpString =
 	"\r\n|\n\r|[\n\r\u000C\u0085\u2028\u2029\u001E]";
 
-export const LineBreakRegExp = new RegExp(LineBreakRegExpString, "g");
+export const LineBreakRegExp = RegExp(LineBreakRegExpString, "g");
 
 export const NotLineBreakRegExpString = "[^\n\r\u000C\u0085\u2028\u2029\u001E]";
 
-export const NotLineBreakRegExp = new RegExp(NotLineBreakRegExpString, "g");
+export const NotLineBreakRegExp = RegExp(NotLineBreakRegExpString, "g");
 
 export const NameAbbreviationsRegExpString = `(?:Dr|Esq|Hon|Jr|Mr|Mrs|Ms|Messrs|Mmes|Msgr|Prof|Rev|Rt\\. Hon|Sr|St)`;
 
-export const NameAbbreviationsRegExp = new RegExp(
+export const NameAbbreviationsRegExp = RegExp(
 	NameAbbreviationsRegExpString,
 	"g",
 );
 
 export const OpeningQuoteRegExpString = `[「“‘"'«《〈]`;
 
-export const OpeningQuoteRegExp = new RegExp(OpeningQuoteRegExpString, "g");
+export const OpeningQuoteRegExp = RegExp(OpeningQuoteRegExpString, "g");
 
 export const ClosingQuoteRegExpString = `[」”’"'»》〉]`;
 
-export const ClosingQuoteRegExp = new RegExp(ClosingQuoteRegExpString, "g");
+export const ClosingQuoteRegExp = RegExp(ClosingQuoteRegExpString, "g");
 
 export const QuoteRegExpString = `[「」“”‘’"'«»《》〈〉]`;
 
-export const QuoteRegExp = new RegExp(QuoteRegExpString, "g");
+export const QuoteRegExp = RegExp(QuoteRegExpString, "g");
 
 export const SentenceEndCharactersRegExpString = "[.…?!]";
 
-export const SentenceEndCharactersRegExp = new RegExp(
+export const SentenceEndCharactersRegExp = RegExp(
 	SentenceEndCharactersRegExpString,
 	"g",
 );
@@ -1978,7 +1999,7 @@ export const NotSentenceEndCharactersRegExpString = `[^\\d.…?!${NotLineBreakRe
 	NotLineBreakRegExpString.length - 1,
 )}]`;
 
-export const NotSentenceEndCharactersRegExp = new RegExp(
+export const NotSentenceEndCharactersRegExp = RegExp(
 	NotSentenceEndCharactersRegExpString,
 	"g",
 );
@@ -1995,7 +2016,7 @@ export const SentenceCharacterRegExpString =
 	`|${NotSentenceEndCharactersRegExpString}` + // Matches all non-sentence-ending characters.
 	`)`; // Closing outermost non-capturing group bracket.
 
-export const SentenceRegExp = new RegExp(
+export const SentenceRegExp = RegExp(
 	`(?<=^|\\s)` + // Checks for the necessary whitespace character or start of the string before a sentence. Note: it isn't needed to check for line breaks specifically, as the whitespace RegExp character covers them.
 		`${SentenceCharacterRegExpString}+` + // Matches as many valid sentence characters as possible.
 		`(?:${SentenceEndCharactersRegExpString}+|$)` + // Matches the sentence end character(s).
@@ -2006,21 +2027,21 @@ export const SentenceRegExp = new RegExp(
 
 export const LineSeparatorRegExpString = `(?:\\s*(?:${LineBreakRegExpString})\\s*)+`;
 
-export const LineSeparatorRegExp = new RegExp(LineSeparatorRegExpString, "g");
+export const LineSeparatorRegExp = RegExp(LineSeparatorRegExpString, "g");
 
-export const LineSeparatorLookaheadRegExp = new RegExp(
+export const LineSeparatorLookaheadRegExp = RegExp(
 	`(?=${LineSeparatorRegExpString})+`,
 	"g",
 );
 
 export const ParagraphSeparatorRegExpString = `(?:\\s*(?:${LineBreakRegExpString})\\s*){2,}`;
 
-export const ParagraphSeparatorRegExp = new RegExp(
+export const ParagraphSeparatorRegExp = RegExp(
 	ParagraphSeparatorRegExpString,
 	"g",
 );
 
-export const ParagraphSeparatorLookaheadRegExp = new RegExp(
+export const ParagraphSeparatorLookaheadRegExp = RegExp(
 	`(?=${ParagraphSeparatorRegExpString})`,
 	"g",
 );

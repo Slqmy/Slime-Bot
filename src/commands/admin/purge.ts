@@ -5,6 +5,8 @@ import {
 	SuccessMessage,
 	URLRegExp,
 	addSuffix,
+	objectMatch,
+	sum,
 } from "../../utility.js";
 import {
 	Message,
@@ -167,7 +169,7 @@ export const purge: Command = {
 
 		if (regex) {
 			try {
-				regex = new RegExp(regex);
+				regex = RegExp(regex);
 			} catch (error) {
 				return interaction.editReply(
 					new ErrorMessage(`Invalid regular expression pattern:\n${error}`),
@@ -272,17 +274,19 @@ export const purge: Command = {
 		const inverse = options.getBoolean("inverse");
 
 		const matchRegExp = match
-			? new RegExp(match?.replace(RegExpCharactersRegExp, "\\$&"))
+			? RegExp(match?.replace(RegExpCharactersRegExp, "\\$&"))
 			: null;
 
 		const noMatchRegExp = noMatch
-			? new RegExp(noMatch?.replace(RegExpCharactersRegExp, "\\$&"))
+			? RegExp(noMatch?.replace(RegExpCharactersRegExp, "\\$&"))
 			: null;
 
 		let messages: Message[] = [];
 		let earliestMessageID: string | undefined;
 
-		while (messages.length < messageNumber) {
+		let messagesRemaining = messageNumber;
+
+		while (messages.length < messagesRemaining) {
 			const fetchedMessages = [
 				...((
 					await channel?.messages.fetch(
@@ -302,9 +306,21 @@ export const purge: Command = {
 
 				const meetsConditions =
 					(!user || user.id === author.id) &&
-					(!matchRegExp || matchRegExp.test(content)) &&
-					(!noMatchRegExp || !noMatchRegExp.test(content)) &&
-					(!regex || (regex as RegExp).test(content)) &&
+					(!matchRegExp ||
+						objectMatch(
+							message as unknown as {[key: string | symbol]: unknown},
+							matchRegExp,
+						)) &&
+					(!noMatchRegExp ||
+						!objectMatch(
+							message as unknown as {[key: string | symbol]: unknown},
+							noMatchRegExp,
+						)) &&
+					(!regex ||
+						objectMatch(
+							message as unknown as {[key: string | symbol]: unknown},
+							regex,
+						)) &&
 					(containEmbeds === null ||
 						(!containEmbeds && !embeds.length) ||
 						(containEmbeds && embeds.length)) &&
@@ -340,8 +356,6 @@ export const purge: Command = {
 			});
 
 			messages.push(...fetchedMessages);
-
-			if (!fetchedMessages.length) messageNumber = 0;
 
 			if (fetchedMessages.length) {
 				earliestMessageID = fetchedMessages[fetchedMessages.length - 1].id;
