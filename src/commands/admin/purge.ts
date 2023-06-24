@@ -6,7 +6,6 @@ import {
 	URLRegExp,
 	addSuffix,
 	objectMatch,
-	sum,
 } from "../../utility.js";
 import {
 	Message,
