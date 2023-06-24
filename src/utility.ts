@@ -139,7 +139,7 @@ export const loopFolders = async (
 	}
 };
 
-const URLRegExpString =
+const urlRegExpString =
 	`(https?:\\/\\/)` + // Validate protocol.
 	`((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|` + // Validate domain name.
 	`((\\d{1,3}\\.){3}\\d{1,3}))` + // Validate OR IP (v4) address.
@@ -177,7 +177,7 @@ const URLRegExpString =
  *
  * // ...
  */
-export const URLRegExp = RegExp(URLRegExpString, "gi");
+export const URLRegExp = RegExp(urlRegExpString, "gi");
 
 /**
  * A function to check if a string is *exactly* a valid `URL` or not.
@@ -212,7 +212,7 @@ export const URLRegExp = RegExp(URLRegExpString, "gi");
  * // ...
  */
 export const isValidURL = (urlString: string): boolean =>
-	RegExp(`^(?:${URLRegExpString})$`, "i").test(urlString);
+	RegExp(`^(?:${urlRegExpString})$`, "i").test(urlString);
 
 const GuildInviteRegExpString =
 	`(?:https?:\\/\\/)?` + // Validate protocol.
@@ -265,7 +265,7 @@ export const isValidGuildInviteURL = (urlString: string): boolean =>
  */
 export const isImageLink = (urlString: string): boolean =>
 	ALLOWED_EXTENSIONS.some((extension) =>
-		RegExp(`\\.${extension}($|\\/[^/]+)`, "i").test(urlString),
+		RegExp(`\\.${extension}(?:$|\\/+)`, "i").test(urlString),
 	);
 
 /**
@@ -654,6 +654,7 @@ console.log = (...data) => {
  * if (duration) {
  * 		try {
  * 			duration = evaluate(
+ * 				// Note: I can't use the normal regex here, because it will interpret it as the end of the JSDoc comment.
  * 				`${resolveDuration(duration.replace(/( *in *)|( *ago *)/g, ""))}`,
  * 			);
  *			} catch (error) {
@@ -671,6 +672,9 @@ export const resolveDuration = (string: string): number | null => {
 	if (/now/gi.test(string)) return Date.now();
 
 	const durations: {[key: string]: number} = {
+		second: 1000,
+		sec: 1000,
+		s: 1000,
 		minute: 60000,
 		min: 60000,
 		m: 60000,
@@ -680,13 +684,13 @@ export const resolveDuration = (string: string): number | null => {
 		d: 86400000,
 		week: 604800000,
 		w: 604800000,
-		mo: 2592000000,
 		month: 2592000000,
+		mo: 2592000000,
 	};
 
 	string = string
 		.replace(/([\d.]+)/g, "+ $1 *")
-		.replace(/ /g, "")
+		.replace(/\s+/g, "")
 		.trim();
 
 	for (const time in durations) {
@@ -1077,7 +1081,7 @@ export const objectMatch = (
 
 export const isBotTester = (userID: string) =>
 	process.env.discordBotTesters
-		?.replace(/\s+/, "")
+		?.replace(/\s+/g, "")
 		.split(",")
 		.includes(userID) ?? userID === process.env.discordBotOwnerID;
 
@@ -1171,38 +1175,33 @@ export class PollMessage {
 
 		this.options = [];
 
-		const emojiRegExp =
-			/^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟)/;
-
-		const afterEmojiRegExp =
-			/(?<=^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟)).+/;
-
 		if (embed) {
+			// Don't use RegExp.exec() here because it behaves a bit weird with regular expressions with the global `g` flag.
 			const optionArray = (
 				(embed.description as string).match(
-					/(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟).+/gm,
+					AfterEmojiRegExp,
 				) as RegExpMatchArray
 			).filter((option: string) => !option.startsWith("█"));
 
 			for (const option of optionArray) {
-				const emoji = (emojiRegExp.exec(option) as RegExpMatchArray)[0];
+				const emoji = (StartEmojiRegExp.exec(option) as RegExpMatchArray)[0];
 
 				if (emojiArray.includes(emoji)) {
 					const index = emojiArray.indexOf(emoji);
 					this.emojis[index] = emoji;
-					this.options[index] = afterEmojiRegExp.exec(option)?.[0] ?? " ";
+					this.options[index] = EmojiLookbehindRegExp.exec(option)?.[0] ?? " ";
 				} else {
 					this.emojis.push(emoji);
-					this.options.push(afterEmojiRegExp.exec(option)?.[0] ?? " ");
+					this.options.push(EmojiLookbehindRegExp.exec(option)?.[0] ?? " ");
 				}
 			}
 		} else if (data instanceof ChatInputCommandInteraction) {
 			for (let i = 1; i <= 10; i++) {
 				const option = data.options.getString(`choice-${i}`);
 
-				const emoji = emojiRegExp.exec(option ?? "")?.[0];
+				const emoji = StartEmojiRegExp.exec(option ?? "")?.[0];
 
-				const afterEmojiMatch = afterEmojiRegExp.exec(option ?? "")?.[0];
+				const afterEmojiMatch = EmojiLookbehindRegExp.exec(option ?? "")?.[0];
 
 				if (
 					emoji &&
@@ -1514,7 +1513,6 @@ export class LevelLeaderboardMessage {
 	}
 	async create(
 		interaction: ChatInputCommandInteraction | ButtonInteraction,
-		client: BotClient,
 		pageFunction: (page: number) => number = (page) => page,
 	) {
 		const {guild} = interaction;
@@ -1870,10 +1868,11 @@ export const DisplayAvatarURLOptions: ImageURLOptions = {
 	extension: "png",
 };
 
-// ! Regular Expressions
+// ! Regex Hell
 
-// ? Note
 /*
+
+? Note
 
 Try to omit capturing groups from all regular expressions (add `?:` to the beginning of the capturing group, right after the opening bracket).
 
@@ -1883,6 +1882,14 @@ Unless you actually *need* a capturing group, remove all capturing groups from r
 If you actually need a capturing group, then you can use them freely, otherwise, if you simply need to group several expressions together, as is in most cases, use non-capturing groups.
 
 This goes for all regular expressions in this project, not just those in this file or just those in this section.
+
+Try to make a string representation of a regular expression first (don't export it), after that, make the regular expression with the string. (RegExp(StringRegExp))
+
+This way you can document part of your regular expression.
+
+You don't have to do this if your regular expression is very simple or if it won't cause any inconsistency.
+
+Use camelCase for the regex string variables, and PascalCase for the regular expressions themselves.
 
 */
 
@@ -1924,125 +1931,136 @@ export const ANSIControlCharacterRegExp = /\x1B|\[\d{1,2}m/g;
 
 export const RegExpCharactersRegExp = /[.*+?^${}()|[\]\\]/g;
 
-export const PunctuationRegExpString =
+const punctuationRegExpString =
 	"[\u2000-\u206F\u2E00-\u2E7F'!\"#$%&()*+,\\-./:;<=>?@[\\]^_`{|}~«»《》〈〉]";
 
-export const PunctuationRegExp = RegExp(`${PunctuationRegExpString}`, "g");
+export const PunctuationRegExp = RegExp(punctuationRegExpString, "g");
 
 export const PunctuationLookaheadRegExp = RegExp(
-	`(?=${PunctuationRegExpString})`,
+	`(?=${punctuationRegExpString})`,
 	"g",
 );
 
-export const WordRegExp = RegExp(
-	`(?:[a-z][’']?(?:-[a-z])?)+(?=(${PunctuationRegExpString}|[\n ]|$))`,
-	"gi",
-);
+const wordRegExpString = `(?:[a-z][’']?(?:-[a-z])?)+(?=(${punctuationRegExpString}|[\n ]|$))`;
 
-export const CamelCaseSubStringSeparatorRegExpString =
+export const WordRegExp = RegExp(wordRegExpString, "gi");
+
+const camelCaseSubStringSeparatorRegExpString =
 	"[A-Z][a-rt-z]|A|(?<=[a-z])[B-Z]{2,}|(?<=[a-z])I";
 
 export const CamelCaseSubStringSeparatorRegExp = RegExp(
-	CamelCaseSubStringSeparatorRegExpString,
+	camelCaseSubStringSeparatorRegExpString,
 	"g",
 );
 
 export const CamelCaseSubStringSeparatorLookaheadRegExp = RegExp(
-	`(?=${CamelCaseSubStringSeparatorRegExpString})`,
+	`(?=${camelCaseSubStringSeparatorRegExpString})`,
 	"g",
 );
 
-export const LineBreakRegExpString =
-	"\r\n|\n\r|[\n\r\u000C\u0085\u2028\u2029\u001E]";
+const lineBreakRegExpString = "\r\n|\n\r|[\n\r\u000C\u0085\u2028\u2029\u001E]";
 
-export const LineBreakRegExp = RegExp(LineBreakRegExpString, "g");
+export const LineBreakRegExp = RegExp(lineBreakRegExpString, "g");
 
-export const NotLineBreakRegExpString = "[^\n\r\u000C\u0085\u2028\u2029\u001E]";
+const notLineBreakRegExpString = "[^\n\r\u000C\u0085\u2028\u2029\u001E]";
 
-export const NotLineBreakRegExp = RegExp(NotLineBreakRegExpString, "g");
+export const NotLineBreakRegExp = RegExp(notLineBreakRegExpString, "g");
 
-export const NameAbbreviationsRegExpString = `(?:Dr|Esq|Hon|Jr|Mr|Mrs|Ms|Messrs|Mmes|Msgr|Prof|Rev|Rt\\. Hon|Sr|St)`;
+const nameAbbreviationsRegExpString = `(?:Dr|Esq|Hon|Jr|Mr|Mrs|Ms|Messrs|Mmes|Msgr|Prof|Rev|Rt\\. Hon|Sr|St)`;
 
 export const NameAbbreviationsRegExp = RegExp(
-	NameAbbreviationsRegExpString,
+	nameAbbreviationsRegExpString,
 	"g",
 );
 
-export const OpeningQuoteRegExpString = `[「“‘"'«《〈]`;
+const openingQuoteRegExpString = `[「“‘"'«《〈]`;
 
-export const OpeningQuoteRegExp = RegExp(OpeningQuoteRegExpString, "g");
+export const OpeningQuoteRegExp = RegExp(openingQuoteRegExpString, "g");
 
-export const ClosingQuoteRegExpString = `[」”’"'»》〉]`;
+const closingQuoteRegExpString = `[」”’"'»》〉]`;
 
-export const ClosingQuoteRegExp = RegExp(ClosingQuoteRegExpString, "g");
+export const ClosingQuoteRegExp = RegExp(closingQuoteRegExpString, "g");
 
-export const QuoteRegExpString = `[「」“”‘’"'«»《》〈〉]`;
+const quoteRegExpString = `[「」“”‘’"'«»《》〈〉]`;
 
-export const QuoteRegExp = RegExp(QuoteRegExpString, "g");
+export const QuoteRegExp = RegExp(quoteRegExpString, "g");
 
-export const SentenceEndCharactersRegExpString = "[.…?!]";
+const sentenceEndCharactersRegExpString = "[.…?!]";
 
 export const SentenceEndCharactersRegExp = RegExp(
-	SentenceEndCharactersRegExpString,
+	sentenceEndCharactersRegExpString,
 	"g",
 );
 
-export const NotSentenceEndCharactersRegExpString = `[^\\d.…?!${NotLineBreakRegExpString.slice(
-	2,
-	NotLineBreakRegExpString.length - 1,
-)}]`;
+const notSentenceEndCharactersRegExpString = `[^\\d${sentenceEndCharactersRegExpString.slice(
+	1,
+	sentenceEndCharactersRegExpString.length - 1,
+	// The first parameter of String#slice is 2 here, because we don't want to include the `^` (character set negation) at the start of the `notLineBreakRegExpString`.
+)}${notLineBreakRegExpString.slice(2, notLineBreakRegExpString.length - 1)}]`;
 
 export const NotSentenceEndCharactersRegExp = RegExp(
-	NotSentenceEndCharactersRegExpString,
+	notSentenceEndCharactersRegExpString,
 	"g",
 );
 
-export const SentenceCharacterRegExpString =
+const sentenceCharacterRegExpString =
 	`(?:` + // Opening outermost non-capturing group bracket.
 	`(?:…|\\.{3,})+(?=\\s(?:[^A-Z]|I(?=\\s)))` + // Matches ellipses (...) with a whitespace character after them and no capital letter (or the word "I", as it is always capital). Note: it isn't needed to match ellipses without a whitespace character after them, as that is matched anyway in the next expression below:
 	`|\\d(?!\\.)` +
-	`|(?<!^|${LineBreakRegExpString})\\d` +
-	`|\\s+${NameAbbreviationsRegExpString}\\.` + // Matches name abbreviations, E.g., `Mr. ${name}` isn't a full sentence, even though the period follows the general pattern of a sentence-ending character. Name abbreviations have to have a whitespace character or a newline before them. Note: it isn't needed to check for line breaks specifically, as the whitespace RegExp character covers them.
-	`|${SentenceEndCharactersRegExpString}\\s*(?:${ClosingQuoteRegExpString}|\\))` + // Matches sentence-ending characters inside quotes.
+	`|(?<!^|${lineBreakRegExpString})\\d` +
+	`|\\s+${nameAbbreviationsRegExpString}\\.` + // Matches name abbreviations, E.g., `Mr. ${name}` isn't a full sentence, even though the period follows the general pattern of a sentence-ending character. Name abbreviations have to have a whitespace character or a newline before them. Note: it isn't needed to check for line breaks specifically, as the whitespace RegExp character covers them.
+	`|${sentenceEndCharactersRegExpString}\\s*(?:${closingQuoteRegExpString}|\\))` + // Matches sentence-ending characters inside quotes.
 	`(?<=\\s+)${SentenceEndCharactersRegExp}` + // Matches sentence-ending characters with a whitespace in front of them.
-	`|(?:${SentenceEndCharactersRegExpString}(?=\\S))` + // Matches sentence-ending characters without a whitespace character after them. Note: it isn't needed to check for decimal point usage as well as recurring decimal notation (0.999...) as the decimal would be matched anyway by this expression and the ellipsis would be matched either by the sentence-ending character part of the SentenceRegExp or by the previous expression.
-	`|${NotSentenceEndCharactersRegExpString}` + // Matches all non-sentence-ending characters.
+	`|(?:${sentenceEndCharactersRegExpString}(?=\\S))` + // Matches sentence-ending characters without a whitespace character after them. Note: it isn't needed to check for decimal point usage as well as recurring decimal notation (0.999...) as the decimal would be matched anyway by this expression and the ellipsis would be matched either by the sentence-ending character part of the SentenceRegExp or by the previous expression.
+	`|${notSentenceEndCharactersRegExpString}` + // Matches all non-sentence-ending characters.
 	`)`; // Closing outermost non-capturing group bracket.
 
 export const SentenceRegExp = RegExp(
 	`(?<=^|\\s)` + // Checks for the necessary whitespace character or start of the string before a sentence. Note: it isn't needed to check for line breaks specifically, as the whitespace RegExp character covers them.
-		`${SentenceCharacterRegExpString}+` + // Matches as many valid sentence characters as possible.
-		`(?:${SentenceEndCharactersRegExpString}+|$)` + // Matches the sentence end character(s).
-		`(?:(?:(?:\\s*\\(\\s*${SentenceCharacterRegExpString}+)?\\s*\\))` + // Matches a possible further string of words inside parentheses, after the main sentence.
-		`|${ClosingQuoteRegExpString}*(?=\\s|$))`, // Matches the necessary space or line break after the sentence end character. Note: it isn't needed to check for line breaks specifically, as the whitespace RegExp character covers them.
+		`${sentenceCharacterRegExpString}+` + // Matches as many valid sentence characters as possible.
+		`(?:${sentenceEndCharactersRegExpString}+|$)` + // Matches the sentence end character(s).
+		`(?:(?:(?:\\s*\\(\\s*${sentenceCharacterRegExpString}+)?\\s*\\))` + // Matches a possible further string of words inside parentheses, after the main sentence.
+		`|${closingQuoteRegExpString}*(?=\\s|$))`, // Matches the necessary space or line break after the sentence end character. Note: it isn't needed to check for line breaks specifically, as the whitespace RegExp character covers them.
 	"g",
 );
 
-export const LineSeparatorRegExpString = `(?:\\s*(?:${LineBreakRegExpString})\\s*)+`;
+const lineSeparatorRegExpString = `(?:\\s*(?:${lineBreakRegExpString})\\s*)+`;
 
-export const LineSeparatorRegExp = RegExp(LineSeparatorRegExpString, "g");
+export const LineSeparatorRegExp = RegExp(lineSeparatorRegExpString, "g");
 
 export const LineSeparatorLookaheadRegExp = RegExp(
-	`(?=${LineSeparatorRegExpString})+`,
+	`(?=${lineSeparatorRegExpString})+`,
 	"g",
 );
 
-export const ParagraphSeparatorRegExpString = `(?:\\s*(?:${LineBreakRegExpString})\\s*){2,}`;
+const paragraphSeparatorRegExpString = `(?:\\s*(?:${lineBreakRegExpString})\\s*){2,}`;
 
 export const ParagraphSeparatorRegExp = RegExp(
-	ParagraphSeparatorRegExpString,
+	paragraphSeparatorRegExpString,
 	"g",
 );
 
 export const ParagraphSeparatorLookaheadRegExp = RegExp(
-	`(?=${ParagraphSeparatorRegExpString})`,
+	`(?=${paragraphSeparatorRegExpString})`,
 	"g",
 );
 
-export const EmojiRegExpString =
-	"\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟";
+const emojiRegExpString =
+	"(?:\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟)";
 
-const BeginningEmojiRegExp = new RegExp(`^${EmojiRegExpString}`);
+export const EmojiRegExp = new RegExp(emojiRegExpString);
+
+const startEmojiRegExpString = `^${emojiRegExpString}`;
+
+export const StartEmojiRegExp = new RegExp(startEmojiRegExpString);
+
+const afterEmojiRegExpString = `${emojiRegExpString}.+`;
+
+export const AfterEmojiRegExp = new RegExp(afterEmojiRegExpString, "gm");
+
+const emojiLookbehindRegExpString = `(?<=${startEmojiRegExpString}).+`;
+
+export const EmojiLookbehindRegExp = new RegExp(emojiLookbehindRegExpString);
 
 // ! Arrays
 
