@@ -45,7 +45,9 @@ export const messageReactionRemoveAll: ClientEvent<"messageReactionRemoveAll"> =
 							// Updating the reaction count.
 							(starredMessage.embeds[0].data as APIEmbed).title = (
 								title as string
-							).replace(/> \d+/, "> 0");
+							)
+								// It's needed to match the `>` character as simply matching `\d+` could match the emoji ID in the title.
+								.replace(/> \d+/, "> 0");
 
 							await starredMessage.edit({
 								embeds: starredMessage.embeds,

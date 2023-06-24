@@ -67,6 +67,7 @@ export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 							// The assertion necessary because the embed needs to be edited.
 							// Updating the reaction count.
 							(starredMessage.embeds[0].data as APIEmbed).title =
+								// It's needed to match the `>` character as simply matching `\d+` could match the emoji ID in the title.
 								title?.replace(/> \d+/, `> ${reaction.count}`);
 
 							await starredMessage.edit({
