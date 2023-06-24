@@ -29,7 +29,7 @@ export const interactionCreate: ClientEvent<"interactionCreate"> = {
 					)} in guild ${bold(interaction.guild?.name)} from user ${bold(
 						interaction.user.username,
 					)} (ID: ${interaction.user.id}) ()`,
-				).replace(/\s{2,}/g, " "),
+				),
 			);
 		}
 
