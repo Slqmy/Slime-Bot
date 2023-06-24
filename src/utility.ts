@@ -958,6 +958,15 @@ export const resolveColour = (colour: unknown): number => {
 	return Colours.Default;
 };
 
+export const sum = (numbers: (number | Decimal)[]): number => {
+	numbers
+		.reduce(
+			(accumulator: Decimal, number) => accumulator.plus(number),
+			new Decimal(0),
+		)
+		.toNumber();
+};
+
 /**
  * A function for the sigma notation used in math (Σ). Can be used as a summative operator.
  * @param {string} expression The expression to summarise. You can use the `variable` argument in the expression string just like you would in normal math.
@@ -1015,6 +1024,19 @@ export const pi = (
 	return product;
 };
 
+export const limitNumber = (
+	number: number | Decimal,
+	maximumValue: number | Decimal | undefined = number,
+	minimumValue: number | Decimal | undefined = number,
+) =>
+	Math.min(
+		Math.max(
+			new Decimal(number).toNumber(),
+			new Decimal(minimumValue).toNumber(),
+		),
+		new Decimal(maximumValue).toNumber(),
+	);
+
 export const levelToExperience = (level: Decimal | number) =>
 	new Decimal(level)
 		.toPower(2)
@@ -1046,19 +1068,6 @@ export const getExpressionValue = (expression: string) => {
 		? evaluatedExpression.entries[evaluatedExpression.entries.length - 1]
 		: evaluatedExpression;
 };
-
-export const limitNumber = (
-	number: number | Decimal,
-	maximumValue: number | Decimal | undefined = number,
-	minimumValue: number | Decimal | undefined = number,
-) =>
-	Math.min(
-		Math.max(
-			new Decimal(number).toNumber(),
-			new Decimal(minimumValue).toNumber(),
-		),
-		new Decimal(maximumValue).toNumber(),
-	);
 
 // ! Classes
 
