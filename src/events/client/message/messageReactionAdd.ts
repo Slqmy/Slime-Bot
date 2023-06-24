@@ -1,6 +1,7 @@
 import {
 	APIEmbed,
 	APIEmbedField,
+	AttachmentBuilder,
 	GuildEmoji,
 	Role,
 	TextChannel,
@@ -95,7 +96,11 @@ export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 								isImageLink,
 							);
 
-							const starboardMessage = await starboardChannel.send({
+							const starboardMessage: {
+								content: string | undefined;
+								embeds: [APIEmbed];
+								files: (string | AttachmentBuilder)[];
+							} = {
 								content: channel.pingRoleID
 									? `<@&${channel.pingRoleID}>`
 									: undefined,
@@ -120,7 +125,7 @@ export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 											name: author?.username ?? "👤 Unknown",
 											icon_url:
 												author?.avatarURL() ??
-												"https://cdn.discordapp.com/attachments/1020058739526619186/1115270152544596018/800px-Blue_question_mark_icon.png",
+												"attachment://Question-Mark-Icon.png",
 										},
 										footer: {
 											text: `${
@@ -132,74 +137,96 @@ export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 										},
 										timestamp: new Date(createdTimestamp).toISOString(),
 									},
-									...embeds
-										.map((embed) => embed.data)
-										// Filter out embedded image links saved from the original message.
-										// There has to be a complicated statement because embed.type is deprecated.
-										.filter((embed) => {
-											const {thumbnail} = embed;
-
-											if (embed.url && thumbnail?.url) {
-												const {proxy_url} = thumbnail;
-
-												const embedKeys = Object.keys(embed);
-												const urlIndex = messageImageURLs.indexOf(embed.url);
-												const thumbnailURLIndex = messageImageURLs.indexOf(
-													thumbnail.url,
-												);
-
-												if (
-													embedKeys.length === 3 &&
-													// Only have to check for one of the variables if they are equal to -1 since the variables are compared either way.
-													urlIndex !== -1 &&
-													urlIndex === thumbnailURLIndex &&
-													proxy_url ===
-														`https://media.discordapp.net${
-															/(?<=https:\/\/cdn.discordapp.com)[\s\S]+/.exec(
-																thumbnail.url,
-															)?.[0]
-														}`
-												) {
-													return false;
-												}
-											}
-
-											return true;
-										})
-										.map((embed) => {
-											if (embed.video) {
-												const newEmbed: APIEmbed = {...embed};
-
-												// This conversion is safe & necessary because if the embed contains a video, it will have a thumbnail and a URL.
-												newEmbed.image = {
-													url: newEmbed.thumbnail?.url as string,
-												};
-												newEmbed.footer = {
-													text: `${newEmbed.provider?.name}`,
-													icon_url:
-														"https://cdn.discordapp.com/attachments/1020058739526619186/1115247093301391360/video-play-icon.png",
-												};
-
-												return newEmbed;
-											}
-
-											return embed;
-										})
-										// Make sure that the limit of embeds per message is not exceeded.
-										.slice(0, 24),
 								],
 								// Note: The following code matches links in the content of the message and then filters out any non-image links as they behave in a bit of a strange way.
 								// This doesn't apply to message's *files* as those behave the same way as in the original message.
 								files: [
-									...Array.from(attachments.values()).map(
+									new AttachmentBuilder(
+										"./images/png/standard/Question-Mark-Icon.png",
+										{name: "Question-Mark-Icon.png"},
+									),
+									...[...attachments.values()].map(
 										(attachment) => attachment.url,
 									),
 									...messageImageURLs,
 								],
-							});
+							};
+
+							let needsAttachmentBuilder = false;
+
+							starboardMessage.embeds.push(
+								...embeds
+									.map((embed) => embed.data)
+									// Filter out embedded image links saved from the original message.
+									// There has to be a complicated statement because embed.type is deprecated.
+									.filter((embed) => {
+										const {thumbnail} = embed;
+
+										if (embed.url && thumbnail?.url) {
+											const {proxy_url} = thumbnail;
+
+											const embedKeys = Object.keys(embed);
+											const urlIndex = messageImageURLs.indexOf(embed.url);
+											const thumbnailURLIndex = messageImageURLs.indexOf(
+												thumbnail.url,
+											);
+
+											if (
+												embedKeys.length === 3 &&
+												// Only have to check for one of the variables if they are equal to -1 since the variables are compared either way.
+												urlIndex !== -1 &&
+												urlIndex === thumbnailURLIndex &&
+												proxy_url ===
+													`https://media.discordapp.net${
+														/(?<=https:\/\/cdn.discordapp.com)[\s\S]+/.exec(
+															thumbnail.url,
+														)?.[0]
+													}`
+											) {
+												return false;
+											}
+										}
+
+										return true;
+									})
+									.map((embed: APIEmbed) => {
+										if (embed.video) {
+											needsAttachmentBuilder = true;
+
+											// This conversion is safe & necessary because if the embed contains a video, it will have a thumbnail and a URL.
+											embed.image = {
+												url: embed.thumbnail?.url as string,
+											};
+											embed.footer = {
+												text: `${embed.provider?.name}`,
+												icon_url: "attachment://Video-Play-Icon.png",
+											};
+										}
+
+										return embed;
+									})
+									// Make sure that the limit of embeds per message is not exceeded.
+									.slice(0, 24),
+							);
+
+							if (needsAttachmentBuilder) {
+								starboardMessage.files.unshift(
+									new AttachmentBuilder(
+										"./images/png/standard/Video-Play-Icon.png",
+										{name: "Video-Play-Icon.png"},
+									),
+								);
+							}
+
+							starboardMessage.files = starboardMessage.files.slice(0, 25);
+
+							const starboardChannelMessage = await starboardChannel.send(
+								starboardMessage,
+							);
 
 							channel.starredMessageIDs ??= {};
-							channel.starredMessageIDs[message.id] = starboardMessage.id;
+							channel.starredMessageIDs[message.id] =
+								starboardChannelMessage.id;
 						}
 					}
 				}
@@ -243,7 +270,7 @@ export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 					[...reaction.users.cache.values()].map(
 						(reactionUser) => reactionUser.id,
 					).length !== 1 &&
-					new RegExp(`^${reaction.emoji.name}.+`, "gm").test(
+					RegExp(`^${reaction.emoji.name}.+`, "gm").test(
 						messageEmbed.description as string,
 					)
 				) {

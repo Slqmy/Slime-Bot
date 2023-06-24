@@ -2,7 +2,7 @@ import {Emojis, ImageURLs} from "../../utility.js";
 import {BotClient} from "types";
 import GuildDataSchema from "../../schemas/GuildDataSchema.js";
 import Parser from "rss-parser";
-import {TextChannel} from "discord.js";
+import {AttachmentBuilder, TextChannel} from "discord.js";
 
 const parser = new Parser();
 
@@ -73,12 +73,19 @@ export default (client: BotClient) => {
 									},
 									footer: {
 										text: "YouTube",
-										icon_url: ImageURLs.YouTubeLogo,
+										icon_url: `attachment://YouTube-Logo.png`,
 									},
 								},
 							],
+							files: [
+								new AttachmentBuilder(
+									"./images/png/standard/emojis/YouTube-Logo.png",
+									{name: "YouTube-Logo.png"},
+								),
+							],
 						});
 					}
+
 					index++;
 				}
 
