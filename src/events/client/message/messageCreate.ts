@@ -2,8 +2,8 @@ import {ClientEvent, MongooseDocument} from "types";
 import {
 	Colours,
 	Emojis,
-	NewLineRegExp,
-	ParagraphRegExp,
+	LineSeparatorRegExp,
+	ParagraphSeparatorRegExp,
 	PunctuationRegExp,
 	SentenceRegExp,
 	URLRegExp,
@@ -102,13 +102,13 @@ export const messageCreate: ClientEvent<"messageCreate"> = {
 						// 3 XP per newline.
 						.plus(
 							new Decimal(settings?.levelling?.lineBonus ?? 3).times(
-								content.match(NewLineRegExp)?.length ?? 0,
+								content.match(LineSeparatorRegExp)?.length ?? 0,
 							),
 						)
 						// 4 XP per two newlines in a row.
 						.plus(
 							new Decimal(settings?.levelling?.paragraphBonus ?? 4).times(
-								content.match(ParagraphRegExp)?.length ?? 0,
+								content.match(ParagraphSeparatorRegExp)?.length ?? 0,
 							),
 						)
 						// 0.1 XP per word.
@@ -133,7 +133,7 @@ export const messageCreate: ClientEvent<"messageCreate"> = {
 						.plus(randomNumber);
 
 					// Min 5 XP, Max 50 XP.
-					earnedExperience = Math.round(limitNumber(earnedExperience, 5, 50));
+					earnedExperience = Math.round(limitNumber(earnedExperience, 50, 5));
 
 					userData.experience += earnedExperience;
 
