@@ -1092,17 +1092,19 @@ export const isBotTester = (userID: string) =>
  */
 export class SuccessMessage {
 	embeds: [APIEmbed];
-
+	ephemeral = false;
 	/**
 	 * @param {string} message The message to display in the embed.
 	 */
-	constructor(message: string) {
+	constructor(message: string, ephemeral = false) {
 		this.embeds = [
 			{
 				description: `${Emojis.Success} ${message}`,
 				color: Colours.Transparent,
 			},
 		];
+
+		this.ephemeral = ephemeral;
 	}
 }
 
@@ -1111,17 +1113,19 @@ export class SuccessMessage {
  */
 export class ErrorMessage {
 	embeds: [APIEmbed];
-
+	ephemeral = false;
 	/**
 	 * @param {string} message The message to display in the embed.
 	 */
-	constructor(message: string) {
+	constructor(message: string, ephemeral = false) {
 		this.embeds = [
 			{
 				description: `${Emojis.Error} ${message}`,
 				color: Colours.Transparent,
 			},
 		];
+
+		this.ephemeral = ephemeral;
 	}
 }
 
@@ -1929,7 +1933,8 @@ Use camelCase for the regex string variables, and PascalCase for the regular exp
  */
 export const ANSIControlCharacterRegExp = /\x1B|\[\d{1,2}m/g;
 
-export const RegExpCharactersRegExp = /[.*+?^${}()|[\]\\]/g;
+// A capture group is necessary in this regular expression.
+export const RegExpCharactersRegExp = /([.*+?^${}()|[\]\\])/g;
 
 const punctuationRegExpString =
 	"[\u2000-\u206F\u2E00-\u2E7F'!\"#$%&()*+,\\-./:;<=>?@[\\]^_`{|}~«»《》〈〉]";
