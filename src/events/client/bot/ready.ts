@@ -1,5 +1,6 @@
 import {ClientEvent} from "types";
 import chalk from "chalk";
+import {User} from "discord.js";
 
 const {bold, whiteBright, greenBright} = chalk;
 
@@ -9,8 +10,16 @@ export const ready: ClientEvent<"ready"> = {
 		console.log(
 			whiteBright(
 				`\n${bold("[Client]")} Ready! Online and logged in as ${greenBright(
-					client.user?.username,
+					(client.user as User).username,
 				)}.\n`,
+			),
+		);
+
+		console.log(
+			whiteBright(
+				`\n${bold("[Client]")} Currently in ${bold(
+					client.guilds.cache.size,
+				)} guilds.\n`,
 			),
 		);
 
