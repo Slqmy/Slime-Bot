@@ -698,7 +698,7 @@ export const resolveDuration = (string: string): number | null => {
 
 	try {
 		string = string
-			.replace(/([0-9.]+)/g, "+ $1 *")
+			.replace(/([\d.]+)/g, "+ $1 *")
 			.replace(/ /g, "")
 			.trim();
 
@@ -891,7 +891,7 @@ export const MaximumColourValue = 0xffffff;
 
 export const isColorResolvable = (value: unknown): value is ColorResolvable =>
 	(typeof value === "string" &&
-		(value in Colors || /^#[0-9a-f]{6}$/.test(value))) ||
+		(value in Colors || /^#[a-f\d]{6}$/.test(value))) ||
 	value === "Random" ||
 	(Array.isArray(value) &&
 		value.length === 3 &&
@@ -913,17 +913,49 @@ export const isColorResolvable = (value: unknown): value is ColorResolvable =>
  *
  */
 export const resolveColour = (colour: unknown): number => {
-	if (typeof colour === "string" && /random/i.test(colour)) colour = "Random";
-	if (typeof colour === "string" && toTitleCase(colour) in Colours) {
-		colour = toTitleCase(colour);
+	if (typeof colour === "string") {
+		if (/random/i.test(colour)) {
+			colour = "Random";
+		} else if (toTitleCase(colour) in Colours) {
+			colour = toTitleCase(colour);
+		} else if (colour.startsWith("#")) {
+			colour = `${colour[0]}${colour.slice(1).replace(/[^a-f\d]/g, "e")}`.slice(
+				0,
+				7,
+			);
+		}
+
+		if ((colour as string) in Colours) {
+			return Colours[colour as keyof typeof Colours];
+		}
 	}
 
-	if (isColorResolvable(colour)) return resolveColor(colour);
-	if (typeof colour === "string" && colour in Colours) {
-		return Colours[colour as keyof typeof Colours];
+	if (Array.isArray(colour)) {
+		const defaultColourHex = Colours.Default.toString(16);
+		const red = parseInt(defaultColourHex.slice(0, 2), 16);
+		const green = parseInt(defaultColourHex.slice(2, 4), 16);
+		const blue = parseInt(defaultColourHex.slice(4), 16);
+
+		colour[0] ??= red;
+		colour[1] ??= green;
+		colour[2] ??= blue;
+
+		colour = colour.slice(0, 3);
+
+		colour = (colour as [number, number, number]).forEach((colourValue) =>
+			limitNumber(colourValue, MaximumColourValue, 0),
+		);
 	}
 
-	return Colours.Transparent;
+	if (typeof colour === "number") {
+		colour = limitNumber(colour, MaximumColourValue, 0);
+	}
+
+	if (isColorResolvable(colour)) {
+		return resolveColor(colour);
+	}
+
+	return Colours.Default;
 };
 
 /**
@@ -1017,15 +1049,15 @@ export const getExpressionValue = (expression: string) => {
 
 export const limitNumber = (
 	number: number | Decimal,
-	minimumValue?: number | Decimal,
-	maximumValue?: number | Decimal,
+	maximumValue: number | Decimal | undefined = number,
+	minimumValue: number | Decimal | undefined = number,
 ) =>
 	Math.min(
 		Math.max(
 			new Decimal(number).toNumber(),
-			new Decimal(minimumValue ?? -Infinity).toNumber(),
+			new Decimal(minimumValue).toNumber(),
 		),
-		new Decimal(maximumValue ?? Infinity).toNumber(),
+		new Decimal(maximumValue).toNumber(),
 	);
 
 // ! Classes
@@ -1505,8 +1537,8 @@ export class LevelLeaderboardMessage {
 			);
 
 		const pageLevels = guildMembers.slice(
-			pageNumber * 10 - 10,
-			pageNumber * 10 + 1,
+			5 * (pageNumber - 1),
+			5 * pageNumber + 1,
 		);
 
 		if (!pageLevels.length) {
@@ -1646,6 +1678,7 @@ export class LevelLeaderboardMessage {
  * // ...
  */
 export enum Colours {
+	Default = 0x2b2d31,
 	/**
 	 * A colour that exactly matches the colour of *embed backgrounds* using **dark theme**.
 	 */
@@ -1698,6 +1731,8 @@ export enum Emojis {
 	FirstPage = "<:_:1121126417770500096>",
 	// https://www.flaticon.com/free-icon/previous_189260
 	Back = "<:_:1121126569906290708>",
+	// Edited version of https://www.flaticon.com/free-icon/ellipsis_8699925
+	SelectPage = "<:_:1121871545774653450>",
 	// https://www.flaticon.com/free-icon/previous_189259
 	Forward = "<:_:1121126580991819867>",
 	// https://www.flaticon.com/free-icon/fast-forward_190517
@@ -1713,6 +1748,7 @@ export enum EmojiIDs {
 	Error = "1118182956670914634",
 	FirstPage = "1121126417770500096",
 	Back = "1121126569906290708",
+	SelectPage = "1121871545774653450",
 	Forward = "1121126580991819867",
 	LastPage = "1121126592480022568",
 	Slime = "1112438888359792640",
@@ -1725,6 +1761,7 @@ export enum ImageURLs {
 	Error = "https://cdn-icons-png.flaticon.com/512/10308/10308387.png",
 	FirstPage = "https://cdn-icons-png.flaticon.com/512/190/190518.png",
 	Back = "https://cdn-icons-png.flaticon.com/512/189/189260.png",
+	SelectPageOriginal = "https://cdn-icons-png.flaticon.com/512/8699/8699925.png",
 	Forward = "https://cdn-icons-png.flaticon.com/512/189/189259.png",
 	LastPage = "https://cdn-icons-png.flaticon.com/512/190/190517.png",
 	Slime = "https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/dd/Slime_JE3_BE2.png/revision/latest?cb=20191230025505",
