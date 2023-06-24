@@ -1,6 +1,7 @@
 import {
 	APIRole,
 	ChannelType,
+	PermissionFlagsBits,
 	Role,
 	SlashCommandBuilder,
 	TextChannel,
@@ -24,6 +25,7 @@ export const poll: Command = {
 	data: new SlashCommandBuilder()
 		.setName("poll")
 		.setDescription("📊 Create a poll for others to vote on!")
+		.setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName("create")
