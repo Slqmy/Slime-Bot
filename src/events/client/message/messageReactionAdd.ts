@@ -90,6 +90,7 @@ export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 								? await emojis.fetch(emoji.id)
 								: null;
 
+							// isImageLink is shorthand syntax for (link) => isImageLink(link).
 							const messageImageURLs = (content?.match(URLRegExp) ?? []).filter(
 								isImageLink,
 							);
