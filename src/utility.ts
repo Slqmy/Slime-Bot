@@ -453,42 +453,38 @@ export const handleError = async (
 	const {user, channel, guild, channelId, guildId} = interaction;
 
 	// Sends a message depending on whether the user is a bot tester and whether they are in the support server.
-	const errorReply = {
-		embeds: [
-			{
-				title: `${Emojis.Error} Error!`,
-				description: `\`${
-					client.user.username
-				}\` has encountered an error while executing the interaction${
-					isBotTester(user.id)
-						? `:\n\n\`\`\`css\n${error}\`\`\`\n> Interaction Custom ID / Name: \`${
-								// This is needed or else TypeScript will complain.
-								interaction.type === 2 || interaction.isAutocomplete()
-									? interaction.commandName
-									: interaction.customId
-						  }\``
-						: "."
-				}\n\n${
-					discordGuildID && discordBotOwnerID && user.id !== discordBotOwnerID
-						? `Please report this error to ${
-								guildId === discordGuildID
-									? `<@${discordBotOwnerID}>`
-									: `\`@${(discordBotOwner as User).tag}\``
-						  }${
-								guildId === discordGuildID
-									? `${
-											discordSupportChannelID
-												? ` in <#${discordSupportChannelID}>`
-												: ""
-									  }`
-									: ` on [the support server](https://www.discord.gg/${discordGuildInvite})`
-						  }!`
-						: ""
-				}`.trim(),
-				color: Colours.Transparent,
-			},
-		],
-	};
+	const errorReply = new ErrorMessage(
+		`\`${
+			client.user.username
+		}\` has encountered an error while executing the interaction${
+			isBotTester(user.id)
+				? `:\n\n\`\`\`css\n${error}\`\`\`\n> Interaction Custom ID / Name: \`${
+						// This is needed or else TypeScript will complain.
+						interaction.type === 2 || interaction.isAutocomplete()
+							? interaction.commandName
+							: interaction.customId
+				  }\``
+				: "."
+		}\n\n${
+			discordGuildID && discordBotOwnerID && user.id !== discordBotOwnerID
+				? `Please report this error to ${
+						guildId === discordGuildID
+							? `<@${discordBotOwnerID}>`
+							: `\`@${(discordBotOwner as User).tag}\``
+				  }${
+						guildId === discordGuildID
+							? `${
+									discordSupportChannelID
+										? ` in <#${discordSupportChannelID}>`
+										: ""
+							  }`
+							: ` on [the support server](https://www.discord.gg/${discordGuildInvite})`
+				  }!`
+				: ""
+		}`,
+		false,
+		false,
+	);
 
 	if (process.env.debug) {
 		// Create a gap between the error message and the interaction information message.
@@ -524,12 +520,22 @@ export const handleError = async (
 
 	if (!(interaction instanceof AutocompleteInteraction)) {
 		try {
-			await interaction.reply(errorReply);
+			await interaction.reply(errorReply).catch(console.error);
 		} catch (_error) {
-			await interaction.editReply(errorReply).catch(console.error);
+			try {
+				await interaction.followUp(errorReply).catch(console.error);
+			} catch (_error) {
+				try {
+					await interaction.editReply(errorReply).catch(console.error);
+				} catch (_error) {
+					await interaction.user.send(errorReply).catch(console.error);
+				}
+			}
 		}
+	} else if (channel) {
+		await channel.send(errorReply);
 	} else {
-		await channel?.send(errorReply).catch(console.error);
+		await interaction.user.send(errorReply).catch(console.error);
 	}
 };
 
@@ -1141,14 +1147,16 @@ export const isBotTester = (userID: string) =>
 export class QueryMessage {
 	embeds: [APIEmbed];
 	ephemeral = false;
+	simple = true;
 	/**
 	 * @param {string} message The message to display in the embed.
 	 */
-	constructor(message: string, ephemeral = false) {
+	constructor(message: string, ephemeral = false, simple = true) {
 		this.embeds = [
 			{
-				description: `${Emojis.QuestionMark} ${message}`,
-				color: Colours.Default,
+				title: simple ? "" : `${Emojis.QuestionMark} Error!`,
+				description: `${simple ? `${Emojis.QuestionMark} ` : ""}${message}`,
+				color: Colours.Query,
 			},
 		];
 
@@ -1156,20 +1164,39 @@ export class QueryMessage {
 	}
 }
 
-/**
- * A class to easily create a simple error message.
- */
+export class LoadingMessage {
+	embeds: [APIEmbed];
+	ephemeral = false;
+	simple = true;
+	/**
+	 * @param {string} message The message to display in the embed.
+	 */
+	constructor(message: string, ephemeral = false, simple = true) {
+		this.embeds = [
+			{
+				title: simple ? "" : `${Emojis.Loading} Error!`,
+				description: `${simple ? `${Emojis.Loading} ` : ""}${message}`,
+				color: Colours.Loading,
+			},
+		];
+
+		this.ephemeral = ephemeral;
+	}
+}
+
 export class SuccessMessage {
 	embeds: [APIEmbed];
 	ephemeral = false;
+	simple = true;
 	/**
 	 * @param {string} message The message to display in the embed.
 	 */
-	constructor(message: string, ephemeral = false) {
+	constructor(message: string, ephemeral = false, simple = true) {
 		this.embeds = [
 			{
-				description: `${Emojis.Success} ${message}`,
-				color: Colours.Transparent,
+				title: simple ? "" : `${Emojis.Success} Error!`,
+				description: `${simple ? `${Emojis.Success} ` : ""}${message}`,
+				color: Colours.Success,
 			},
 		];
 
@@ -1177,20 +1204,39 @@ export class SuccessMessage {
 	}
 }
 
-/**
- * A class to easily create a simple error message.
- */
-export class ErrorMessage {
+export class WarningMessage {
 	embeds: [APIEmbed];
 	ephemeral = false;
+	simple = true;
 	/**
 	 * @param {string} message The message to display in the embed.
 	 */
-	constructor(message: string, ephemeral = false) {
+	constructor(message: string, ephemeral = false, simple = true) {
 		this.embeds = [
 			{
-				description: `${Emojis.Error} ${message}`,
-				color: Colours.Transparent,
+				title: simple ? "" : `${Emojis.Warning} Error!`,
+				description: `${simple ? `${Emojis.Warning} ` : ""}${message}`,
+				color: Colours.Warning,
+			},
+		];
+
+		this.ephemeral = ephemeral;
+	}
+}
+
+export class ErrorMessage {
+	embeds: [APIEmbed];
+	ephemeral = false;
+	simple = true;
+	/**
+	 * @param {string} message The message to display in the embed.
+	 */
+	constructor(message: string, ephemeral = false, simple = true) {
+		this.embeds = [
+			{
+				title: simple ? "" : `${Emojis.Error} Error!`,
+				description: `${simple ? `${Emojis.Error} ` : ""}${message}`,
+				color: Colours.Error,
 			},
 		];
 
@@ -1785,6 +1831,11 @@ export class LevelLeaderboardMessage {
  * // ...
  */
 export enum Colours {
+	Query = 0x2b2d31,
+	Loading = 0x2b2d31,
+	Success = 0x2b2d31,
+	Warning = 0x2b2d31,
+	Error = 0x2b2d31,
 	Default = 0x2b2d31,
 	/**
 	 * A colour that exactly matches the colour of *embed backgrounds* using **dark theme**.
@@ -1822,6 +1873,11 @@ export enum Colours {
  * @see {@link Colours} for an enum with numbers representing colour values.
  */
 export enum ColourHexStrings {
+	Query = "#2b2d31",
+	Loading = "#2b2d31",
+	Success = "#2b2d31",
+	Warning = "#2b2d31",
+	Error = "#2b2d31",
 	Default = "#2b2d31",
 	Transparent = "#2b2d31",
 	TransparentBright = "#f2f3f5",
@@ -1854,6 +1910,10 @@ export enum ColourHexStrings {
 export enum Emojis {
 	// https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg
 	YouTubeLogo = "<:_:1122177058974474300>",
+	// Edited version of https://cdn-icons-png.flaticon.com/512/10313/10313032.png
+	QuestionMark = "<:_:1122479667828502568>",
+	// https://i.gifer.com/ZZ5H.gif
+	Loading = "<a:_:1122539471024443522>",
 	// Edited version of https://cdn-icons-png.flaticon.com/512/10337/10337354.png
 	Success = "<:_:1122174591591260170>",
 	// Edited version of https://www.flaticon.com/free-icon/exclamation_10308557
@@ -1874,14 +1934,14 @@ export enum Emojis {
 	Slime = "<:_:1112438888359792640>",
 	// https://cdn-icons-png.flaticon.com/512/1587/1587509.png
 	Envelope = "<:_:1122178406512087071>",
-	// Edited version of https://cdn-icons-png.flaticon.com/512/10313/10313032.png
-	QuestionMark = "<:_:1122479667828502568>",
 	// https://pbs.twimg.com/media/EThkxLwWsAMGQgp?format=png&name=360x360
 	Wumpus = "<:_:1112436655241035807>",
 }
 
 export enum EmojiIDs {
 	YouTubeLogo = "1122177058974474300",
+	QuestionMark = "1122479667828502568",
+	Loading = "1122539471024443522",
 	Success = "1122174591591260170",
 	Warning = "1122174876757803018",
 	Error = "1122174658331021312",
@@ -1892,12 +1952,13 @@ export enum EmojiIDs {
 	LastPage = "1122174588294537367",
 	Slime = "1112438888359792640",
 	Envelope = "1122178406512087071",
-	QuestionMark = "1122479667828502568",
 	Wumpus = "1112436655241035807",
 }
 
 export enum ImageURLs {
 	YouTubeLogo = "https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg",
+	QuestionMark = "https://cdn-icons-png.flaticon.com/512/10313/10313032.png",
+	Loading = "https://i.gifer.com/ZZ5H.gif",
 	SuccessOriginal = "https://cdn-icons-png.flaticon.com/512/10337/10337354.png",
 	WarningOriginal = "https://cdn-icons-png.flaticon.com/512/10308/10308557.png",
 	Error = "https://cdn-icons-png.flaticon.com/512/10308/10308387.png",
@@ -1908,7 +1969,6 @@ export enum ImageURLs {
 	LastPage = "https://cdn-icons-png.flaticon.com/512/190/190517.png",
 	Slime = "https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/dd/Slime_JE3_BE2.png/revision/latest?cb=20191230025505",
 	Envelope = "https://cdn-icons-png.flaticon.com/512/1587/1587509.png",
-	QuestionMark = "https://cdn-icons-png.flaticon.com/512/10313/10313032.png",
 	Wumpus = "https://pbs.twimg.com/media/EThkxLwWsAMGQgp?format=png&name=360x360",
 }
 
