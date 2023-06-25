@@ -1,4 +1,4 @@
-import {Emojis, ImageURLs} from "../../utility.js";
+import {Emojis} from "../../utility.js";
 import {BotClient} from "types";
 import GuildDataSchema from "../../schemas/GuildDataSchema.js";
 import Parser from "rss-parser";
