@@ -5,7 +5,6 @@ import {
 	Role,
 	SlashCommandBuilder,
 	TextChannel,
-	User,
 } from "discord.js";
 import {
 	ErrorMessage,
@@ -208,7 +207,7 @@ export const poll: Command = {
 				}
 
 				const botPermissions = await checkPermissions(
-					[client.user as User],
+					[client.user],
 					null,
 					["ViewChannel", "SendMessages", "EmbedLinks", "AddReactions"],
 					channel,

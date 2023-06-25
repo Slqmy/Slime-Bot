@@ -52,7 +52,7 @@ export const messageReactionRemove: ClientEvent<"messageReactionRemove"> = {
 
 			const embed = message.embeds?.[0]?.data;
 
-			if (embed?.author?.name === `${(client.user as User).username} Poll`) {
+			if (embed?.author?.name === `${client.user.username} Poll`) {
 				const member = await guild.members.fetch(user.id);
 
 				const emojis = (embed.description as string).match(

@@ -12,6 +12,7 @@ import {
 	ButtonInteraction,
 	ButtonStyle,
 	ChatInputCommandInteraction,
+	ClientUser,
 	ColorResolvable,
 	Colors,
 	Guild,
@@ -458,7 +459,7 @@ export const handleError = async (
 			{
 				title: `${Emojis.Error} Error!`,
 				description: `\`${
-					client.user?.username as string
+					client.user.username
 				}\` has encountered an error while executing the interaction${
 					isBotTester(user.id)
 						? `:\n\n\`\`\`css\n${error}\`\`\`\n> Interaction Custom ID / Name: \`${
@@ -1490,10 +1491,10 @@ export class PollMessage {
 						: (embed as Readonly<APIEmbed>).color,
 
 				author: {
-					name: `${client.user?.username} Poll${
+					name: `${client.user.username} Poll${
 						pollEnd && parseInt(pollEnd) * 1000 <= Date.now() ? " - Ended" : ""
 					}`,
-					icon_url: client.user?.displayAvatarURL(DisplayAvatarURLOptions),
+					icon_url: client.user.displayAvatarURL(DisplayAvatarURLOptions),
 				},
 				footer: {
 					text:

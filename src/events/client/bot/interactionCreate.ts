@@ -137,9 +137,9 @@ export const interactionCreate: ClientEvent<"interactionCreate"> = {
 					{
 						title: `${Emojis.Error} Maintenance Mode!`,
 						description: `Sorry, <@${
-							client.user?.id
+							client.user.id
 						}> is currently in maintenance mode!\n\n<@${
-							client.user?.id
+							client.user.id
 						}> has been in maintenance since <t:${Math.round(
 							client.onlineTimestamp / 1000,
 						)}:R>.`,

@@ -2,6 +2,7 @@ import {
 	APIEmbed,
 	APIEmbedField,
 	AttachmentBuilder,
+	ClientUser,
 	GuildEmoji,
 	Role,
 	TextChannel,
@@ -129,10 +130,8 @@ export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 												"attachment://Question-Mark-Icon.png",
 										},
 										footer: {
-											text: `${
-												client.user?.username as string
-											} - Message ID • Time sent at - ${message.id}`,
-											icon_url: client.user?.displayAvatarURL(
+											text: `${client.user.username} - Message ID • Time sent at - ${message.id}`,
+											icon_url: client.user.displayAvatarURL(
 												DisplayAvatarURLOptions,
 											),
 										},
@@ -236,9 +235,8 @@ export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 			const messageEmbed = message.embeds?.[0]?.data;
 
 			if (
-				messageEmbed?.author?.name ===
-					`${(client.user as User).username} Poll - Ended` ||
-				messageEmbed?.author?.name === `${(client.user as User).username} Poll`
+				messageEmbed?.author?.name === `${client.user.username} Poll - Ended` ||
+				messageEmbed?.author?.name === `${client.user.username} Poll`
 			) {
 				const emojisList = (messageEmbed.description as string).match(
 					/^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|6️⃣|7️⃣|8️⃣|9️⃣|🔟)/gm,
@@ -253,8 +251,7 @@ export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 				);
 
 				if (
-					messageEmbed.author.name ===
-					`${(client.user as User).username} Poll - Ended`
+					messageEmbed.author.name === `${client.user.username} Poll - Ended`
 				) {
 					for (const messageReaction of userReactions.values()) {
 						if (messageReaction.emoji.name === reaction.emoji.name) {
@@ -266,7 +263,7 @@ export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 				}
 
 				if (
-					messageEmbed.author.name === `${client.user?.username} Poll` &&
+					messageEmbed.author.name === `${client.user.username} Poll` &&
 					reaction.me &&
 					[...reaction.users.cache.values()].map(
 						(reactionUser) => reactionUser.id,
