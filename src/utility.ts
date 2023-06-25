@@ -1138,6 +1138,24 @@ export const isBotTester = (userID: string) =>
 
 // ! Classes
 
+export class QueryMessage {
+	embeds: [APIEmbed];
+	ephemeral = false;
+	/**
+	 * @param {string} message The message to display in the embed.
+	 */
+	constructor(message: string, ephemeral = false) {
+		this.embeds = [
+			{
+				description: `${Emojis.QuestionMark} ${message}`,
+				color: Colours.Default,
+			},
+		];
+
+		this.ephemeral = ephemeral;
+	}
+}
+
 /**
  * A class to easily create a simple error message.
  */
@@ -1856,6 +1874,8 @@ export enum Emojis {
 	Slime = "<:_:1112438888359792640>",
 	// https://cdn-icons-png.flaticon.com/512/1587/1587509.png
 	Envelope = "<:_:1122178406512087071>",
+	// Edited version of https://cdn-icons-png.flaticon.com/512/10313/10313032.png
+	QuestionMark = "<:_:1122479667828502568>",
 }
 
 export enum EmojiIDs {
@@ -1870,6 +1890,7 @@ export enum EmojiIDs {
 	LastPage = "1122174588294537367",
 	Slime = "1112438888359792640",
 	Envelope = "1122178406512087071",
+	QuestionMark = "1122479667828502568",
 }
 
 export enum ImageURLs {
@@ -1884,6 +1905,7 @@ export enum ImageURLs {
 	LastPage = "https://cdn-icons-png.flaticon.com/512/190/190517.png",
 	Slime = "https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/dd/Slime_JE3_BE2.png/revision/latest?cb=20191230025505",
 	Envelope = "https://cdn-icons-png.flaticon.com/512/1587/1587509.png",
+	QuestionMark = "https://cdn-icons-png.flaticon.com/512/10313/10313032.png",
 }
 
 // ! Objects
