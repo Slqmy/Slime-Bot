@@ -1,9 +1,9 @@
-import {Event, MongooseDocument} from "types";
+import {ClientEvent, MongooseDocument} from "types";
 import GuildDataSchema, {
 	IGuildDataSchema,
 } from "../../../schemas/GuildDataSchema.js";
 
-export const roleDelete: Event<"roleDelete"> = {
+export const roleDelete: ClientEvent<"roleDelete"> = {
 	async execute(_client, role) {
 		const {guild} = role;
 
