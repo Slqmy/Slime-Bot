@@ -2033,7 +2033,7 @@ export const PunctuationLookaheadRegExp = RegExp(
 	"g",
 );
 
-const wordRegExpString = `(?:[a-z][’']?(?:-[a-z])?)+(?=(${punctuationRegExpString}|[\n ]|$))`;
+const wordRegExpString = `(?:[a-z][’']?(?:[-–—][a-z])?)+(?=(${punctuationRegExpString}|[\n ]|$))`;
 
 export const WordRegExp = RegExp(wordRegExpString, "gi");
 
