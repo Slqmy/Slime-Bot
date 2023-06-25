@@ -4,6 +4,7 @@ import {
 	ChatInputCommandInteraction,
 	Client,
 	ClientEvents,
+	ClientUser,
 	Collection,
 	ContextMenuCommandBuilder,
 	MessageContextMenuCommandInteraction,
@@ -19,6 +20,7 @@ import mongoose, {Document} from "mongoose";
  * A type for the bot client. Extends the default Discord JS client class with the necessary methods used by the code.
  */
 export type BotClient = Client & {
+	user: ClientUser;
 	commands: Collection<string, AnyCommand>;
 	commandArray: (
 		| SlashCommandBuilder
