@@ -1619,7 +1619,7 @@ export class LevelLeaderboardMessage {
 			.reverse()
 			.slice(0, Math.ceil(pageLevels.length / 5));
 
-		this.embeds = [{color: Colours.Transparent, image: {url: ""}}];
+		this.embeds = [{color: Colours.Default, image: {url: ""}}];
 
 		if (pageLevels.length || true) {
 			this.components = [

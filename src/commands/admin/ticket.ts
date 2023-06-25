@@ -71,7 +71,7 @@ export const ticket: Command = {
 					embeds: [
 						{
 							title: `${Emojis.Envelope} ${panelTitle}`,
-							color: Colours.Transparent,
+							color: Colours.Default,
 							description: `To create a ticket, click the button below.\n- This will create a private text channel.\n- Explain the problem you are having and be patient.\n\nSomeone will help you soon!`,
 							footer: {
 								text: `Ticket ID: ${ticketCategoryChannel.id}`,

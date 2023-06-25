@@ -121,7 +121,7 @@ export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 										}>`,
 										description:
 											`${content}\n\n[Jump to Message](${url})`.trim(),
-										color: Colours.Transparent,
+										color: Colours.Default,
 										author: {
 											name: author?.username ?? "👤 Unknown",
 											icon_url:

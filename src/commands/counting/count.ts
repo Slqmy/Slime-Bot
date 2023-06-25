@@ -37,7 +37,7 @@ export const count: Command = {
 										: ""
 								}`,
 						)}`,
-						color: Colours.Transparent,
+						color: Colours.Default,
 					},
 				],
 			});

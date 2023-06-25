@@ -13,7 +13,7 @@ export const ping: Command = {
 			embeds: [
 				{
 					title: "🏓 Pong!",
-					color: Colours.Transparent,
+					color: Colours.Default,
 					description: `🤖 **API Latency**: \`${
 						client.ws.ping
 					}\`\n\n👤 **Client Ping**: \`${

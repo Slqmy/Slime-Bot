@@ -145,7 +145,7 @@ export const messageCreate: ClientEvent<"messageCreate"> = {
 							embeds: [
 								{
 									description: `${Emojis.Slime} Congratulations, <@${author.id}>, You have reached level ${newUserLevel}!`,
-									color: Colours.Transparent,
+									color: Colours.Default,
 								},
 							],
 						});
