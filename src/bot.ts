@@ -42,6 +42,4 @@ client.handleFonts().catch(console.error);
 
 await client.login(discordBotToken);
 
-client.onlineTimestamp = Date.now();
-
 await connect(mongoDBToken as string).catch(console.error);
