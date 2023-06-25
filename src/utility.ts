@@ -1876,6 +1876,8 @@ export enum Emojis {
 	Envelope = "<:_:1122178406512087071>",
 	// Edited version of https://cdn-icons-png.flaticon.com/512/10313/10313032.png
 	QuestionMark = "<:_:1122479667828502568>",
+	// https://pbs.twimg.com/media/EThkxLwWsAMGQgp?format=png&name=360x360
+	Wumpus = "<:_:1112436655241035807>",
 }
 
 export enum EmojiIDs {
@@ -1891,6 +1893,7 @@ export enum EmojiIDs {
 	Slime = "1112438888359792640",
 	Envelope = "1122178406512087071",
 	QuestionMark = "1122479667828502568",
+	Wumpus = "1112436655241035807",
 }
 
 export enum ImageURLs {
@@ -1906,6 +1909,7 @@ export enum ImageURLs {
 	Slime = "https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/dd/Slime_JE3_BE2.png/revision/latest?cb=20191230025505",
 	Envelope = "https://cdn-icons-png.flaticon.com/512/1587/1587509.png",
 	QuestionMark = "https://cdn-icons-png.flaticon.com/512/10313/10313032.png",
+	Wumpus = "https://pbs.twimg.com/media/EThkxLwWsAMGQgp?format=png&name=360x360",
 }
 
 // ! Objects
