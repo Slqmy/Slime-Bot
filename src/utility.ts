@@ -837,35 +837,86 @@ export const checkPermissions = async (
 export const addSuffix = (number: number): "s" | "" =>
 	Math.abs(number) === 1 ? "" : "s";
 
-export const capitaliseFirstCharacter = (string: string) =>
+export const capitaliseFirstLetter = (string: string) =>
 	`${string[0]?.toUpperCase() ?? ""}${string.slice(1)}`;
+
+export const lowerCaseTitleCaseWords = [
+	"the",
+	"a",
+	"an",
+	"ago",
+	"at",
+	"by",
+	"for",
+	"in",
+	"on",
+	"far",
+	"of",
+	"off",
+	"out",
+	"to",
+	"up",
+	"via",
+	"as",
+	"but",
+	"per",
+	"pro",
+	"re",
+	"mid",
+	"ere",
+	"pre",
+	"sub",
+	"now",
+	"if",
+	"so",
+	"ex",
+	"or",
+	"pan",
+	"and",
+	"nor",
+	"yet",
+];
 
 export const toTitleCase = (string: string) => {
 	const splitString = string
 		.split(PunctuationLookaheadRegExp)
 		.map((subString) =>
-			subString.split(CamelCaseSubStringSeparatorLookaheadRegExp),
+			subString
+				.split(CamelCaseSubStringSeparatorLookaheadRegExp)
+				.map((subSubString) => subSubString.split(/\s/g)),
 		)
-		.flat();
+		.flat(2);
 
-	return splitString
-		.map((word) => {
-			console.log(word);
+	return capitaliseFirstLetter(
+		splitString
+			.map((word, index) => {
+				const space =
+					index === 0 ||
+					index === splitString.length - 1 ||
+					new RegExp(`^${punctuationRegExpString}$`).test(word)
+						? ""
+						: " ";
 
-			if (
-				word === word.toUpperCase() ||
-				(word.endsWith("s") &&
-					word.slice(0, word.length - 1) ===
-						word.slice(0, word.length - 1).toUpperCase())
-			) {
-				return word;
-			}
+				if (
+					word === word.toUpperCase() ||
+					(word.endsWith("s") &&
+						word.slice(0, word.length - 1) ===
+							word.slice(0, word.length - 1).toUpperCase()) ||
+					lowerCaseTitleCaseWords.includes(word) ||
+					word.length < 3
+				) {
+					return `${space}${word}`;
+				}
 
-			return capitaliseFirstCharacter(word.toLowerCase());
-		})
-		.join("")
-		.replace(/[-_]+/g, "");
+				return `${space}${capitaliseFirstLetter(word.toLowerCase())}`;
+			})
+			.join("")
+			.replace(/[-_]+/g, ""),
+	);
 };
+
+export const toKebabCase = (string: string) =>
+	toTitleCase(string).replaceAll(" ", "-").toLowerCase();
 
 /**
  * The maximum numerical value for colours. (`#ffffff` in `hexadecimal`)
@@ -1872,6 +1923,16 @@ export const DisplayAvatarURLOptions: ImageURLOptions = {
 	extension: "png",
 };
 
+/**
+ * Object used by the poll system to represent certain options with different emojis.
+ *
+ * For example, instead of using the usual number emojis for the choices `yes` and `no`, thumbs up and thumbs down are used instead.
+ */
+export const optionEmojis: {[key: string]: string} = {
+	yes: "👍",
+	no: "👎",
+};
+
 // ! Regex Hell
 
 /*
@@ -2086,16 +2147,6 @@ export const emojiArray = [
 	"9️⃣",
 	"🔟",
 ];
-
-/**
- * Object used by the poll system to represent certain options with different emojis.
- *
- * For example, instead of using the usual number emojis for the choices `yes` and `no`, thumbs up and thumbs down are used instead.
- */
-export const optionEmojis: {[key: string]: string} = {
-	yes: "👍",
-	no: "👎",
-};
 
 /**
  * Array of rainbow colours.
