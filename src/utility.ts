@@ -12,7 +12,6 @@ import {
 	ButtonInteraction,
 	ButtonStyle,
 	ChatInputCommandInteraction,
-	ClientUser,
 	ColorResolvable,
 	Colors,
 	Guild,
