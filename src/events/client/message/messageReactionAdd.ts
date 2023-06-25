@@ -2,11 +2,9 @@ import {
 	APIEmbed,
 	APIEmbedField,
 	AttachmentBuilder,
-	ClientUser,
 	GuildEmoji,
 	Role,
 	TextChannel,
-	User,
 } from "discord.js";
 import {ClientEvent, MongooseDocument} from "types";
 import {
