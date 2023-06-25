@@ -616,6 +616,8 @@ const consoleLogs: unknown[][] = [];
  * @see {@link consoleLogs} for an array of all logged messages.
  */
 console.log = (...data) => {
+	const date = new Date(Date.now());
+
 	const previousLogs = consoleLogs[consoleLogs.length - 1];
 	const previousLog = previousLogs?.[previousLogs.length - 1];
 
@@ -625,11 +627,28 @@ console.log = (...data) => {
 		typeof latestLog === "string" &&
 		typeof previousLog === "string" &&
 		// Remove possible control characters added by chalk.
-		latestLog.replace(ANSIControlCharacterRegExp, "").startsWith("\n") &&
-		previousLog.replace(ANSIControlCharacterRegExp, "").endsWith("\n")
+		latestLog.replace(ANSIControlCharactersRegExp, "").startsWith("\n") &&
+		previousLog.replace(ANSIControlCharactersRegExp, "").endsWith("\n")
 	) {
 		data[data.length - 1] = latestLog.replace(/\n/, "");
 	}
+
+	data = data.map((value) =>
+		typeof value === "string" && value.trim()
+			? value.replace(
+					new RegExp(`^(${ANSIControlCharactersRegExpString}|\\s)*`),
+					`$1${bold(
+						`[${date.getHours().toString().padStart(2, "0")}:${date
+							.getMinutes()
+							.toString()
+							.padStart(2, "0")}:${date
+							.getSeconds()
+							.toString()
+							.padStart(2, "0")}]:`,
+					)} `,
+			  )
+			: value,
+	);
 
 	standardLog(...data);
 
@@ -2044,6 +2063,8 @@ Use camelCase for the regex string variables, and PascalCase for the regular exp
 
 */
 
+const ANSIControlCharactersRegExpString = "(?:\x1B|\\[d{1,2}m)";
+
 /**
  * A regular expression to match `ANSI control characters`.
  *
@@ -2052,7 +2073,7 @@ Use camelCase for the regex string variables, and PascalCase for the regular exp
  * Used in the {@link console.log} function refactor.
  * @example
  * // Removing control characters added by chalk.
- * import {ANSIControlCharacterRegExp} from "../../../utility.js";
+ * import {ANSIControlCharactersRegExp} from "../../../utility.js";
  * import chalk from "chalk";
  *
  * const {redBright, bold} = chalk;
@@ -2062,7 +2083,7 @@ Use camelCase for the regex string variables, and PascalCase for the regular exp
  * console.log(JSON.stringify(message));
  * // => "\u001b[91m\u001b[1mHello, world!\u001b[22m\u001b[39m"
  *
- * const trimmedMessage = message.replace(ANSIControlCharacterRegExp, "");
+ * const trimmedMessage = message.replace(ANSIControlCharactersRegExp, "");
  *
  * console.log(JSON.stringify(trimmedMessage), trimmedMessage);
  * // => "Hello, world!" Hello, world!
@@ -2073,12 +2094,15 @@ Use camelCase for the regex string variables, and PascalCase for the regular exp
  * // ...
  *
  * // Clearing out any invisible control characters, and then checking if the string starts with a new line.
- * latestLog.replace(ANSIControlCharacterRegExp, "").startsWith("\n")
+ * latestLog.replace(ANSIControlCharactersRegExp, "").startsWith("\n")
  *
  * // ...
  *
  */
-export const ANSIControlCharacterRegExp = /\x1B|\[\d{1,2}m/g;
+export const ANSIControlCharactersRegExp = new RegExp(
+	ANSIControlCharactersRegExpString,
+	"g",
+);
 
 // A capture group is necessary in this regular expression.
 export const RegExpCharactersRegExp = /([.*+?^${}()|[\]\\])/g;
