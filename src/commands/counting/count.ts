@@ -37,7 +37,9 @@ export const count: Command = {
 										: ""
 								}`,
 						)}`,
-						color: Colours.Default,
+						color: guildData.settings?.counting?.disabled
+							? Colours.Warning
+							: Colours.Default,
 					},
 				],
 			});
