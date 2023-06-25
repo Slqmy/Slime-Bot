@@ -1080,10 +1080,10 @@ export const objectMatch = (
 };
 
 export const isBotTester = (userID: string) =>
-	process.env.discordBotTesters
-		?.replace(/\s+/g, "")
+	(process.env.discordBotTesters ?? "")
+		.replace(/\s+/g, "")
 		.split(",")
-		.includes(userID) ?? userID === process.env.discordBotOwnerID;
+		.includes(userID) || userID === process.env.discordBotOwnerID;
 
 // ! Classes
 
