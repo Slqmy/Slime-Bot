@@ -140,7 +140,7 @@ export const messageReactionAdd: ClientEvent<"messageReactionAdd"> = {
 								// This doesn't apply to message's *files* as those behave the same way as in the original message.
 								files: [
 									new AttachmentBuilder(
-										"./images/png/standard/Question-Mark-Icon.png",
+										"./images/png/standard/emojis/icons/Question-Mark-Icon.png",
 										{name: "Question-Mark-Icon.png"},
 									),
 									...[...attachments.values()].map(
