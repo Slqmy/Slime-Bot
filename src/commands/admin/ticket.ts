@@ -2,7 +2,6 @@ import {
 	ActionRowBuilder,
 	ButtonBuilder,
 	ButtonStyle,
-	CategoryChannel,
 	ChannelType,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
@@ -44,10 +43,17 @@ export const ticket: Command = {
 						.addChannelTypes(ChannelType.GuildCategory)
 						.setRequired(true),
 				)
+				.addChannelOption((option) =>
+					option
+						.setName("closed-ticket-category")
+						.setDescription(
+							"🎫 The category where closed tickets will be archived. Specify none to delete closed tickets.",
+						),
+				)
 				.addStringOption((option) =>
 					option
 						.setName("panel-title")
-						.setDescription("The title of the ticket panel"),
+						.setDescription("💬 The title of the ticket panel"),
 				),
 		),
 	async execute(interaction) {
@@ -55,6 +61,8 @@ export const ticket: Command = {
 
 		switch (options.getSubcommand()) {
 			case "create":
+				const panelTitle = options.getString("panel-title") ?? "Create Ticket";
+
 				const panelChannel = options.getChannel(
 					"panel-channel",
 					true,
@@ -63,18 +71,24 @@ export const ticket: Command = {
 				const ticketCategoryChannel = options.getChannel(
 					"ticket-category",
 					true,
-				) as CategoryChannel;
+				);
 
-				const panelTitle = options.getString("panel-title") ?? "Create Ticket";
+				const closedTickedCategoryChannel = options.getChannel(
+					"closed-ticket-category",
+				);
 
 				await panelChannel.send({
 					embeds: [
 						{
 							title: `${Emojis.Envelope} ${panelTitle}`,
 							color: Colours.Default,
-							description: `To create a ticket, click the button below.\n- This will create a private text channel.\n- Explain the problem you are having and be patient.\n\nSomeone will help you soon!`,
+							description: `To create a ticket, click the button below.\n- This will create a private text channel.\n- Explain the problem you are having and be patient.\n\n${Emojis.Wumpus} Someone will help you soon!`,
 							footer: {
-								text: `Ticket ID: ${ticketCategoryChannel.id}`,
+								text: `Ticket ID: ${ticketCategoryChannel.id}${
+									closedTickedCategoryChannel
+										? `-${closedTickedCategoryChannel.id}`
+										: ""
+								}`,
 							},
 						},
 					],
