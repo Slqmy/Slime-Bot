@@ -1430,10 +1430,9 @@ export class PollMessage {
 
 					context.fillStyle = rainbowColourArray[i];
 
-// Fills the circle with a rainbow colour from the rainbow colour array.
-// This creates a pie chart with rainbow colours in the correct order.
+					// Fills the circle with a rainbow colour from the rainbow colour array.
+					// This creates a pie chart with rainbow colours in the correct order.
 					context.fill();
-    
 
 					context.fillStyle = "#FFFFFF";
 
@@ -2244,8 +2243,8 @@ export const EmojiLookbehindRegExp = new RegExp(emojiLookbehindRegExpString);
 // ! Arrays
 
 /**
- * An array of number emoji characters in ascending order (`1️⃣`, `2️⃣`, `3️⃣` ...) `10` elements long. Used in `{@link PollMessage.create}`.
- * @see {@link rainbowColourArray} for a related array of rainbow colours in order. This is another array used in the `{@link PollMessageBuilder.create}` class method.
+ * An array of number emoji characters in ascending order (`1️⃣`, `2️⃣`, `3️⃣` ...) `10` elements long. Used in {@link PollMessage.create}.
+ * @see {@link rainbowColourArray} for a related array of rainbow colours in order. This is another array used in the {@link PollMessage.create} class method.
  * @see {@link PollMessage.create} for an example use case of this array.
  * @see `⬇` below for a snippet of the use case.
  * // Using the array to push emojis.
@@ -2255,8 +2254,8 @@ export const EmojiLookbehindRegExp = new RegExp(emojiLookbehindRegExpString);
  *					? optionEmojisOption && !this.emojis.includes(optionEmojisOption)
  *						? optionEmojisOption
  *						: emojiArray[i - 1]
-	*					: null,
-	*			);
+ *					: null,
+ *			);
  */
 export const emojiArray = [
 	"1️⃣",
@@ -2273,8 +2272,8 @@ export const emojiArray = [
 
 /**
  * Array of rainbow colours, 10 elements in size. Used in `{@link PollMessage.create}`.
- * @see `{@link emojiArray}` for a related array of number emoji characters in ascending order (`1️⃣`, `2️⃣`, `3️⃣`...), this is another array used in the `{@link PollMessage.create}` class method.
- * @see `{@link PollMessage.create}` for an example use case of this array.
+ * @see {@link emojiArray} for a related array of number emoji characters in ascending order (`1️⃣`, `2️⃣`, `3️⃣`...), this is another array used in the {@link PollMessage.create} class method.
+ * @see {@link PollMessage.create} for an example use case of this array.
  * @see below `⬇` for a snippet of this use case.
  * @example
  * // Using the array to generate a colourful pie chart for the poll message using the canvas module.
