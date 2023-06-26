@@ -1430,9 +1430,9 @@ export class PollMessage {
 
 					context.fillStyle = rainbowColourArray[i];
 
-					context.fill();
-// Fills the circle with a rainbow colour from the rainbow colour array
+// Fills the circle with a rainbow colour from the rainbow colour array.
 // This creates a pie chart with rainbow colours in the correct order.
+					context.fill();
     
 
 					context.fillStyle = "#FFFFFF";
@@ -2058,7 +2058,7 @@ This goes for all regular expressions in this project, not just those in this fi
 
 Try to make a string representation of a regular expression first (don't export it), after that, make the regular expression with the string. (RegExp(StringRegExp))
 
-This way you can document part of your regular expression.
+This way you can document different parts of your regular expression.
 
 You don't have to do this if your regular expression is very simple or if it won't cause any inconsistency.
 
@@ -2244,9 +2244,19 @@ export const EmojiLookbehindRegExp = new RegExp(emojiLookbehindRegExpString);
 // ! Arrays
 
 /**
- * An array of number emoji characters (1️⃣, 2️⃣, 3️⃣ ...)
- *
- * Used in the poll system.
+ * An array of number emoji characters in ascending order (`1️⃣`, `2️⃣`, `3️⃣` ...) `10` elements long. Used in `{@link PollMessage.create}`.
+ * @see {@link rainbowColourArray} for a related array of rainbow colours in order. This is another array used in the `{@link PollMessageBuilder.create}` class method.
+ * @see {@link PollMessage.create} for an example use case of this array.
+ * @see `⬇` below for a snippet of the use case.
+ * // Using the array to push emojis.
+ * // PollMessage.create in ./src/utility.ts.
+ * this.emojis.push(
+ *				option
+ *					? optionEmojisOption && !this.emojis.includes(optionEmojisOption)
+ *						? optionEmojisOption
+ *						: emojiArray[i - 1]
+	*					: null,
+	*			);
  */
 export const emojiArray = [
 	"1️⃣",
@@ -2262,11 +2272,13 @@ export const emojiArray = [
 ];
 
 /**
- * Array of rainbow colours, 10 elements in size.
- * @see {@link PollMessage.create} for an example use case of this array. See below for a snippet of this use case.
+ * Array of rainbow colours, 10 elements in size. Used in `{@link PollMessage.create}`.
+ * @see `{@link emojiArray}` for a related array of number emoji characters in ascending order (`1️⃣`, `2️⃣`, `3️⃣`...), this is another array used in the `{@link PollMessage.create}` class method.
+ * @see `{@link PollMessage.create}` for an example use case of this array.
+ * @see below `⬇` for a snippet of this use case.
  * @example
  * // Using the array to generate a colourful pie chart for the poll message using the canvas module.
- * // PollMessage.create @ ./src/utility.ts
+ * // PollMessage.create in ./src/utility.ts.
  * // ...
  *
  * for (let i = 0; i < 10; i++) {
@@ -2275,8 +2287,8 @@ export const emojiArray = [
  *
  * 	context.fillStyle = rainbowColourArray[i];
  *
- * // Fills the circle with a rainbow colour from the rainbow colour array.
- * // This creates a pie chart with the rainbow colours in the correct order.
+ * // Fills the circle with a rainbow colour from the rainbowColourArray.
+ * // This creates the current sector of the pie chart with the correct colour of the rainbow.
  * context.fill();
  *
  * // ...
