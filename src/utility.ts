@@ -1430,7 +1430,10 @@ export class PollMessage {
 
 					context.fillStyle = rainbowColourArray[i];
 
-					context.fill(); // Fills the circle.
+					context.fill();
+// Fills the circle with a rainbow colour from the rainbow colour array
+// This creates a pie chart with rainbow colours in the correct order.
+    
 
 					context.fillStyle = "#FFFFFF";
 
@@ -2259,9 +2262,28 @@ export const emojiArray = [
 ];
 
 /**
- * Array of rainbow colours.
+ * Array of rainbow colours, 10 elements in size.
+ * @see {@link PollMessage.create} for an example use case of this array. See below for a snippet of this use case.
+ * @example
+ * // Using the array to generate a colourful pie chart for the poll message using the canvas module.
+ * // PollMessage.create @ ./src/utility.ts
+ * // ...
  *
- * Used in the poll system to have a colourful pie chart.
+ * for (let i = 0; i < 10; i++) {
+ *
+ * // ...
+ *
+ * 	context.fillStyle = rainbowColourArray[i];
+ *
+ * // Fills the circle with a rainbow colour from the rainbow colour array.
+ * // This creates a pie chart with the rainbow colours in the correct order.
+ * context.fill();
+ *
+ * // ...
+ *
+ * };
+ *
+ * // ...
  */
 export const rainbowColourArray = [
 	"#ff0033",
