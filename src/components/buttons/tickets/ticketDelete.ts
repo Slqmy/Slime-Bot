@@ -13,9 +13,8 @@ export const ticketDelete: Button = {
 		await interaction.deferUpdate();
 
 		const channel = interaction.channel as TextChannel;
-		const topic = channel.topic as string;
 
-		await channel.send({
+		const message = await channel.send({
 			embeds: [
 				{
 					description: `The ticket will be deleted <t:${Math.round(
@@ -39,7 +38,7 @@ export const ticketDelete: Button = {
 
   // Store some temporary data of the timeoutID, this used to be done by changing the channel topic, but the rate limit was way too high for that, and resulted in the channel being deleted before the topic even changed in some cases.
   // It's much better to use the TemporaryDataSchema here, as this is basically what it's been designed to do.
-		await new TemporaryDataSchema<ITemporaryDataSchema<{timeoutID: Timeout}>>({lifeSpan: 10000, data: {timeoutID}}).save();
+		await new TemporaryDataSchema<ITemporaryDataSchema<{timeoutID: Timeout}, {messageID: string}>>({lifeSpan: 10000, data: {timeoutID}, matchData: {messageID: message.id}}).save();
 		);
 	},
 };
