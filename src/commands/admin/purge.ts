@@ -3,6 +3,7 @@ import {
 	GuildInviteRegExp,
 	RegExpCharactersRegExp,
 	SuccessMessage,
+	TextChannelTypes,
 	URLRegExp,
 	addSuffix,
 	objectMatch,
@@ -20,13 +21,20 @@ export const purge: Command = {
 		.setName("purge")
 		.setDescription("💬 Purge (mass delete) messages.")
 		.setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-		.addIntegerOption((option) =>
+		.addNumberOption((option) =>
 			option
 				.setName("count")
 				.setDescription("💬 The number of messages to delete.")
 				.setRequired(true)
-				.setMinValue(1)
 				.setMaxValue(100),
+		)
+		.addChannelOption((option) =>
+			option
+				.setName("channel")
+				.setDescription(
+					"📜 The channel to delete messages in. Don't specify a channel to use the current channel.",
+				)
+				.addChannelTypes(...TextChannelTypes),
 		)
 		.addUserOption((option) =>
 			option
@@ -156,7 +164,8 @@ export const purge: Command = {
 	async execute(interaction) {
 		await interaction.deferReply({ephemeral: true});
 
-		const {channel, options} = interaction;
+		const {options} = interaction;
+		const channel = options.getChannel("channel") ?? interaction.channel;
 
 		if (!(channel instanceof TextChannel)) {
 			return interaction.editReply(
@@ -214,7 +223,7 @@ export const purge: Command = {
 				);
 			}
 
-			beforeMessage = await channel?.messages.fetch(beforeMessageID);
+			beforeMessage = await channel.messages.fetch(beforeMessageID);
 
 			if (!beforeMessage) {
 				return interaction.editReply(
@@ -237,7 +246,7 @@ export const purge: Command = {
 				);
 			}
 
-			afterMessage = await channel?.messages.fetch(afterMessageID);
+			afterMessage = await channel.messages.fetch(afterMessageID);
 
 			if (!afterMessage) {
 				return interaction.editReply(
@@ -288,7 +297,7 @@ export const purge: Command = {
 		while (messages.length < messagesRemaining) {
 			const fetchedMessages = [
 				...((
-					await channel?.messages.fetch(
+					await channel.messages.fetch(
 						earliestMessageID
 							? {
 									limit: 100,
