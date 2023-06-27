@@ -1,26 +1,23 @@
 import {TextChannel} from "discord.js";
-import {Button} from "types";
+import {Button, MongooseDocument} from "types";
 import {SuccessMessage} from "../../../utility.js";
+import TemporaryDataSchema, {ITemporaryDataSchema} from "../../../schemas/TemporaryDataSchema.js";
 
 export const ticketDeleteCancel: Button = {
 	async execute(interaction) {
+  const {message, channel} = interaction;
+
 		await interaction.deferUpdate();
 
-		const channel = interaction.channel as TextChannel;
-		const topic = channel.topic as string;
+  await message.delete()
 
-		const timeoutID = parseInt((/\d+$/.exec(topic) as RegExpMatchArray)[0]);
+		const timeoutData = await TemporaryDataSchema.findOne({matchData: {messageID: message.id}}) as MongooseDocument<ITemporaryDataSchema<{timeoutID: Timeout}, {messageID: message.id}>>;
 
-		clearTimeout(timeoutID);
+		clearTimeout(timeoutData.data.timeoutID);
 
-		await channel.send(
+		await (interaction.channel as TextChannel).send(
 			new SuccessMessage("Successfully cancelled ticket deletion."),
 		);
-
-		await interaction.message.delete();
-
-		await channel.setTopic(
-			topic.replace(/\*\*Ticket Channel Deletion Timeout ID:\*\* \d+/, ""),
 		);
 	},
 };
