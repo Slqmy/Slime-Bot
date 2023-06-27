@@ -31,7 +31,7 @@ export const ticketReopen: Button = {
 		await interaction.message.delete();
 
 		await channel.send(
-			new SuccessMessage(`Successfully re-opened the ticket!\n\n${Emojis.Warning}Note: *renaming the channel may take up to 10 minutes!*`),
+			new SuccessMessage(`Successfully re-opened the ticket!\n\n${Emojis.Warning}Note: *renaming the channel may take a while!*`),
 		);
 
 		await channel.setName(channel.name.replace("closed", "ticket"));
