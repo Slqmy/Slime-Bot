@@ -8,7 +8,7 @@ import {
 	PermissionFlagsBits,
 	TextChannel,
 } from "discord.js";
-import {Button} from "types";
+import {Button, Emojis} from "types";
 import {Colours} from "../../../utility.js";
 
 export const ticketCloseConfirm: Button = {
