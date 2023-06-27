@@ -35,7 +35,7 @@ export const ticketCloseConfirm: Button = {
 		await channel.send({
 			embeds: [
 				{
-					description: `Ticket closed by <@${interaction.user.id}>.`,
+					description: `Ticket closed by <@${interaction.user.id}>.\n\n${Emojis.Warning} Note: *channel renaming may take a while!*`,
 					color: Colors.Yellow,
 				},
 			],
