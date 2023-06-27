@@ -7,26 +7,64 @@ import {
 	SlashCommandBuilder,
 	TextChannel,
 } from "discord.js";
-import {AutocompleteCommand} from "types";
-import {Colours, Emojis, SuccessMessage} from "../../utility.js";
+import {Command} from "types";
+import {
+	Colours,
+	Emojis,
+	SuccessMessage,
+	TextChannelTypes,
+} from "../../utility.js";
 
-export const ticket: AutocompleteCommand = {
+export const ticket: Command = {
 	data: new SlashCommandBuilder()
 		.setName("ticket")
 		.setDescription("🎫 Manage the ticket system.")
-		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator).addSubcommandGroup((subcommandGroup) => subcommandGroup.setName("user").setDescription("👤 Add or remove users to and from a ticket.").addSubcommand((subCommand) => subCommand.setName("add").setDescription("👤 Add a user to a ticket").addUseroption((option) => option.setName("user").setDescription("👤 The user to add to the ticket").setRequired(true).setAutocomplete(true)).addChannelOption((option) => option.setName("ticket-chanel").setDescription("💬 The ticket channel to add the user to. Don't specify a channel to use the current channel.").setRequired(true).setAutocomplete(true).addChannelTypes(
-							ChannelType.GuildText,
-							ChannelType.GuildAnnouncement,
-							ChannelType.AnnouncementThread,
-							ChannelType.PublicThread,
-							ChannelType.PrivateThread,
-						))).addSubcommand((subCommand) => subCommand.setName("remove").setDescription("👤 Remove a user from a ticket").addUseroption((option) => option.setName("user").setDescription("👤 The user to remove from the ticket").setRequired(true).setAutocomplete(true)).addChannelOption((option) => option.setName("ticket-chanel").setDescription("💬 The ticket channel to remove the user from. Don't specify a channel to use the current channel.").setRequired(true).setAutocomplete(true).addChannelTypes(
-							ChannelType.GuildText,
-							ChannelType.GuildAnnouncement,
-							ChannelType.AnnouncementThread,
-							ChannelType.PublicThread,
-							ChannelType.PrivateThread,
-						))))
+		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+		.addSubcommandGroup((subcommandGroup) =>
+			subcommandGroup
+				.setName("user")
+				.setDescription("👤 Add or remove users to and from a ticket.")
+				.addSubcommand((subCommand) =>
+					subCommand
+						.setName("add")
+						.setDescription("👤 Add a user to a ticket")
+						.addUserOption((option) =>
+							option
+								.setName("user")
+								.setDescription("👤 The user to add to the ticket")
+								.setRequired(true),
+						)
+						.addChannelOption((option) =>
+							option
+								.setName("ticket-chanel")
+								.setDescription(
+									"💬 The ticket channel to add the user to. Don't specify a channel to use the current channel.",
+								)
+								.setRequired(true)
+								.addChannelTypes(...TextChannelTypes),
+						),
+				)
+				.addSubcommand((subCommand) =>
+					subCommand
+						.setName("remove")
+						.setDescription("👤 Remove a user from a ticket")
+						.addUserOption((option) =>
+							option
+								.setName("user")
+								.setDescription("👤 The user to remove from the ticket")
+								.setRequired(true),
+						)
+						.addChannelOption((option) =>
+							option
+								.setName("ticket-chanel")
+								.setDescription(
+									"💬 The ticket channel to remove the user from. Don't specify a channel to use the current channel.",
+								)
+								.setRequired(true)
+								.addChannelTypes(...TextChannelTypes),
+						),
+				),
+		)
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName("create")
@@ -37,13 +75,7 @@ export const ticket: AutocompleteCommand = {
 					option
 						.setName("panel-channel")
 						.setDescription("📄 The channel to send the ticket panel in.")
-						.addChannelTypes(
-							ChannelType.GuildText,
-							ChannelType.GuildAnnouncement,
-							ChannelType.AnnouncementThread,
-							ChannelType.PublicThread,
-							ChannelType.PrivateThread,
-						)
+						.addChannelTypes(...TextChannelTypes)
 						.setRequired(true),
 				)
 				.addChannelOption((option) =>
@@ -60,7 +92,8 @@ export const ticket: AutocompleteCommand = {
 						.setName("closed-ticket-category")
 						.setDescription(
 							"🎫 The category where closed tickets will be archived. Specify none to delete closed tickets.",
-						),
+						)
+						.addChannelTypes(ChannelType.GuildCategory),
 				)
 				.addStringOption((option) =>
 					option
@@ -68,7 +101,6 @@ export const ticket: AutocompleteCommand = {
 						.setDescription("💬 The title of the ticket panel"),
 				),
 		),
- async autocomplete(interaction) {},
 	async execute(interaction) {
 		const {options} = interaction;
 
