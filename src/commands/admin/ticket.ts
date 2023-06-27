@@ -7,14 +7,26 @@ import {
 	SlashCommandBuilder,
 	TextChannel,
 } from "discord.js";
-import {Command} from "types";
+import {AutocompleteCommand} from "types";
 import {Colours, Emojis, SuccessMessage} from "../../utility.js";
 
-export const ticket: Command = {
+export const ticket: AutocompleteCommand = {
 	data: new SlashCommandBuilder()
 		.setName("ticket")
 		.setDescription("🎫 Manage the ticket system.")
-		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator).addSubcommandGroup((subcommandGroup) => subcommandGroup.setName("user").setDescription("👤 Add or remove users to and from a ticket.").addSubcommand((subCommand) => subCommand.setName("add").setDescription("👤 Add a user to a ticket").addUseroption((option) => option.setName("user").setDescription("👤 The user to add to the ticket").setRequired(true).setAutocomplete(true)).addChannelOption((option) => option.setName("ticket-chanel").setDescription("💬 The ticket channel to add the user to. Don't specify a channel to use the current channel.").setRequired(true).setAutocomplete(true).addChannelTypes(
+							ChannelType.GuildText,
+							ChannelType.GuildAnnouncement,
+							ChannelType.AnnouncementThread,
+							ChannelType.PublicThread,
+							ChannelType.PrivateThread,
+						))).addSubcommand((subCommand) => subCommand.setName("remove").setDescription("👤 Remove a user from a ticket").addUseroption((option) => option.setName("user").setDescription("👤 The user to remove from the ticket").setRequired(true).setAutocomplete(true)).addChannelOption((option) => option.setName("ticket-chanel").setDescription("💬 The ticket channel to remove the user from. Don't specify a channel to use the current channel.").setRequired(true).setAutocomplete(true).addChannelTypes(
+							ChannelType.GuildText,
+							ChannelType.GuildAnnouncement,
+							ChannelType.AnnouncementThread,
+							ChannelType.PublicThread,
+							ChannelType.PrivateThread,
+						))))
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName("create")
@@ -56,6 +68,7 @@ export const ticket: Command = {
 						.setDescription("💬 The title of the ticket panel"),
 				),
 		),
+ async autocomplete(interaction) {},
 	async execute(interaction) {
 		const {options} = interaction;
 
