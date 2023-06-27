@@ -6,6 +6,7 @@ import {
 	TextChannel,
 } from "discord.js";
 import {Button} from "types";
+import TemporaryDataSchema, {ITemporaryDataSchema} from "../../../schemas/TemporaryDataSchema.js";
 
 export const ticketDelete: Button = {
 	async execute(interaction) {
@@ -18,7 +19,8 @@ export const ticketDelete: Button = {
 			embeds: [
 				{
 					description: `The ticket will be deleted <t:${Math.round(
-						(Date.now() + 120000) / 1000,
+      // The ticket is closed after 11 seconds to give a little "buffer time" for the user to click the "cancel" button and to account for the possible delay created after doing so.
+						(Date.now() + 11000) / 1000,
 					)}:R>.`,
 					color: Colors.Red,
 				},
@@ -33,10 +35,11 @@ export const ticketDelete: Button = {
 			],
 		});
 
-		const timeoutID = setTimeout(async () => await channel.delete(), 120000);
+		const timeoutID = setTimeout(async () => await channel.delete(), 11000);
 
-		await channel.setTopic(
-			`${topic}\n**Ticket Channel Deletion Timeout ID:** ${timeoutID}`,
+  // Store some temporary data of the timeoutID, this used to be done by changing the channel topic, but the rate limit was way too high for that, and resulted in the channel being deleted before the topic even changed in some cases.
+  // It's much better to use the TemporaryDataSchema here, as this is basically what it's been designed to do.
+		await new TemporaryDataSchema<ITemporaryDataSchema<{timeoutID: Timeout}>>({lifeSpan: 10000, data: {timeoutID}}).save();
 		);
 	},
 };
