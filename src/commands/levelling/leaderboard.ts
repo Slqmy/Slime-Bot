@@ -10,10 +10,9 @@ export const leaderboard: Command = {
 		.addNumberOption((option) =>
 			option
 				.setName("page")
-				.setDescription("📄 The page of the leaderboard to view.")
-				.setMinValue(1),
+				.setDescription("📄 The page of the leaderboard to view."),
 		),
-	async execute(interaction, client) {
+	async execute(interaction) {
 		const guildData = await GuildDataSchema.findOne({id: interaction.guildId});
 
 		if (!guildData) {
@@ -23,7 +22,7 @@ export const leaderboard: Command = {
 		}
 
 		return interaction.reply(
-			await new LevelLeaderboardMessage().create(interaction, client),
+			await new LevelLeaderboardMessage().create(interaction),
 		);
 	},
 };
