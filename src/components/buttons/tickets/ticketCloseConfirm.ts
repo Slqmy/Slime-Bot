@@ -5,17 +5,14 @@ import {
 	CategoryChannel,
 	Colors,
 	Guild,
-	PermissionFlagsBits,
 	TextChannel,
 } from "discord.js";
-import {Button, Emojis} from "types";
-import {Colours} from "../../../utility.js";
+import {Button} from "types";
+import {Colours, Emojis} from "../../../utility.js";
 
 export const ticketCloseConfirm: Button = {
 	async execute(interaction) {
 		await interaction.deferUpdate();
-
-		const guild = interaction.guild as Guild;
 		const channel = interaction.channel as TextChannel;
 
 		const closedTickedCategoryChannelID = /(?<=-)\d+$/.exec(
@@ -27,10 +24,6 @@ export const ticketCloseConfirm: Button = {
 				lockPermissions: false,
 			});
 		}
-
-		const closedTicketCategoryChannel = (await guild.channels.fetch(
-			closedTickedCategoryChannelID ?? "",
-		)) as CategoryChannel | null;
 
 		await channel.send({
 			embeds: [
