@@ -10,6 +10,7 @@ import {
 	ErrorMessage,
 	PollMessage,
 	SuccessMessage,
+	TextChannelTypes,
 	checkPermissions,
 	resolveDuration,
 } from "../../utility.js";
@@ -51,10 +52,7 @@ export const poll: Command = {
 					option
 						.setName("channel")
 						.setDescription("💬 The channel that the poll should be sent in")
-						.addChannelTypes(
-							ChannelType.GuildText,
-							ChannelType.GuildAnnouncement,
-						),
+						.addChannelTypes(...TextChannelTypes),
 				)
 				.addStringOption((option) =>
 					option
