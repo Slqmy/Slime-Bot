@@ -62,7 +62,7 @@ export interface IGuildDataSchema {
 }
 
 const GuildDataSchema = new Schema<IGuildDataSchema>({
-	_id: mongoose.Types.ObjectId,
+	_id: {type: mongoose.Types.ObjectId, required: true},
 	id: {type: String, required: true},
 	settings: {
 		youtube: {
