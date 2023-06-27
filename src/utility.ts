@@ -11,6 +11,7 @@ import {
 	ButtonBuilder,
 	ButtonInteraction,
 	ButtonStyle,
+	ChannelType,
 	ChatInputCommandInteraction,
 	ColorResolvable,
 	Colors,
@@ -2271,7 +2272,7 @@ export const emojiArray = [
 ];
 
 /**
- * Array of rainbow colours, 10 elements in size. Used in `{@link PollMessage.create}`.
+ * Array of rainbow colours, 10 elements in size. Used in {@link PollMessage.create}.
  * @see {@link emojiArray} for a related array of number emoji characters in ascending order (`1️⃣`, `2️⃣`, `3️⃣`...), this is another array used in the {@link PollMessage.create} class method.
  * @see {@link PollMessage.create} for an example use case of this array.
  * @see below `⬇` for a snippet of this use case.
@@ -2308,3 +2309,21 @@ export const rainbowColourArray = [
 	"#0066ff",
 	"#a950b0",
 ];
+
+export const TextChannelTypes = [
+	ChannelType.GuildText,
+	ChannelType.GuildAnnouncement,
+	ChannelType.AnnouncementThread,
+	ChannelType.PublicThread,
+	ChannelType.PrivateThread,
+] as (
+	| ChannelType.GuildText
+	| ChannelType.GuildVoice
+	| ChannelType.GuildCategory
+	| ChannelType.GuildAnnouncement
+	| ChannelType.AnnouncementThread
+	| ChannelType.PublicThread
+	| ChannelType.PrivateThread
+	| ChannelType.GuildStageVoice
+	| ChannelType.GuildForum
+)[];
