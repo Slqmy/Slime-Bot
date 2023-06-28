@@ -22,7 +22,7 @@ export const ticketDelete: Button = {
 				{
 					description: `The ticket will be deleted <t:${Math.round(
 						// The ticket is closed after 11 seconds to give a little "buffer time" for the user to click the "cancel" button and to account for the possible delay created after doing so.
-						(Date.now() + 11000) / 1000,
+						(Date.now() + 10000) / 1000,
 					)}:R>.`,
 					color: Colors.Red,
 				},
@@ -42,12 +42,15 @@ export const ticketDelete: Button = {
 		// Store some temporary data of the timeoutID, this used to be done by changing the channel topic, but the rate limit was way too high for that, and resulted in the channel being deleted before the topic even changed in some cases.
 		// It's much better to use the TemporaryDataSchema here, as this is basically what it's been designed to do.
 		await new TemporaryDataSchema<
-			ITemporaryDataSchema<{timeoutID: NodeJS.Timeout}, {messageID: string}>
+			ITemporaryDataSchema<{timeoutID: number}, {messageID: string}>
 		>({
 			_id: new mongoose.Types.ObjectId(),
 			type: "ticket-delete",
 			lifeSpan: 10000,
-			data: {timeoutID},
+			data: {
+				// Convert the devilish NodeJS.Timeout type to a simple number 😌.
+				timeoutID: Number(timeoutID),
+			},
 			matchData: {messageID: message.id},
 		}).save();
 	},
