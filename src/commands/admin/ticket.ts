@@ -91,7 +91,7 @@ export const ticket: Command = {
 					option
 						.setName("closed-ticket-category")
 						.setDescription(
-							"🎫 The category where closed tickets will be archived. Specify none to delete closed tickets.",
+							"🎫 The category where closed tickets will be archived. Specify none to delete tickets when closed.",
 						)
 						.addChannelTypes(ChannelType.GuildCategory),
 				)
