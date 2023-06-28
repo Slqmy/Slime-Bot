@@ -17,7 +17,7 @@ export const ticketDeleteCancel: Button = {
 		const timeoutData = (await TemporaryDataSchema.findOne({
 			matchData: {messageID: message.id},
 		})) as MongooseDocument<
-			ITemporaryDataSchema<{timeoutID: NodeJS.Timeout}, {messageID: string}>
+			ITemporaryDataSchema<{timeoutID: number}, {messageID: string}>
 		>;
 
 		clearTimeout(timeoutData.data.timeoutID);
