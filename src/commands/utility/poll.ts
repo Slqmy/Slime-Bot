@@ -230,16 +230,14 @@ export const poll: Command = {
 				}
 
 				if (duration) {
-					const temporary = new TemporaryDataSchema<
+					await new TemporaryDataSchema<
 						ITemporaryDataSchema<{channelID: string; messageID: string}>
 					>({
 						_id: new mongoose.Types.ObjectId(),
 						type: "poll",
 						data: {channelID: channel.id, messageID: embedMessage.id},
 						lifeSpan: Math.round(parseInt(`${duration}`)),
-					});
-
-					await temporary.save();
+					}).save();
 				}
 
 				if (options.getString("thread-name")) {
