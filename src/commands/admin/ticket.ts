@@ -7,7 +7,7 @@ import {
 	SlashCommandBuilder,
 	TextChannel,
 } from "discord.js";
-import {Command} from "types";
+import {AutocompleteCommand} from "types";
 import {
 	Colours,
 	Emojis,
@@ -15,7 +15,7 @@ import {
 	TextChannelTypes,
 } from "../../utility.js";
 
-export const ticket: Command = {
+export const ticket: AutocompleteCommand = {
 	data: new SlashCommandBuilder()
 		.setName("ticket")
 		.setDescription("🎫 Manage the ticket system.")
@@ -40,7 +40,6 @@ export const ticket: Command = {
 								.setDescription(
 									"💬 The ticket channel to add the user to. Don't specify a channel to use the current channel.",
 								)
-								.setRequired(true)
 								.addChannelTypes(...TextChannelTypes),
 						),
 				)
@@ -60,7 +59,6 @@ export const ticket: Command = {
 								.setDescription(
 									"💬 The ticket channel to remove the user from. Don't specify a channel to use the current channel.",
 								)
-								.setRequired(true)
 								.addChannelTypes(...TextChannelTypes),
 						),
 				),
@@ -91,7 +89,7 @@ export const ticket: Command = {
 					option
 						.setName("closed-ticket-category")
 						.setDescription(
-							"🎫 The category where closed tickets will be archived. Specify none to delete tickets when closed.",
+							"🎫 The category where closed tickets will be archived. Specify none to keep closed tickets in the ticket category.",
 						)
 						.addChannelTypes(ChannelType.GuildCategory),
 				)
@@ -100,7 +98,11 @@ export const ticket: Command = {
 						.setName("panel-title")
 						.setDescription("💬 The title of the ticket panel"),
 				),
-		),
+		).addSubcommand((subcommand) => subcommand.setName("close").setDescription("🔒 Close a ticket.").addChannelOption((option) => option.setName("ticket-channel").setDescription("💬 The ticket channel to close.").setRequired(true).addChannelTypes(...TextChannelTypes)).addStringOption((option) => option.setName("reason").setDescription("📄 The reason for the ticket to be closed.").setAutocomplete(true))),
+ async autocomplete(interaction, client) {
+  const focusedValue = options.getFocused(true).value;
+  const suggestedOptionsArray = [];
+},
 	async execute(interaction) {
 		const {options} = interaction;
 
@@ -154,6 +156,14 @@ export const ticket: Command = {
 						true,
 					),
 				);
+    break;
+    case "add":
+     const user = options.getUser("user", true);
+     const channel = options.getChannel("ticket-channel") ?? interaction.channel;
+     break;
+    case "remove":
+     const user = options.getUser("user", true);
+     const channel = options.getChannel("ticket-channel") ?? interaction.channel;
 		}
 	},
 };
