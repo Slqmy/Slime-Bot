@@ -617,8 +617,6 @@ const consoleLogs: unknown[][] = [];
  * @see {@link consoleLogs} for an array of all logged messages.
  */
 console.log = (...data) => {
-	const date = new Date(Date.now());
-
 	const previousLogs = consoleLogs[consoleLogs.length - 1];
 	const previousLog = previousLogs?.[previousLogs.length - 1];
 
@@ -634,22 +632,30 @@ console.log = (...data) => {
 		data[data.length - 1] = latestLog.replace(/\n/, "");
 	}
 
-	data = data.map((value) =>
-		typeof value === "string" && value.trim()
-			? value.replace(
-					new RegExp(`^(${ANSIControlCharactersRegExpString}|\\s)*`),
-					`$1${bold(
-						`[${date.getHours().toString().padStart(2, "0")}:${date
-							.getMinutes()
-							.toString()
-							.padStart(2, "0")}:${date
-							.getSeconds()
-							.toString()
-							.padStart(2, "0")}]:`,
-					)} `,
-			  )
-			: value,
-	);
+	data = data.map((value) => {
+		if (typeof value !== "string") return value;
+
+		const ansiControlCharactersOrWhitespaceMatch = (
+			new RegExp(`^(${ANSIControlCharactersRegExpString}|\\s|$1)+`).exec(
+				value,
+			) as RegExpExecArray
+		)[0];
+
+		const date = new Date(Date.now());
+
+		return `${value.slice(
+			0,
+			ansiControlCharactersOrWhitespaceMatch.length,
+		)}${`[${date.getHours().toString().padStart(2, "0")}:${date
+			.getMinutes()
+			.toString()
+			.padStart(2, "0")}:${date
+			.getSeconds()
+			.toString()
+			.padStart(2, "0")}]`} ${value.slice(
+			ansiControlCharactersOrWhitespaceMatch.length,
+		)}`;
+	});
 
 	standardLog(...data);
 
@@ -2066,7 +2072,8 @@ Use camelCase for the regex string variables, and PascalCase for the regular exp
 
 */
 
-const ANSIControlCharactersRegExpString = "(?:\x1B|\\[d{1,2}m)";
+const ANSIControlCharactersRegExpString =
+	"(?:\u001b|\x1B|\\x[01][0-9a-f]|\\u00[01][0-9a-f]|\\[\\d{1,2}m)";
 
 /**
  * A regular expression to match `ANSI control characters`.
