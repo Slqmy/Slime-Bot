@@ -2,9 +2,7 @@ import {
 	ActionRowBuilder,
 	ButtonBuilder,
 	ButtonStyle,
-	CategoryChannel,
 	Colors,
-	Guild,
 	TextChannel,
 } from "discord.js";
 import {Button} from "types";
@@ -28,7 +26,7 @@ export const ticketCloseConfirm: Button = {
 		await channel.send({
 			embeds: [
 				{
-					description: `Ticket closed by <@${interaction.user.id}>.\n\n${Emojis.Warning} Note: *channel renaming may take a while!*`,
+					description: `Ticket closed by <@${interaction.user.id}>.\n\n${Emojis.Warning} Note: *renaming the channel may take a while!*`,
 					color: Colors.Yellow,
 				},
 			],
