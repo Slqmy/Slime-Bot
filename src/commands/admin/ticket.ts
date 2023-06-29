@@ -3,19 +3,21 @@ import {
 	ButtonBuilder,
 	ButtonStyle,
 	ChannelType,
+	Colors,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 	TextChannel,
 } from "discord.js";
-import {AutocompleteCommand} from "types";
+import {AutoCompleteCommand} from "types";
 import {
 	Colours,
 	Emojis,
+	ErrorMessage,
 	SuccessMessage,
 	TextChannelTypes,
 } from "../../utility.js";
 
-export const ticket: AutocompleteCommand = {
+export const ticket: AutoCompleteCommand = {
 	data: new SlashCommandBuilder()
 		.setName("ticket")
 		.setDescription("🎫 Manage the ticket system.")
@@ -89,7 +91,7 @@ export const ticket: AutocompleteCommand = {
 					option
 						.setName("closed-ticket-category")
 						.setDescription(
-							"🎫 The category where closed tickets will be archived. Specify none to keep closed tickets in the ticket category.",
+							"🎫 The category where closed tickets will be archived. Specify none to not move closed tickets.",
 						)
 						.addChannelTypes(ChannelType.GuildCategory),
 				)
@@ -98,11 +100,41 @@ export const ticket: AutocompleteCommand = {
 						.setName("panel-title")
 						.setDescription("💬 The title of the ticket panel"),
 				),
-		).addSubcommand((subcommand) => subcommand.setName("close").setDescription("🔒 Close a ticket.").addChannelOption((option) => option.setName("ticket-channel").setDescription("💬 The ticket channel to close.").setRequired(true).addChannelTypes(...TextChannelTypes)).addStringOption((option) => option.setName("reason").setDescription("📄 The reason for the ticket to be closed.").setAutocomplete(true))),
- async autocomplete(interaction, client) {
-  const focusedValue = options.getFocused(true).value;
-  const suggestedOptionsArray = [];
-},
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName("close")
+				.setDescription("🔒 Close a ticket.")
+				.addChannelOption((option) =>
+					option
+						.setName("ticket-channel")
+						.setDescription("💬 The ticket channel to close.")
+						.addChannelTypes(...TextChannelTypes),
+				)
+				.addStringOption((option) =>
+					option
+						.setName("reason")
+						.setDescription("📄 The reason for the ticket to be closed.")
+						.setAutocomplete(true),
+				),
+		),
+	async autocomplete(interaction) {
+		const focusedValue = interaction.options.getFocused(true).value;
+		const suggestedOptionsArray = [
+			"✅ Problem resolved",
+			"❌ Problem not resolved",
+			"❌ Problem unresolvable",
+			"❌ Invalid problem",
+			"😶 Inactivity",
+			"📰 Spam ticket",
+		];
+
+		return interaction.respond(
+			suggestedOptionsArray
+				.filter((option) => new RegExp(focusedValue, "i").test(option))
+				.map((option) => ({name: option, value: option})),
+		);
+	},
 	async execute(interaction) {
 		const {options} = interaction;
 
@@ -156,14 +188,138 @@ export const ticket: AutocompleteCommand = {
 						true,
 					),
 				);
-    break;
-    case "add":
-     const user = options.getUser("user", true);
-     const channel = options.getChannel("ticket-channel") ?? interaction.channel;
-     break;
-    case "remove":
-     const user = options.getUser("user", true);
-     const channel = options.getChannel("ticket-channel") ?? interaction.channel;
+				break;
+			case "close":
+				const ticketChannel =
+					options.getChannel("ticket-channel") ?? interaction.channel;
+
+				const reason = options.getString("reason");
+
+				if (!(ticketChannel instanceof TextChannel)) {
+					return interaction.reply(
+						new ErrorMessage(
+							"You must be in a valid `text channel` to do this!",
+						),
+					);
+				}
+
+				const closedTickedCategoryChannelID = /(?<=-)\d+$/.exec(
+					ticketChannel.topic as string,
+				)?.[0];
+
+				if (closedTickedCategoryChannelID !== ticketChannel.parentId) {
+					await ticketChannel.setParent(
+						closedTickedCategoryChannelID as string,
+						{
+							lockPermissions: false,
+						},
+					);
+				}
+
+				await ticketChannel.send({
+					embeds: [
+						{
+							description: `Ticket closed by <@${interaction.user.id}>.${
+								reason
+									? `\n\n${Emojis.QuestionMark} Reason: \`${reason}\`.`
+									: ""
+							}\n\n${
+								Emojis.Warning
+							} Note: *renaming the channel may take a while!*`,
+							color: Colors.Yellow,
+						},
+					],
+				});
+
+				await ticketChannel.send({
+					embeds: [
+						{
+							description:
+								"📑 Save transcript\n🔓 Reopen ticket\n⛔ Delete ticket\n🚪 Leave channel",
+							color: Colours.Default,
+						},
+					],
+					components: [
+						new ActionRowBuilder<ButtonBuilder>().setComponents(
+							new ButtonBuilder()
+								.setLabel("Transcript")
+								.setEmoji("📑")
+								.setCustomId("ticketTranscriptSave")
+								.setStyle(ButtonStyle.Secondary),
+							new ButtonBuilder()
+								.setLabel("Open")
+								.setEmoji("🔓")
+								.setCustomId("ticketReopen")
+								.setStyle(ButtonStyle.Secondary),
+							new ButtonBuilder()
+								.setLabel("Delete")
+								.setEmoji("⛔")
+								.setCustomId("ticketDelete")
+								.setStyle(ButtonStyle.Secondary),
+							new ButtonBuilder()
+								.setLabel("Leave")
+								.setEmoji("🚪")
+								.setCustomId("ticketLeave")
+								.setStyle(ButtonStyle.Secondary),
+						),
+					],
+				});
+
+				await interaction.reply(
+					new SuccessMessage("Successfully closed the ticket!", true),
+				);
+
+				await ticketChannel.setName(
+					ticketChannel.name.replace("ticket", "closed"),
+				);
+
+				break;
+			case "add":
+				const addUser = options.getUser("user", true);
+				const addChannel =
+					options.getChannel("ticket-channel") ?? interaction.channel;
+
+				if (!(addChannel instanceof TextChannel)) {
+					return interaction.reply(
+						new ErrorMessage(
+							"You must be in a valid `text channel` to do this!",
+						),
+					);
+				}
+
+				await addChannel.permissionOverwrites.create(addUser, {
+					ViewChannel: true,
+				});
+
+				await interaction.reply(
+					new SuccessMessage(
+						`Successfully added user <@${addUser.id}> to the channel!`,
+					),
+				);
+				break;
+			case "remove":
+				const removeUser = options.getUser("user", true);
+				const removeChannel =
+					options.getChannel("ticket-channel") ?? interaction.channel;
+
+				if (!(removeChannel instanceof TextChannel)) {
+					return interaction.reply(
+						new ErrorMessage(
+							"You must be in a valid `text channel` to do this!",
+						),
+					);
+				}
+
+				await removeChannel.permissionOverwrites.create(removeUser, {
+					ViewChannel: false,
+				});
+
+				await interaction.reply(
+					new SuccessMessage(
+						`Successfully removed user <@${removeUser.id}> from the channel!`,
+					),
+				);
+				break;
 		}
 	},
 };
