@@ -59,6 +59,11 @@ export interface IGuildDataSchema {
 			lastMessageTimestamp?: number;
 		};
 	};
+	statisticsChannels: {
+		channelID: string;
+		type: string;
+		extraData: unknown;
+	}[];
 }
 
 const GuildDataSchema = new Schema<IGuildDataSchema>({
