@@ -157,7 +157,7 @@ export const interactionCreate: ClientEvent<"interactionCreate"> = {
 			}
 		}
 
-		const timeTaken = Date.now() - interaction.createdTimestamp;
+		const timeTaken = (Date.now() - interaction.createdTimestamp) / 10;
 
 		if (process.env.debug) {
 			console.log(
