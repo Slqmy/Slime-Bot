@@ -22,7 +22,7 @@ export const ticket: AutoCompleteCommand = {
 		.setName("ticket")
 		.setDescription("🎫 Manage the ticket system.")
 		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-  .addSubcommand((subcommand) =>
+		.addSubcommand((subcommand) =>
 			subcommand
 				.setName("create")
 				.setDescription(
@@ -74,7 +74,26 @@ export const ticket: AutoCompleteCommand = {
 						.setDescription("📄 Why is the ticket being closed?")
 						.setAutocomplete(true),
 				),
-		).addSubcommand((subcommand) => subcommand.setName("reopen").setDescription("🔓 Reopen a ticket.").addChannelOption((option) => option.setName("ticket-channel").setDescription("🎫 The ticket channel to reopen. Don't specify a channel to reopen current channel.").addChannelTypes(...TextChannelTypes)).addStringOption((option) => option.setName("reason").setDescription("📄 Why is the ticket being reopened?")))
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName("reopen")
+				.setDescription("🔓 Reopen a ticket.")
+				.addChannelOption((option) =>
+					option
+						.setName("ticket-channel")
+						.setDescription(
+							"🎫 The ticket channel to reopen. Don't specify a channel to reopen current channel.",
+						)
+						.addChannelTypes(...TextChannelTypes),
+				)
+				.addStringOption((option) =>
+					option
+						.setName("reason")
+						.setDescription("📄 Why is the ticket being reopened?")
+						.setAutocomplete(true),
+				),
+		)
 		.addSubcommandGroup((subcommandGroup) =>
 			subcommandGroup
 				.setName("user")
@@ -119,18 +138,38 @@ export const ticket: AutoCompleteCommand = {
 				),
 		),
 	async autocomplete(interaction) {
-		const focusedValue = interaction.options.getFocused(true).value;
-		const suggestedOptionsArray = [
-			"✅ Problem resolved",
-			"❌ Problem not resolved",
-			"❌ Problem unresolvable",
-			"❌ Invalid problem",
-			"😶 Inactivity",
-			"📰 Spam ticket",
-		];
+		const {options} = interaction;
+
+		const focusedValue = options.getFocused(true).value;
+
+		let suggestedOptionsArray;
+
+		switch (options.getSubcommand()) {
+			case "close":
+				suggestedOptionsArray = [
+					"✅ Problem resolved",
+					"❌ Problem not resolved",
+					"❌ Problem unresolvable",
+					"❌ Invalid problem",
+					"😶 Inactivity",
+					"📰 Spam ticket",
+				];
+
+				break;
+
+			case "reopen":
+				suggestedOptionsArray = [
+					"❌ Problem wasn't fully solved",
+					"📄 Issue arose again",
+					"📜 Needed more details",
+					"🔒 Accidental close",
+				];
+
+				break;
+		}
 
 		return interaction.respond(
-			suggestedOptionsArray
+			(suggestedOptionsArray as string[])
 				.filter((option) => new RegExp(focusedValue, "i").test(option))
 				.map((option) => ({name: option, value: option})),
 		);
@@ -193,7 +232,7 @@ export const ticket: AutoCompleteCommand = {
 				const ticketChannel =
 					options.getChannel("ticket-channel") ?? interaction.channel;
 
-				const reason = options.getString("reason");
+				const closeReason = options.getString("reason");
 
 				if (!(ticketChannel instanceof TextChannel)) {
 					return interaction.reply(
@@ -219,11 +258,9 @@ export const ticket: AutoCompleteCommand = {
 				await ticketChannel.send({
 					embeds: [
 						{
-							description: `Ticket closed by <@${interaction.user.id}>.${
-								reason
-									? `\n\n${Emojis.QuestionMark} Reason: \`${reason}\`.`
-									: ""
-							}\n\n${
+							description: `Ticket closed by <@${interaction.user.id}>.\n\n${
+								Emojis.QuestionMark
+							} Reason: \`${closeReason ?? "❌ No reason provided"}\`.\n\n${
 								Emojis.Warning
 							} Note: *renaming the channel may take a while!*`,
 							color: Colors.Yellow,
@@ -274,6 +311,50 @@ export const ticket: AutoCompleteCommand = {
 				);
 
 				break;
+			case "reopen":
+				const reopenChannel =
+					options.getChannel("ticket-channel") ?? interaction.channel;
+				const reopenReason = options.getString("reason");
+
+				if (!(reopenChannel instanceof TextChannel)) {
+					return interaction.reply(
+						new ErrorMessage(
+							"You must be in a valid `text channel` to do this!",
+						),
+					);
+				}
+
+				const ticketCategoryChannelID = (
+					/^\d+/.exec(
+						(reopenChannel.topic as string).slice(15),
+					) as RegExpExecArray
+				)[0];
+
+				if (ticketCategoryChannelID !== reopenChannel.parentId) {
+					await reopenChannel.setParent(ticketCategoryChannelID, {
+						lockPermissions: false,
+					});
+				}
+
+				await reopenChannel.send(
+					new SuccessMessage(
+						`Successfully re-opened the ticket!\n\n${
+							Emojis.QuestionMark
+						} Reason: \`${reopenReason ?? "❌ No reason provided"}\`.\n\n${
+							Emojis.Warning
+						} Note: *renaming the channel may take a while!*`,
+					),
+				);
+
+				await interaction.reply(
+					new SuccessMessage("Successfully reopened the ticket!", true),
+				);
+
+				await reopenChannel.setName(
+					reopenChannel.name.replace("closed", "ticket"),
+				);
+
+				break;
 			case "add":
 				const addUser = options.getUser("user", true);
 				const addChannel =
@@ -319,6 +400,7 @@ export const ticket: AutoCompleteCommand = {
 						`Successfully removed user <@${removeUser.id}> from the channel!`,
 					),
 				);
+
 				break;
 		}
 	},
