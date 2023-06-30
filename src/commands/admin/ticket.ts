@@ -71,10 +71,10 @@ export const ticket: AutoCompleteCommand = {
 				.addStringOption((option) =>
 					option
 						.setName("reason")
-						.setDescription("📄 The reason for the ticket to be closed.")
+						.setDescription("📄 Why is the ticket being closed?")
 						.setAutocomplete(true),
 				),
-		)
+		).addSubcommand((subcommand) => subcommand.setName("reopen").setDescription("🔓 Reopen a ticket.").addChannelOption((option) => option.setName("ticket-channel").setDescription("🎫 The ticket channel to reopen. Don't specify a channel to reopen current channel.").addChannelTypes(...TextChannelTypes)).addStringOption((option) => option.setName("reason").setDescription("📄 Why is the ticket being reopened?")))
 		.addSubcommandGroup((subcommandGroup) =>
 			subcommandGroup
 				.setName("user")
