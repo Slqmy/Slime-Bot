@@ -60,10 +60,8 @@ export interface IGuildDataSchema {
 		};
 	};
 	statisticsChannels: {
-		channelID: string;
-		type: string;
-		extraData: unknown;
-	}[];
+		[key: string]: {type: string; extraData: unknown};
+	};
 }
 
 const GuildDataSchema = new Schema<IGuildDataSchema>({
@@ -137,6 +135,10 @@ const GuildDataSchema = new Schema<IGuildDataSchema>({
 			},
 			required: true,
 		},
+	},
+	statisticsChannels: {
+		type: Object,
+		of: {type: {type: String, required: true}, extraData: Schema.Types.Mixed},
 	},
 });
 
