@@ -37,7 +37,7 @@ export type BotClient = Client & {
 	handleFonts(): Promise<void>;
 	checkTemporaryData(): Promise<void>;
 	checkUploads(): Promise<void>;
-	updateStatisticsChannels(channelID?: string): Promise<void>;
+	updateStatisticsChannels(): Promise<void>;
 	onlineTimestamp: number;
 };
 
