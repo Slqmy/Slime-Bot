@@ -28,6 +28,7 @@ import {
 	StringSelectMenuBuilder,
 	TextChannel,
 	User,
+	VoiceChannel,
 	resolveColor,
 } from "discord.js";
 import {BotClient, MongooseDocument} from "types";
@@ -1168,6 +1169,51 @@ export const isBotTester = (userID: string) =>
 		.split(",")
 		.includes(userID) || userID === process.env.discordBotOwnerID;
 
+export const updateStatisticsChannel = async (
+	statisticsChannel: VoiceChannel,
+	client: BotClient,
+) => {
+	const {guild} = statisticsChannel;
+
+	const guildData = (await GuildDataSchema.findOne({
+		id: guild.id,
+	})) as MongooseDocument<IGuildDataSchema>;
+
+	const {type, extraData} = guildData.statisticsChannels[guild.id];
+
+	let data: number;
+
+	switch (type) {
+		case "totalDiscordMembers":
+			data = guild.memberCount;
+
+			break;
+		case "onlineDiscordMembers":
+			data = [...(await guild.members.fetch()).values()].filter(
+				(member) => !member.presence || member.presence.status === "online",
+			).length;
+
+			break;
+		case "totalJoinedMinecraftPlayers":
+			break;
+		case "onlineMinecraftPlayers":
+			break;
+		case "minecraftServerUptime":
+			break;
+	}
+
+	if (!/d/.test(statisticsChannel.name)) {
+		statisticsChannel.name =
+			DefaultStatisticsChannelNames[
+				type as keyof typeof DefaultStatisticsChannelNames
+			];
+	}
+
+	await statisticsChannel.setName(
+		statisticsChannel.name.replace(/\d+/, `${data}`),
+	);
+};
+
 // ! Classes
 
 export class QueryMessage {
@@ -1998,6 +2044,14 @@ export enum ImageURLs {
 	Slime = "https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/dd/Slime_JE3_BE2.png/revision/latest?cb=20191230025505",
 	Envelope = "https://cdn-icons-png.flaticon.com/512/1587/1587509.png",
 	Wumpus = "https://pbs.twimg.com/media/EThkxLwWsAMGQgp?format=png&name=360x360",
+}
+
+export enum DefaultStatisticsChannelNames {
+	totalDiscordMembers = "Members: 0",
+	onlineDiscordMembers = "Online: 0",
+	totalJoinedMinecraftPlayers = "Total Joined: 0",
+	onlineMinecraftPlayers = "Players Online: 0",
+	minecraftServerUptime = "🟢 Server online: 10 min.",
 }
 
 // ! Objects
