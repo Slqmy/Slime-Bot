@@ -13,15 +13,17 @@ export const leaderboard: Command = {
 				.setDescription("📄 The page of the leaderboard to view."),
 		),
 	async execute(interaction) {
+		await interaction.deferReply();
+
 		const guildData = await GuildDataSchema.findOne({id: interaction.guildId});
 
 		if (!guildData) {
-			return interaction.reply(
+			return interaction.editReply(
 				new ErrorMessage("You need to be in a guild to run this command!"),
 			);
 		}
 
-		return interaction.reply(
+		return interaction.editReply(
 			await new LevelLeaderboardMessage().create(interaction),
 		);
 	},
