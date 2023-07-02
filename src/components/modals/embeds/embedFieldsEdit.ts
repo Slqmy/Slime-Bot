@@ -1,31 +1,40 @@
+import {Modal} from "types";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
-import {ErrorMessage, SuccessMessageBuilder} from "../../../classes.js";
+import {ErrorMessage, SuccessMessage} from "../../../utility.js";
+import {APIEmbedFooter, Message} from "discord.js";
 
-export default {
-	data: {
-		name: "embedFieldsEdit",
-	},
-
+export const embedFieldsEdit: Modal = {
 	async execute(interaction) {
-		let fieldPosition = interaction.fields.getTextInputValue("fieldPosition");
+		let fieldPosition: string | number =
+			interaction.fields.getTextInputValue("fieldPosition");
 		const name = interaction.fields.getTextInputValue("fieldName");
 		const value = interaction.fields.getTextInputValue("fieldValue");
 		const inline = interaction.fields.getTextInputValue("fieldInline");
 
-		const embed = interaction.message.embeds[0].data;
+		const embed = (interaction.message as Message).embeds[0].data;
 
-		const count = embed.description.match(/\d+/)[0];
+		const count = (
+			/\d+/.exec(embed.description as string) as RegExpExecArray
+		)[0];
 
 		const embedData = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
 
-		const embedNumber = embed.footer.text.match(/\d+/)[0];
+		if (!embedData) {
+			return interaction.reply(new ErrorMessage("Couldn't find embed!"));
+		}
 
-		const embeds = embedData.embeds;
+		const embedNumber = parseInt(
+			(/\d+/.exec((embed.footer as APIEmbedFooter).text) as RegExpExecArray)[0],
+		);
 
-		const fieldArray = embeds[embedNumber - 1].fields;
+		let embeds = embedData.embeds;
+		embeds ??= [];
+
+		let fieldArray = embeds[embedNumber - 1].fields;
+		fieldArray ??= [];
 
 		if (!parseInt(fieldPosition)) {
 			const reg = new RegExp(`^.*${fieldPosition}.*$`, "ig");
@@ -36,10 +45,11 @@ export default {
 				}
 			}
 		}
-		if (!fieldArray[parseInt(fieldPosition)]) {
-			return await interaction.reply(
-				new ErrorMessage("That field does not exist!"),
-			);
+
+		fieldPosition = parseInt(`${fieldPosition}`);
+
+		if (!fieldArray[fieldPosition]) {
+			return interaction.reply(new ErrorMessage("That field does not exist!"));
 		}
 
 		fieldArray[fieldPosition - 1] = {
@@ -53,13 +63,13 @@ export default {
 		await EmbedSchema.updateOne(
 			{
 				author: interaction.user.id,
-				customID: count,
+				id: count,
 			},
 			{
-				embeds: embeds,
+				embeds,
 			},
 		);
 
-		await interaction.reply(new SuccessMessageBuilder("Embed Saved"));
+		await interaction.reply(new SuccessMessage("Embed Saved"));
 	},
 };

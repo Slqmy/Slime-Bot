@@ -3,25 +3,32 @@ import {
 	ActionRowBuilder,
 	TextInputBuilder,
 	TextInputStyle,
+	APIEmbedFooter,
 } from "discord.js";
 import {ErrorMessage} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
-import {Button} from "types.js";
+import {Button} from "types";
 
 export const embedAddComponent: Button = {
 	async execute(interaction) {
 		const embed = interaction.message.embeds[0].data;
 
-		const count = embed.footer.text.match(/\d+/);
+		const id = (
+			/\d+/.exec((embed.footer as APIEmbedFooter).text) as RegExpExecArray
+		)[0];
+
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id,
 		});
-		const match = embed.title.match(/(?<= - Editing )\w+(?=s$)/)[0];
+
+		const match = (
+			/(?<= - Editing )\w+(?=s$)/.exec(embed.title as string) as RegExpExecArray
+		)[0];
 
 		switch (match) {
 			case "file":
-				if (embedProfile.files.length === 10) {
+				if (embedProfile?.files?.length === 10) {
 					return interaction.reply(
 						new ErrorMessage(
 							"Uploading more files will exceed the maximum file limit.",
@@ -30,12 +37,12 @@ export const embedAddComponent: Button = {
 					);
 				}
 
-				await interaction.showModal(
+				return interaction.showModal(
 					new ModalBuilder()
 						.setCustomId("embedFileAdd")
 						.setTitle("Add File")
 						.addComponents(
-							new ActionRowBuilder().addComponents(
+							new ActionRowBuilder<TextInputBuilder>().addComponents(
 								new TextInputBuilder()
 									.setLabel("Link")
 									.setPlaceholder(
@@ -47,9 +54,8 @@ export const embedAddComponent: Button = {
 							),
 						),
 				);
-				break;
 			case "embed":
-				if (embedProfile.embeds.length === 25) {
+				if (embedProfile?.embeds?.length === 25) {
 					return interaction.reply(
 						new ErrorMessage(
 							"Creating more embeds will exceed the maximum embed limit.",
@@ -63,7 +69,7 @@ export const embedAddComponent: Button = {
 						.setCustomId("embedEmbedAdd")
 						.setTitle("Add Embed")
 						.addComponents(
-							new ActionRowBuilder().addComponents(
+							new ActionRowBuilder<TextInputBuilder>().addComponents(
 								new TextInputBuilder()
 									.setCustomId("embedTitle")
 									.setLabel("Embed Title")
@@ -71,7 +77,7 @@ export const embedAddComponent: Button = {
 									.setStyle(TextInputStyle.Short)
 									.setPlaceholder("Your embed title here."),
 							),
-							new ActionRowBuilder().addComponents(
+							new ActionRowBuilder<TextInputBuilder>().addComponents(
 								new TextInputBuilder()
 									.setCustomId("embedURL")
 									.setLabel("Embed URL")
@@ -79,7 +85,7 @@ export const embedAddComponent: Button = {
 									.setStyle(TextInputStyle.Short)
 									.setPlaceholder("Hyperlink for the embed title."),
 							),
-							new ActionRowBuilder().addComponents(
+							new ActionRowBuilder<TextInputBuilder>().addComponents(
 								new TextInputBuilder()
 									.setCustomId("embedDescription")
 									.setLabel("Embed Description")
@@ -87,7 +93,7 @@ export const embedAddComponent: Button = {
 									.setStyle(TextInputStyle.Paragraph)
 									.setPlaceholder("Your embed description here."),
 							),
-							new ActionRowBuilder().addComponents(
+							new ActionRowBuilder<TextInputBuilder>().addComponents(
 								new TextInputBuilder()
 									.setCustomId("embedColour")
 									.setLabel("Embed Colour")
@@ -95,7 +101,7 @@ export const embedAddComponent: Button = {
 									.setStyle(TextInputStyle.Short)
 									.setPlaceholder("#ff0000 | 0xff0000 | Red | Transparent "),
 							),
-							new ActionRowBuilder().addComponents(
+							new ActionRowBuilder<TextInputBuilder>().addComponents(
 								new TextInputBuilder()
 									.setCustomId("embedTimestamp")
 									.setLabel("Timestamp")

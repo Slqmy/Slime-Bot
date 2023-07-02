@@ -1,38 +1,51 @@
-/* eslint-disable no-unused-vars */
-import {getEmbedType} from "../../../functions.js";
 import {
 	EmbedFileMessageBuilder,
 	EmbedComponentMessageBuilder,
 	EmbedEmbedMessageBuilder,
-} from "../../../classes.js";
+	getEmbedType,
+} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Button} from "types";
+import {APIEmbedFooter} from "discord.js";
 
-export default {
-	data: {
-		name: "embedEditUp",
-	},
+export const embedEditUp: Button = {
 	async execute(interaction, client) {
 		const embed = interaction.message.embeds[0].data;
 
-		const match = embed.title.match(/(?<= - Editing )\w+(?=s$)/)[0];
+		const match = (
+			/(?<= - Editing )\w+(?=s$)/.exec(embed.title as string) as RegExpExecArray
+		)[0];
 
-		const count = parseInt(embed.description.match(/\d+/)[0]);
+		const count = parseInt(
+			(/\d+/.exec(embed.description as string) as RegExpExecArray)[0],
+		);
+
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
-		const index = parseInt(embed.footer.text.match(/\d+/)[0]) - 1;
+
+		if (!embedProfile) {
+			return interaction.reply("Couldn't find embed!");
+		}
+
+		const index =
+			parseInt(
+				(
+					/\d+/.exec((embed.footer as APIEmbedFooter).text) as RegExpExecArray
+				)[0],
+			) - 1;
+
+		const array = (embedProfile as unknown as {[key: string]: unknown})[
+			`${match}s`
+		] as [];
 
 		if (index) {
-			[embedProfile[`${match}s`][index], embedProfile[`${match}s`][index - 1]] =
-				[
-					embedProfile[`${match}s`][index - 1],
-					embedProfile[`${match}s`][index],
-				];
+			[array[index], array[index - 1]] = [array[index - 1], array[index]];
 		}
 
 		await EmbedSchema.updateOne(
-			{author: interaction.user.id, customID: count},
+			{author: interaction.user.id, id: count},
 			match === "file"
 				? {files: embedProfile.files}
 				: match === "embed"
@@ -44,7 +57,7 @@ export default {
 
 		await interaction.message.edit(
 			getEmbedType(
-				match,
+				match as "file" | "embed" | "component",
 				(...args) => new EmbedFileMessageBuilder(...args),
 				(...args) => new EmbedEmbedMessageBuilder(...args),
 				(...args) => new EmbedComponentMessageBuilder(...args),

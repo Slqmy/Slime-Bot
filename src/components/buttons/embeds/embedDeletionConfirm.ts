@@ -1,16 +1,13 @@
-import {SuccessMessageBuilder} from "../../../classes.js";
+import {SuccessMessage} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Button} from "types";
 
-export default {
-	data: {
-		name: "embedDeletionConfirm",
-	},
+export const embedDeletionConfirm: Button = {
 	async execute(interaction) {
 		await EmbedSchema.deleteMany({
 			author: interaction.user.id,
 		});
-		await interaction.reply(
-			new SuccessMessageBuilder("Embeds successfully deleted."),
-		);
+
+		await interaction.reply(new SuccessMessage("Embeds successfully deleted."));
 	},
 };

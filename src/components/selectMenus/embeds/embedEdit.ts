@@ -1,25 +1,24 @@
-/* eslint-disable no-unused-vars */
 import {
 	EmbedFileMessageBuilder,
 	EmbedEmbedMessageBuilder,
 	EmbedComponentMessageBuilder,
-} from "../../../classes.js";
+} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {SelectMenu} from "types";
 
-export default {
-	data: {
-		name: "embedEdit",
-	},
+export const embedEdit: SelectMenu = {
 	async execute(interaction, client) {
 		const embed = interaction.message.embeds[0].data;
 
-		const match = embed.title.match(/(?<= - Editing )\w+(?=s$)/)[0];
+		const match = (
+			/(?<= - Editing )\w+(?=s$)/.exec(embed.title as string) as RegExpExecArray
+		)[0];
 
-		const customID = embed.description.match(/\d+/)[0];
+		const id = (/\d+/.exec(embed.description as string) as RegExpExecArray)[0];
 
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: customID,
+			id,
 		});
 
 		let embedMessage;

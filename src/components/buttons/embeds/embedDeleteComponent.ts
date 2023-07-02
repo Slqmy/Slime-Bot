@@ -2,31 +2,60 @@ import {
 	EmbedFileMessageBuilder,
 	EmbedComponentMessageBuilder,
 	EmbedEmbedMessageBuilder,
-} from "../../../classes.js";
+	ErrorMessage,
+} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Button} from "types";
+import {
+	APIEmbedFooter,
+	ActionRowBuilder,
+	ButtonBuilder,
+	EmbedBuilder,
+	StringSelectMenuBuilder,
+} from "discord.js";
 
-export default {
-	data: {
-		name: "embedDeleteComponent",
-	},
+export const embedDeleteComponent: Button = {
 	async execute(interaction, client) {
 		const embed = interaction.message.embeds[0].data;
 
-		const match = embed.title.match(/(?<= - Editing )\w+(?=s$)/)[0];
+		const match = (
+			/(?<= - Editing )\w+(?=s$)/.exec(embed.title as string) as RegExpExecArray
+		)[0];
 
-		const count = parseInt(embed.description.match(/\d+/)[0]);
+		const count = parseInt(
+			(/\d+/.exec(embed.description as string) as RegExpExecArray)[0],
+		);
 
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
 
-		const index = parseInt(embed.footer.text.match(/\d+/)[0]) - 1;
+		if (!embedProfile) {
+			return interaction.reply(
+				new ErrorMessage("Couldn't find embed profile!"),
+			);
+		}
 
-		embedProfile[`${match}s`].splice(index, 1);
+		const index =
+			parseInt(
+				(
+					/\d+/.exec((embed.footer as APIEmbedFooter).text) as RegExpExecArray
+				)[0],
+			) - 1;
+
+		const array = (embedProfile as unknown as {[key: string]: unknown})[
+			`${match}s`
+		] as (
+			| EmbedBuilder["data"]
+			| {link: string; name: string; size: number; type: string}
+			| ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>
+		)[];
+
+		array.splice(index, 1);
 
 		await EmbedSchema.updateOne(
-			{author: interaction.user.id, customID: count},
+			{author: interaction.user.id, id: count},
 			match === "file"
 				? {files: embedProfile.files}
 				: match === "embed"
@@ -40,9 +69,9 @@ export default {
 			case "file":
 				embedMessage = new EmbedFileMessageBuilder(
 					embedProfile,
-					embedProfile[`${match}s`][index]
+					(embedProfile[`${match}s`] as [])[index]
 						? index
-						: embedProfile[`${match}s`][index - 1]
+						: array[index - 1]
 						? index - 1
 						: null,
 					client,
@@ -51,22 +80,14 @@ export default {
 			case "embed":
 				embedMessage = new EmbedEmbedMessageBuilder(
 					embedProfile,
-					embedProfile[`${match}s`][index]
-						? index
-						: embedProfile[`${match}s`][index - 1]
-						? index - 1
-						: null,
+					array[index] ? index : array[index - 1] ? index - 1 : null,
 					client,
 				);
 				break;
 			case "component":
 				embedMessage = new EmbedComponentMessageBuilder(
 					embedProfile,
-					embedProfile[`${match}s`][index]
-						? index
-						: embedProfile[`${match}s`][index - 1]
-						? index - 1
-						: null,
+					array[index] ? index : array[index - 1] ? index - 1 : null,
 					client,
 				);
 				break;

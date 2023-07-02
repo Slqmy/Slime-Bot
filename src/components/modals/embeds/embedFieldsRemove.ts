@@ -1,27 +1,36 @@
+import {Modal} from "types";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
-import {ErrorMessage, SuccessMessageBuilder} from "../../../classes.js";
+import {ErrorMessage, SuccessMessage} from "../../../utility.js";
+import {APIEmbedFooter, Message} from "discord.js";
 
-export default {
-	data: {
-		name: "embedFieldsRemove",
-	},
-
+export const embedFieldsRemove: Modal = {
 	async execute(interaction) {
-		const embed = interaction.message.embeds[0].data;
+		const embed = (interaction.message as Message).embeds[0].data;
 
-		const customID =
-			interaction.message.embeds[0].data.description.match(/\d+/);
+		const id = /\d+/.exec(
+			(interaction.message as Message).embeds[0].data.description as string,
+		);
 
 		const embedData = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: customID,
+			id,
 		});
 
-		const embedNumber = embed.footer.text.match(/\d+/);
+		if (!embedData) {
+			return interaction.reply(new ErrorMessage("Couldn't find embed!"));
+		}
 
-		const fieldArray = embedData.embeds[embedNumber - 1].fields;
+		const embedNumber = parseInt(
+			(/\d+/.exec((embed.footer as APIEmbedFooter).text) as RegExpExecArray)[0],
+		);
 
-		const input = interaction.fields.getTextInputValue("deletedField");
+		embedData.embeds ??= [];
+		let fieldArray = embedData.embeds[embedNumber - 1].fields;
+		fieldArray ??= [];
+
+		const input = parseInt(
+			interaction.fields.getTextInputValue("deletedField"),
+		);
 
 		let fieldPosition = input - 1;
 
@@ -36,9 +45,7 @@ export default {
 		}
 
 		if (!fieldArray[fieldPosition]) {
-			return await interaction.reply(
-				new ErrorMessage("That field does not exist!"),
-			);
+			return interaction.reply(new ErrorMessage("That field does not exist!"));
 		}
 
 		const field = fieldArray[fieldPosition];
@@ -50,7 +57,7 @@ export default {
 		await EmbedSchema.updateOne(
 			{
 				author: interaction.user.id,
-				customID: customID,
+				id,
 			},
 			{
 				embeds: embedData.embeds,
@@ -58,7 +65,7 @@ export default {
 		);
 
 		await interaction.reply(
-			new SuccessMessageBuilder(`Field \`${field.name}\` Successfully deleted`),
+			new SuccessMessage(`Field \`${field.name}\` Successfully deleted`),
 		);
 	},
 };

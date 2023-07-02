@@ -117,21 +117,21 @@ export type AnyContextMenuCommand = {
 export type AnyCommand = Command | AutoCompleteCommand | AnyContextMenuCommand;
 
 export type Button = {
-	execute(interaction: ButtonInteraction, client: BotClient): Promise<void>;
+	execute(interaction: ButtonInteraction, client: BotClient): Promise<unknown>;
 };
 
 export type Modal = {
 	execute(
 		interaction: ModalSubmitInteraction,
 		client: BotClient,
-	): Promise<void>;
+	): Promise<unknown>;
 };
 
 export type SelectMenu = {
 	execute(
 		interaction: StringSelectMenuInteraction,
 		client: BotClient,
-	): Promise<void>;
+	): Promise<unknown>;
 };
 
 /**

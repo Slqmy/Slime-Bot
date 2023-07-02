@@ -5,22 +5,22 @@ import {
 	TextInputStyle,
 	ActionRowBuilder,
 } from "discord.js";
-import {ErrorMessage} from "../../../classes.js";
+import {ErrorMessage} from "../../../utility.js";
+import {Button} from "types";
 
-export default {
-	data: {
-		name: "embedSend",
-	},
+export const embedSend: Button = {
 	async execute(interaction) {
-		const countReg = /\d+/;
-
 		const count = parseInt(
-			interaction.message.embeds[0].data.description.match(countReg)[0],
+			(
+				/\d+/.exec(
+					interaction.message.embeds[0].data.description ?? "1",
+				) as RegExpExecArray
+			)[0],
 		);
 
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
 
 		if (!embedProfile) {
@@ -31,7 +31,7 @@ export default {
 					.setCustomId("embedSend")
 					.setTitle("Create your embed here!")
 					.addComponents(
-						new ActionRowBuilder().addComponents(
+						new ActionRowBuilder<TextInputBuilder>().addComponents(
 							new TextInputBuilder()
 								.setCustomId("channel")
 								.setLabel("Channel 💬")

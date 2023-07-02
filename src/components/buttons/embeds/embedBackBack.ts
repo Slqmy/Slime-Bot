@@ -1,21 +1,24 @@
-import {EmbedsMessageBuilder} from "../../../classes.js";
-import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {EmbedsMessageBuilder} from "../../../utility.js";
+import {Button} from "types";
+import {APIEmbedFooter} from "discord.js";
 
-export default {
-	data: {
-		name: "embedBackBack",
-	},
+export const embedBackBack: Button = {
 	async execute(interaction, client) {
 		await interaction.deferUpdate();
-		const embedArray = await EmbedSchema.find({author: interaction.user.id});
-		const count =
-			interaction.message.embeds[0].data.footer.text.match(/\d+/)[0];
+
+		const count = parseInt(
+			(
+				/\d+/.exec(
+					(interaction.message.embeds[0].data.footer as APIEmbedFooter).text,
+				) as RegExpExecArray
+			)[0],
+		);
+
 		await interaction.message.edit(
-			new EmbedsMessageBuilder(
-				embedArray,
+			await new EmbedsMessageBuilder().create(
 				interaction,
 				client,
-				Math.ceil(count / 25),
+				() => count / 25,
 			),
 		);
 	},

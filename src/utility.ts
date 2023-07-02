@@ -7,6 +7,7 @@ import {
 	APISelectMenuOption,
 	ActionRow,
 	ActionRowBuilder,
+	AnySelectMenuInteraction,
 	AttachmentBuilder,
 	AutocompleteInteraction,
 	ButtonBuilder,
@@ -73,7 +74,7 @@ const {whiteBright, bold} = chalk;
  * @example
  * // ./src/bot.ts.
  * // Registering the client functions.
- * import {loopFolders} from "./functions.js";
+ * import {loopFolders} from "./utility.js";
  *
  * // ...
  *
@@ -1401,6 +1402,60 @@ export const colourMatch = (
 	return "⬛";
 };
 
+/**
+ * Checks whether a user is authorised to perform an interaction based on certain variables.
+ * @param {ModalSubmitInteraction | ButtonInteraction | AnySelectMenuInteraction} interaction The interaction to check authorisation for.
+ * @returns {boolean} Whether the user is authorised to perform the interaction.
+ * @example
+ * checkAuthorisation(interaction);
+ */
+export const checkAuthorisation = (
+	interaction:
+		| ModalSubmitInteraction
+		| ButtonInteraction
+		| AnySelectMenuInteraction,
+): boolean => {
+	const usernameReg = new RegExp(interaction.user.username, "ig");
+	const userTagReg = new RegExp(interaction.user.tag, "ig");
+	const userIDReg = new RegExp(interaction.user.id, "ig");
+
+	const embed = interaction.message?.embeds?.[0]?.data;
+
+	for (const element of [
+		embed?.title,
+		embed?.footer?.text ?? "",
+		embed?.author?.name ?? "",
+	]) {
+		if (
+			element &&
+			(usernameReg.test(element) ||
+				userTagReg.test(element) ||
+				userIDReg.test(element))
+		) {
+			return true;
+		}
+	}
+
+	return interaction.message?.interaction?.user?.id === interaction.user.id;
+};
+
+export const getEmbedType = (
+	match: "file" | "embed" | "component",
+	EmbedFileMessageBuilderFunction: Function,
+	EmbedEmbedMessageBuilderFunction: Function,
+	EmbedComponentMessageBuilderFunction: Function,
+	...args: unknown[]
+) => {
+	switch (match) {
+		case "file":
+			return EmbedFileMessageBuilderFunction(...args);
+		case "embed":
+			return EmbedEmbedMessageBuilderFunction(...args);
+		case "component":
+			return EmbedComponentMessageBuilderFunction(...args);
+	}
+};
+
 // ! Classes
 
 export class QueryMessage {
@@ -2220,7 +2275,11 @@ export class EmbedMessageBuilder {
 	}
 
 	async create(
-		interaction: ChatInputCommandInteraction,
+		interaction:
+			| ChatInputCommandInteraction
+			| ButtonInteraction
+			| StringSelectMenuInteraction
+			| ModalSubmitInteraction,
 		client: BotClient,
 		id: string,
 		description: string,
@@ -2375,6 +2434,258 @@ export class EmbedMessageBuilder {
 		return this;
 	}
 }
+
+class EmbedClassBuilder {
+	class: unknown;
+	constructor(
+		name: string,
+		emoji: string,
+		titleEmoji: string,
+		descriptionFunction: (data: any, selected?: boolean) => string,
+		selectMenuOptionFunction: (
+			data: unknown,
+			index: number,
+		) => {
+			label: string;
+			value: string;
+			description: string;
+		},
+		selectedButtonArray: ButtonBuilder[],
+	) {
+		this.class = class {
+			embeds: APIEmbed[];
+			components: ActionRowBuilder[];
+			constructor(embedData, selected: number, client: BotClient) {
+				let description = `> Currently editing your \`${
+					embedData.id
+				}${addNumberSuffix(
+					embedData.id,
+				)}\` embed builder. Edit it's ${name}s here.`;
+
+				embedData[`${name}s`].forEach((type, index) => {
+					description += `\n\n${index === selected ? "```md\n" : ""}${
+						index + 1
+					}. ${cut(
+						type.name ?? type.title ?? type.label,
+						61 - 2 - `${index + 1}`.length,
+					)}${
+						index === selected
+							? `\n====${"=".repeat(
+									(type.name ?? type.title ?? type.label).length -
+										2 +
+										`${index + 1}`.length,
+							  )}\n<SELECTED>`.slice(0, 62)
+							: ""
+					}\n${
+						index === selected
+							? descriptionFunction(type, true)
+									.replace(/>/g, "-")
+									.replace(/`/g, "")
+							: descriptionFunction(type)
+					}${index === selected ? "```" : ""}`;
+				});
+
+				if (!embedData[`${name}s`].length) description += `\n\n*No ${name}s*`;
+
+				this.embeds = [
+					{
+						title: `${titleEmoji} ${embedData.name} - Editing ${name}s`,
+						color: embedData.embeds[0]?.color ?? Colours.Lime,
+						author: {
+							name: client.user.username,
+							icon_url: client.user.displayAvatarURL(DisplayAvatarURLOptions),
+						},
+						footer: {
+							text:
+								selected !== null
+									? `Editing ${capitaliseFirstLetter(name)} ${selected + 1}`
+									: `Editing Embed Builder ${embedData.id}`,
+							icon_url:
+								"https://cdn.discordapp.com/attachments/1020058739526619186/1051111672938496070/pen_2.png",
+						},
+						timestamp: new Date(Date.now()).toISOString(),
+						description,
+					},
+				];
+
+				name = capitaliseFirstLetter(name);
+
+				this.components =
+					selected !== null
+						? ((...buttons) => {
+								const resultArray = [];
+
+								for (let i = 0; i < buttons.length; i += 5) {
+									resultArray.push(
+										new ActionRowBuilder().addComponents(
+											buttons.slice(i, i + 5),
+										),
+									);
+								}
+
+								return resultArray;
+						  })(
+								new ButtonBuilder()
+									.setEmoji("⏪")
+									.setLabel("Back")
+									.setCustomId(`embedEdit${name}s`)
+									.setStyle(ButtonStyle.Primary),
+								...selectedButtonArray,
+								new ButtonBuilder()
+									.setCustomId("embedDeleteComponent")
+									.setEmoji(emoji)
+									.setLabel(`Delete ${name}`)
+									.setStyle(ButtonStyle.Secondary),
+								new ButtonBuilder()
+									.setCustomId("embedEditUp")
+									.setEmoji("🔼")
+									.setStyle(ButtonStyle.Primary),
+								new ButtonBuilder()
+									.setCustomId("embedEditDown")
+									.setEmoji("🔽")
+									.setStyle(ButtonStyle.Primary),
+						  )
+						: [
+								new ActionRowBuilder().addComponents(
+									new ButtonBuilder()
+										.setEmoji("⏪")
+										.setLabel("Back")
+										.setCustomId("embedBack")
+										.setStyle(ButtonStyle.Primary),
+									new ButtonBuilder()
+										.setCustomId("embedAddComponent")
+										.setEmoji(emoji)
+										.setLabel(`Add ${name}s`)
+										.setStyle(ButtonStyle.Secondary),
+									new ButtonBuilder()
+										.setCustomId("embedRemoveComponents")
+										.setEmoji(emoji)
+										.setLabel(`Remove ${name}s`)
+										.setStyle(ButtonStyle.Secondary),
+								),
+						  ];
+
+				name = name.toLowerCase();
+
+				if (embedData[`${name}s`].length)
+					this.components.push(
+						new ActionRowBuilder().addComponents(
+							new StringSelectMenuBuilder()
+								.setCustomId("embedEdit")
+								.setPlaceholder(`${emoji} Edit ${name}...`)
+								.setOptions(
+									embedData[`${name}s`].map((type, index) => ({
+										...selectMenuOptionFunction(type, index),
+										default: index === selected,
+										emoji,
+									})),
+								)
+								.setMinValues(1)
+								.setMaxValues(1),
+						),
+					);
+			}
+		};
+	}
+}
+
+export const EmbedFileMessageBuilder = new EmbedClassBuilder(
+	"file",
+	"📁",
+	"🗃️",
+	(fileData, selected) =>
+		`> Link: ${!selected ? "[" : ""}${cut(fileData.link, selected ? 53 : 67)}${
+			!selected ? "](" : ""
+		}${!selected ? fileData.link : ""}${!selected ? ")" : ""}\n> Type: ${
+			fileData.type
+		}\n> Size: ${(fileData.size / 1000000).toPrecision(1)}MB`,
+	(fileData, index) => ({
+		label: cut(fileData.name, 100),
+		value: `${index}`,
+		description: cut(fileData.link, 100),
+	}),
+	[
+		new ButtonBuilder()
+			.setCustomId("embedFileEditEdit")
+			.setEmoji("📁")
+			.setLabel("Edit File")
+			.setStyle(ButtonStyle.Secondary),
+	],
+).class;
+
+export const EmbedEmbedMessageBuilder = new EmbedClassBuilder(
+	"embed",
+	"🎨",
+	"💬",
+	(embedData, selected) => {
+		const properties =
+			Object.values(embedData).filter((value) => value).length - 1;
+		return `> \`${properties}\` Propert${
+			properties === 1 ? "y" : "ies"
+		}\n> Description: ${cut(
+			embedData.description,
+			selected ? 46 : 61,
+		)}\n> Colour: \`${colourMatch(
+			embedData.color.toString(16),
+		)} ${embedData.color.toString(16)}\`\n`;
+	},
+	(embedData, index) => ({
+		label: embedData.title,
+		value: `${index}`,
+		description: cut(embedData.description, 100),
+	}),
+	[
+		new ButtonBuilder()
+			.setCustomId("embedEdit1")
+			.setLabel("📝 Basic Elements")
+			.setStyle(ButtonStyle.Secondary),
+		new ButtonBuilder()
+			.setCustomId("embedEdit2")
+			.setLabel("📝 Footer and Images")
+			.setStyle(ButtonStyle.Secondary),
+		new ButtonBuilder()
+			.setCustomId("embedEdit3")
+			.setLabel("📝 Author")
+			.setStyle(ButtonStyle.Secondary),
+		new ButtonBuilder()
+			.setCustomId("embedFieldsAdd")
+			.setLabel("📝 Insert Field")
+			.setStyle(ButtonStyle.Secondary),
+		new ButtonBuilder()
+			.setCustomId("embedFieldsEdit")
+			.setLabel("📝 Edit Field")
+			.setStyle(ButtonStyle.Secondary),
+		new ButtonBuilder()
+			.setCustomId("embedFieldsRemove")
+			.setLabel("📝 Remove Fields")
+			.setStyle(ButtonStyle.Secondary),
+	],
+).class;
+
+export const EmbedComponentMessageBuilder = new EmbedClassBuilder(
+	"component",
+	"📋",
+	"📋",
+	(componentData) =>
+		`**Action Row - ${
+			componentData.components.length
+		} component${addNumberSuffix(componentData.components.length)}**\n${(() => {
+			let description = "";
+			for (const component of componentData.components) {
+				description += `> ${
+					component.type === 2 ? "⏸️ Button" : "📋 Select Menu"
+				} - ${component.label ?? component.placeholder}\n`;
+			}
+			if (!componentData.components.length) description += "*No components*\n";
+			return description;
+		})()}`,
+	(componentData, index) => ({
+		label: componentData.label ?? componentData.placeholder ?? "Component",
+		value: `${index}`,
+		description: cut(componentData.description, 100),
+	}),
+	[],
+).class;
 
 // ! Enums
 

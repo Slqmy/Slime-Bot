@@ -1,46 +1,60 @@
-/* eslint-disable no-unused-vars */
-import {getEmbedType} from "../../../functions.js";
 import {
 	EmbedFileMessageBuilder,
 	EmbedEmbedMessageBuilder,
 	EmbedComponentMessageBuilder,
-} from "../../../classes.js";
+	getEmbedType,
+	ErrorMessage,
+} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Button} from "types";
+import {APIEmbedFooter} from "discord.js";
 
-export default {
-	data: {
-		name: "embedEditDown",
-	},
+export const embedEditDown: Button = {
 	async execute(interaction, client) {
 		const embed = interaction.message.embeds[0].data;
 
-		const match = embed.title.match(/(?<= - Editing )\w+(?=s$)/)[0];
+		const match = (
+			RegExp(/(?<= - Editing )\w+(?=s$)/).exec(
+				embed.title as string,
+			) as RegExpExecArray
+		)[0];
 
 		const count = parseInt(
-			interaction.message.embeds[0].data.description.match(/\d+/)[0],
+			(
+				/\d+/.exec(
+					interaction.message.embeds[0].data.description as string,
+				) as RegExpExecArray
+			)[0],
 		);
 
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
 
-		const index =
-			parseInt(interaction.message.embeds[0].data.footer.text.match(/\d+/)[0]) -
-			1;
+		if (!embedProfile) {
+			return interaction.reply(new ErrorMessage("Couldn't find embed!"));
+		}
 
-		if (index !== embedProfile[`${match}s`].length - 1) {
-			[
-				embedProfile[`${match}s`][index + 1],
-				embedProfile[`${match}s`][`${match}s`],
-			] = [
-				embedProfile[`${match}s`][index],
-				embedProfile[`${match}s`][index + 1],
-			];
+		const index =
+			parseInt(
+				(
+					/\d+/.exec(
+						(interaction.message.embeds[0].data.footer as APIEmbedFooter).text,
+					) as RegExpExecArray
+				)[0],
+			) - 1;
+
+		const array = (embedProfile as unknown as {[key: string]: unknown})[
+			`${match}s`
+		] as [];
+
+		if (index !== array.length - 1) {
+			[array[index + 1], array[index]] = [array[index], array[index + 1]];
 		}
 
 		await EmbedSchema.updateOne(
-			{author: interaction.user.id, customID: count},
+			{author: interaction.user.id, id: count},
 			match === "file"
 				? {files: embedProfile.files}
 				: match === "embed"
@@ -52,7 +66,7 @@ export default {
 
 		await interaction.message.edit(
 			getEmbedType(
-				match,
+				match as "file" | "embed" | "component",
 				(...args) => new EmbedFileMessageBuilder(...args),
 				(...args) => new EmbedEmbedMessageBuilder(...args),
 				(...args) => new EmbedComponentMessageBuilder(...args),

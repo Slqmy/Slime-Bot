@@ -1,44 +1,62 @@
 import {
 	ErrorMessage,
-	SuccessMessageBuilder,
+	SuccessMessage,
 	EmbedFileMessageBuilder,
-} from "../../../classes.js";
-import {isValidURL} from "../../../functions.js";
+	isValidURL,
+} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
-import temp from "../../../schemas/temp.js";
+import TemporaryDataSchema from "../../../schemas/TemporaryDataSchema.js";
 import mongoose from "mongoose";
-import {EmbedBuilder} from "discord.js";
+import {
+	APIEmbedFooter,
+	AttachmentPayload,
+	Channel,
+	EmbedBuilder,
+	JSONEncodable,
+	Message,
+	TextChannel,
+} from "discord.js";
+import {Modal} from "types";
 
-export default {
-	data: {
-		name: "embedFileAdd",
-	},
+export const embedFileAdd: Modal = {
 	async execute(interaction, client) {
 		await interaction.deferReply({ephemeral: true});
 		const count = parseInt(
-			interaction.message.embeds[0].data.footer.text.match(/\d+/)[0],
+			(
+				/\d+/.exec(
+					(
+						(interaction.message as Message).embeds[0].data
+							.footer as APIEmbedFooter
+					).text,
+				) as RegExpExecArray
+			)[0],
 		);
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
 
+		if (!embedProfile) {
+			return interaction.reply(new ErrorMessage("Embed not found."));
+		}
+
 		if (!interaction.fields.getTextInputValue("link")) {
-			const waiting = new temp({
-				_id: mongoose.Types.ObjectId(),
+			const waiting = new TemporaryDataSchema({
+				_id: new mongoose.Types.ObjectId(),
 				type: "waitingForUpload",
 				match: {
 					user: interaction.user.id,
-					channel: interaction.channel.id,
+					channel: (interaction.channel as Channel).id,
 				},
 				data: {
-					count: count,
-					message: interaction.message.id,
+					message: (interaction.message as Message).id,
+					count,
 				},
-				lifeSpan: 30,
-				date: Date.now(),
+				lifeSpan: 30000,
 			});
+
 			await waiting.save();
+
 			interaction.editReply({
 				embeds: [
 					new EmbedBuilder()
@@ -49,7 +67,6 @@ export default {
 						)
 						.setColor(126543),
 				],
-				ephemeral: true,
 			});
 		} else {
 			const input = interaction.fields.getTextInputValue("link").split(/, ?/gi);
@@ -59,20 +76,22 @@ export default {
 					input.splice(input.indexOf(i), 1);
 				}
 			}
+
 			if (input.length) {
-				if (input.length + embedProfile.files.length > 10) {
+				if (input.length + (embedProfile.files?.length ?? 0) > 10) {
 					interaction.editReply(
 						new ErrorMessage(
 							`Uploading the files provided will exceed the maximum file limit by \`${
-								input.length + embedProfile.files.length - 10
+								input.length + (embedProfile.files?.length ?? 0) - 10
 							}\` file.`,
 						),
 					);
 				} else {
 					let msg;
 					let error;
+
 					try {
-						msg = await interaction.channel.send({
+						msg = await (interaction.channel as TextChannel).send({
 							content: "⚙ Adding Files...",
 							files: input,
 						});
@@ -88,23 +107,25 @@ export default {
 						);
 					} else {
 						for (const attachment of [...msg.attachments.values()]) {
+							embedProfile.files ??= [];
+
 							embedProfile.files.push({
 								name: attachment.name,
-								link: attachment.attachment,
-								type: attachment.contentType,
+								link: attachment.url,
+								type: attachment.contentType ?? "image/png",
 								size: attachment.size,
 							});
 						}
 						await EmbedSchema.updateOne(
-							{author: interaction.user.id, customID: count},
+							{author: interaction.user.id, id: count},
 							{files: embedProfile.files},
 						);
-						interaction.message.edit(
+						(interaction.message as Message).edit(
 							new EmbedFileMessageBuilder(embedProfile, null, client),
 						);
 
 						interaction.editReply(
-							new SuccessMessageBuilder(
+							new SuccessMessage(
 								`Successfully added ${
 									[...msg.attachments.values()].length === 1
 										? `\`${[...msg.attachments.values()][0].name}\``
@@ -115,7 +136,9 @@ export default {
 
 						msg.edit({
 							content: "✅ Successfully added the files!",
-							attachments: msg.attachments,
+							attachments: [
+								...msg.attachments.values(),
+							] as JSONEncodable<AttachmentPayload>[],
 						});
 					}
 				}

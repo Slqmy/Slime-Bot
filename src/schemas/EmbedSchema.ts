@@ -29,15 +29,21 @@ const EmbedSchema = new Schema<IEmbedSchema>({
 			description: String,
 			color: Number,
 			author: {
-				name: {type: String, required: true},
-				url: String,
-				icon_url: String,
-				proxy_icon_url: String,
+				type: {
+					name: {type: String, required: true},
+					url: String,
+					icon_url: String,
+					proxy_icon_url: String,
+				},
+				required: false,
 			},
 			footer: {
-				text: {type: String, required: true},
-				icon_url: String,
-				proxy_icon_url: String,
+				type: {
+					text: {type: String, required: true},
+					icon_url: String,
+					proxy_icon_url: String,
+				},
+				required: false,
 			},
 			timestamp: Number,
 			image: {url: String, proxy_url: String},

@@ -4,16 +4,16 @@ import {
 	TextInputBuilder,
 	TextInputStyle,
 } from "discord.js";
-import {capitaliseFirst} from "../../../functions.js";
+import {capitaliseFirstLetter} from "../../../utility.js";
+import {Button} from "types";
 
-export default {
-	data: {
-		name: "embedRemoveComponents",
-	},
+export const embedRemoveComponents: Button = {
 	async execute(interaction) {
-		const match = capitaliseFirst(
-			interaction.message.embeds[0].data.title.match(
-				/(?<= - Editing )\w+(?=s$)/,
+		const match = capitaliseFirstLetter(
+			(
+				/(?<= - Editing )\w+(?=s$)/.exec(
+					interaction.message.embeds[0].data.title as string,
+				) as RegExpExecArray
 			)[0],
 		);
 
@@ -22,7 +22,7 @@ export default {
 				.setCustomId("embedRemoveComponents")
 				.setTitle(`Remove ${match}`)
 				.addComponents(
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setLabel("Name")
 							.setCustomId("name")

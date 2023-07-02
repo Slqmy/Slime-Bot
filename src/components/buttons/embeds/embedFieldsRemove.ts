@@ -4,28 +4,23 @@ import {
 	TextInputBuilder,
 	TextInputStyle,
 } from "discord.js";
-import {ErrorMessage} from "../../../classes.js";
+import {ErrorMessage} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Button} from "types";
 
-export default {
-	data: {
-		name: "embedFieldsRemove",
-	},
-
+export const embedFieldsRemove: Button = {
 	async execute(interaction) {
 		const embed = interaction.message.embeds[0].data;
 
-		const customID = embed.description.match(/\d+/)[0];
+		const id = (/\d+/.exec(embed.description as string) as RegExpExecArray)[0];
 
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: customID,
+			id,
 		});
 
 		if (!embedProfile) {
-			return await interaction.reply(
-				new ErrorMessage("This embed does not exist!"),
-			);
+			return interaction.reply(new ErrorMessage("This embed does not exist!"));
 		}
 
 		await interaction.showModal(
@@ -33,7 +28,7 @@ export default {
 				.setCustomId("embedFieldsRemove")
 				.setTitle("Delete Field")
 				.addComponents(
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("deletedField")
 							.setLabel("Which field would you like to delete?")

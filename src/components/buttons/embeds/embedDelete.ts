@@ -1,31 +1,33 @@
-import {SuccessMessageBuilder, EmbedsMessageBuilder} from "../../../classes.js";
+import {SuccessMessage, EmbedsMessageBuilder} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Button} from "types";
 
-export default {
-	data: {
-		name: "embedDelete",
-	},
+export const embedDelete: Button = {
 	async execute(interaction, client) {
 		const count = parseInt(
-			interaction.message.embeds[0].data.description.match(/\d+/)[0],
+			(
+				/\d+/.exec(
+					interaction.message.embeds[0].data.description as string,
+				) as RegExpExecArray
+			)[0],
 		);
 
 		let embedArray = await EmbedSchema.find({author: interaction.user.id});
 
 		await EmbedSchema.deleteOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
 
 		for (let i = count + 1; i <= embedArray.length; i++) {
 			await EmbedSchema.updateOne(
-				{author: interaction.user.id, customID: i},
-				{customID: i - 1},
+				{author: interaction.user.id, id: i},
+				{id: i - 1},
 			);
 		}
 
 		await interaction.reply(
-			new SuccessMessageBuilder("Embed successfully deleted.", true),
+			new SuccessMessage("Embed successfully deleted.", true),
 		);
 
 		embedArray = await EmbedSchema.find({
@@ -33,11 +35,11 @@ export default {
 		});
 
 		await interaction.message.edit(
-			new EmbedsMessageBuilder(
-				embedArray,
+			await new EmbedsMessageBuilder().create(
 				interaction,
 				client,
-				Math.ceil(count / 25) -
+				() =>
+					Math.ceil(count / 25) -
 					(embedArray.length % 25 === 1 && count === embedArray.length ? 1 : 0),
 			),
 		);

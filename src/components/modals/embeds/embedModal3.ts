@@ -1,48 +1,64 @@
-import {EmbedBuilder} from "discord.js";
-import {checkAuthorisation} from "../../../functions.js";
-import {SuccessMessageBuilder, ErrorMessage} from "../../../classes.js";
+import {
+	SuccessMessage,
+	ErrorMessage,
+	checkAuthorisation,
+} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Modal} from "types";
+import {APIEmbedFooter, Message} from "discord.js";
 
-export default {
-	data: {
-		name: "embedModal3",
-	},
-
+export const embedModal3: Modal = {
 	async execute(interaction) {
 		if (!checkAuthorisation(interaction)) {
-			return await interaction.reply(
-				new ErrorMessage("This is not your embed!"),
-			);
+			return interaction.reply(new ErrorMessage("This is not your embed!"));
 		}
 
-		const embedMessage = interaction.message.embeds[0].data;
+		const embedMessage = (interaction.message as Message).embeds[0].data;
 
-		const count =
-			interaction.message.embeds[0].data.description.match(/\d+/)[0];
+		const count = (
+			/\d+/.exec(
+				(interaction.message as Message).embeds[0].data.description as string,
+			) as RegExpExecArray
+		)[0];
 
-		const embedIndex = embedMessage.footer.text.match(/\d+/)[0] - 1;
+		const embedIndex =
+			parseInt(
+				(
+					/\d+/.exec(
+						(embedMessage.footer as APIEmbedFooter).text,
+					) as RegExpExecArray
+				)[0],
+			) - 1;
 
 		const embed = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
+
+		if (!embed) {
+			return interaction.reply(new ErrorMessage("Can't find embed!"));
+		}
+
+		embed.embeds ??= [];
 
 		embed.embeds[embedIndex - 1] = {
 			...embed.embeds[embedIndex - 1],
-			...new EmbedBuilder({
-				image: interaction.fields.getTextInputValue("embedImage"),
-				thumbnail: interaction.fields.getTextInputValue("embedThumbnail"),
+			...{
+				image: {url: interaction.fields.getTextInputValue("embedImage")},
+				thumbnail: {
+					url: interaction.fields.getTextInputValue("embedThumbnail"),
+				},
 				footer: {
 					text: interaction.fields.getTextInputValue("embedFooterText"),
-					iconURL: interaction.fields.getTextInputValue("embedFooterIconURL"),
+					icon_url: interaction.fields.getTextInputValue("embedFooterIconURL"),
 				},
-			}).data,
+			},
 		};
 
 		await EmbedSchema.updateOne(
 			{
 				author: interaction.user.id,
-				customID: count,
+				id: count,
 			},
 			{
 				embeds: embed.embeds,
@@ -50,7 +66,7 @@ export default {
 		);
 
 		await interaction.reply(
-			new SuccessMessageBuilder("Embed saved successfully", true),
+			new SuccessMessage("Embed saved successfully", true),
 		);
 	},
 };

@@ -1,16 +1,22 @@
-import {EmbedFileMessageBuilder} from "../../../classes.js";
+import {EmbedFileMessageBuilder} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Button} from "types";
 
-export default {
-	data: {name: "embedEditFiles"},
+export const embedEditFiles: Button = {
 	async execute(interaction, client) {
 		const count = parseInt(
-			interaction.message.embeds[0].data.description.match(/\d+/)[0],
+			(
+				/\d+/.exec(
+					interaction.message.embeds[0].data.description as string,
+				) as RegExpExecArray
+			)[0],
 		);
+
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
+
 		await interaction.deferUpdate();
 
 		await interaction.message.edit(

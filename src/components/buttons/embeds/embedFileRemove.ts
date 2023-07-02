@@ -4,18 +4,16 @@ import {
 	TextInputBuilder,
 	TextInputStyle,
 } from "discord.js";
+import {Button} from "types";
 
-export default {
-	data: {
-		name: "embedFileRemove",
-	},
+export const embedFileRemove: Button = {
 	async execute(interaction) {
 		interaction.showModal(
 			new ModalBuilder()
 				.setCustomId("embedFileRemove")
 				.setTitle("Remove File")
 				.addComponents(
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setLabel("Name")
 							.setCustomId("name")

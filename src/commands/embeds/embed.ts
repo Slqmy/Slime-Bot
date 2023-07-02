@@ -2,10 +2,10 @@ import EmbedSchema, {IEmbedSchema} from "../../schemas/EmbedSchema.js";
 import {
 	SlashCommandBuilder,
 	ActionRowBuilder,
-	EmbedBuilder,
 	ButtonBuilder,
 	ButtonStyle,
 	TextChannel,
+	Colors,
 } from "discord.js";
 import mongoose from "mongoose";
 import {
@@ -222,11 +222,7 @@ export const command: AutoCompleteCommand = {
 				}
 
 				await interaction.reply({
-					embeds: [
-						new EmbedBuilder()
-							.setTitle("🗑 Embed Successfully deleted")
-							.setColor("Red"),
-					],
+					embeds: [{title: "🗑 Embed Successfully deleted", color: Colors.Red}],
 					ephemeral: true,
 				});
 				break;
@@ -277,12 +273,12 @@ export const command: AutoCompleteCommand = {
 			case "all": {
 				await interaction.reply({
 					embeds: [
-						new EmbedBuilder()
-							.setTitle("🗑️ Confirm Deletion")
-							.setColor("Red")
-							.setDescription(
+						{
+							title: "🗑️ Confirm Deletion",
+							color: Colors.Red,
+							description:
 								"> Are you sure you would like to delete all your embed builders? You can not\n> undo this action.",
-							),
+						},
 					],
 					ephemeral: true,
 					components: [
@@ -349,7 +345,7 @@ export const command: AutoCompleteCommand = {
 					((await client.channels.fetch(
 						/\d+(?=\/\d+$)/.exec(id)?.[0] ?? "",
 					)) as TextChannel) ?? interaction.channel
-				)?.messages?.fetch((/\d+/.exec(id) as RegExpExecArray)[0]);
+				)?.messages?.fetch((/\d+$/.exec(id) as RegExpExecArray)[0]);
 
 				if (!message) {
 					return interaction.reply(

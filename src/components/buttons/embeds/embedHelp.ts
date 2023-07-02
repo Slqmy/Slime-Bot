@@ -1,12 +1,9 @@
-import {EmbedBuilder} from "discord.js";
+import {Button} from "types";
 
-export default {
-	data: {
-		name: "embedHelp",
-	},
+export const embedHelp: Button = {
 	async execute(interaction) {
 		await interaction.reply({
-			embeds: [new EmbedBuilder().setTitle("Work in progress")],
+			embeds: [{title: "Work in progress!"}],
 		});
 	},
 };

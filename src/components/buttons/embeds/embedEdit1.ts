@@ -3,28 +3,33 @@ import {
 	ActionRowBuilder,
 	TextInputBuilder,
 	TextInputStyle,
+	APIEmbedFooter,
 } from "discord.js";
-import {ErrorMessage} from "../../../classes.js";
+import {ErrorMessage} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Button} from "types";
 
-export default {
-	data: {
-		name: "embedEdit1",
-	},
-
+export const embedEdit1: Button = {
 	async execute(interaction) {
 		const embed = interaction.message.embeds[0].data;
 
 		const countReg = /\d+/;
 
-		const count = parseInt(embed.description.match(countReg)[0]);
+		const count = parseInt(
+			(countReg.exec(embed.description as string) as RegExpExecArray)[0],
+		);
 
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
 
-		const embedNumber = embed.footer.text.match(/\d+/)[0] - 1;
+		const embedNumber =
+			parseInt(
+				(
+					/\d+/.exec((embed.footer as APIEmbedFooter).text) as RegExpExecArray
+				)[0],
+			) - 1;
 
 		if (!embedProfile) {
 			return interaction.reply(new ErrorMessage("This embed does not exist!"));
@@ -35,34 +40,34 @@ export default {
 				.setCustomId("embedModal1")
 				.setTitle("Create your embed here!")
 				.addComponents(
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("embedTitle")
 							.setLabel("Embed Title")
 							.setRequired(true)
 							.setStyle(TextInputStyle.Short)
 							.setPlaceholder("Your embed title here.")
-							.setValue(embedProfile.embeds[embedNumber].title || ""),
+							.setValue(embedProfile.embeds?.[embedNumber].title ?? ""),
 					),
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("embedURL")
 							.setLabel("Embed URL")
 							.setRequired(false)
 							.setStyle(TextInputStyle.Short)
 							.setPlaceholder("Hyperlink for the embed title.")
-							.setValue(embedProfile.embeds[embedNumber].url || ""),
+							.setValue(embedProfile.embeds?.[embedNumber].url ?? ""),
 					),
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("embedDescription")
 							.setLabel("Embed Description")
 							.setRequired(false)
 							.setStyle(TextInputStyle.Paragraph)
 							.setPlaceholder("Your embed description here.")
-							.setValue(embedProfile.embeds[embedNumber].description || ""),
+							.setValue(embedProfile.embeds?.[embedNumber].description ?? ""),
 					),
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("embedColour")
 							.setLabel("Embed Colour")
@@ -70,10 +75,10 @@ export default {
 							.setStyle(TextInputStyle.Short)
 							.setPlaceholder("#ff0000 | 0xff0000 | Red | Transparent")
 							.setValue(
-								`${embedProfile.embeds[embedNumber].color.toString(16)}` || "",
+								embedProfile.embeds?.[embedNumber].color?.toString(16) ?? "",
 							),
 					),
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("embedTimestamp")
 							.setLabel("Timestamp")
@@ -82,7 +87,7 @@ export default {
 							.setPlaceholder(
 								"mm/dd/yyyy hh:mm:ss | Now | In 5 minutes | 10s ago",
 							)
-							.setValue(embedProfile.embeds[embedNumber].timestamp || ""),
+							.setValue(embedProfile.embeds?.[embedNumber].timestamp ?? ""),
 					),
 				),
 		);

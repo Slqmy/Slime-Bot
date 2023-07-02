@@ -1,19 +1,19 @@
 import {
 	ErrorMessage,
-	SuccessMessageBuilder,
+	SuccessMessage,
 	EmbedFileMessageBuilder,
 	EmbedEmbedMessageBuilder,
 	EmbedComponentMessageBuilder,
-} from "../../../classes.js";
-import {wordNumberEnding, capitaliseFirst} from "../../../functions.js";
+	addNumberSuffix,
+	capitaliseFirstLetter,
+} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Modal} from "types";
+import {Message} from "discord.js";
 
-export default {
-	data: {
-		name: "embedRemoveComponents",
-	},
+export const embedRemoveComponents: Modal = {
 	async execute(interaction, client) {
-		const embed = interaction.message.embeds[0].data;
+		const embed = (interaction.message as Message).embeds[0].data;
 
 		const match = embed.title.match(/(?<= - Editing )\w+(?=s$)/)[0];
 
@@ -23,7 +23,7 @@ export default {
 
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
 
 		const map = embedProfile[`${match}s`].map(
@@ -51,9 +51,9 @@ export default {
 		}
 
 		if (!removedElements.length) {
-			return await interaction.reply(
+			return interaction.reply(
 				new ErrorMessage(
-					`${capitaliseFirst(match)}${wordNumberEnding(
+					`${capitaliseFirstLetter(match)}${addNumberSuffix(
 						input.length,
 					)} not found.`,
 				),
@@ -61,7 +61,7 @@ export default {
 		}
 
 		await EmbedSchema.updateOne(
-			{author: interaction.user.id, customID: count},
+			{author: interaction.user.id, id: count},
 			match === "file"
 				? {files: embedProfile.files}
 				: match === "embed"
@@ -70,7 +70,7 @@ export default {
 		);
 
 		await interaction.reply(
-			new SuccessMessageBuilder(
+			new SuccessMessage(
 				`Successfully removed ${
 					removedElements.length === 1
 						? `\`${removedElements[0]}\``

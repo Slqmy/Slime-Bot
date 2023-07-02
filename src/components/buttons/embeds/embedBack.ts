@@ -1,24 +1,23 @@
-import {EmbedMessageBuilder} from "../../../classes.js";
-import {numberEnding} from "../../../functions.js";
-import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {APIEmbedFooter} from "discord.js";
+import {EmbedMessageBuilder, addNumberSuffix} from "../../../utility.js";
+import {Button} from "types";
 
-export default {
-	data: {name: "embedBack"},
+export const embedBack: Button = {
 	async execute(interaction, client) {
 		await interaction.deferUpdate();
 
-		const count =
-			interaction.message.embeds[0].data.footer.text.match(/\d+/)[0];
-		const embedArray = await EmbedSchema.find({
-			author: interaction.user.id,
-		});
+		const count = (
+			/\d+/.exec(
+				(interaction.message.embeds[0].data.footer as APIEmbedFooter).text,
+			) as RegExpExecArray
+		)[0];
 
 		await interaction.message.edit(
-			new EmbedMessageBuilder(
+			await new EmbedMessageBuilder().create(
+				interaction,
 				client,
-				embedArray[count - 1],
-				embedArray,
-				`Currently editing your \`${count}${numberEnding(
+				count,
+				`Currently editing your \`${count}${addNumberSuffix(
 					count,
 				)}\` embed builder! Select what you would like to \n> do with it below.`,
 			),

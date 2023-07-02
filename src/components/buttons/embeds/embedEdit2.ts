@@ -3,28 +3,33 @@ import {
 	ActionRowBuilder,
 	TextInputBuilder,
 	TextInputStyle,
+	APIEmbedFooter,
 } from "discord.js";
-import {ErrorMessage} from "../../../classes.js";
+import {ErrorMessage} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Button} from "types";
 
-export default {
-	data: {
-		name: "embedEdit2",
-	},
-
+export const embedEdit2: Button = {
 	async execute(interaction) {
 		const embed = interaction.message.embeds[0].data;
 
 		const countReg = /\d+/;
 
-		const count = parseInt(embed.description.match(countReg)[0]);
+		const count = parseInt(
+			(countReg.exec(embed.description as string) as RegExpExecArray)[0],
+		);
 
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
 
-		const embedNumber = embed.footer.text.match(/\d+/)[0] - 1;
+		const embedNumber =
+			parseInt(
+				(
+					/\d+/.exec((embed.footer as APIEmbedFooter).text) as RegExpExecArray
+				)[0],
+			) - 1;
 
 		if (!embedProfile) {
 			return interaction.reply(new ErrorMessage("This embed does not exist!"));
@@ -35,34 +40,36 @@ export default {
 				.setCustomId("embedModal3")
 				.setTitle("Embed Creation Part 3")
 				.addComponents(
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("embedImage")
 							.setLabel("Embed Image")
 							.setRequired(false)
 							.setStyle(TextInputStyle.Short)
 							.setPlaceholder("Your image link here.")
-							.setValue(embedProfile.embeds[embedNumber].image || ""),
+							.setValue(embedProfile.embeds?.[embedNumber].image?.url ?? ""),
 					),
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("embedThumbnail")
 							.setLabel("Thumbnail")
 							.setRequired(false)
 							.setStyle(TextInputStyle.Short)
 							.setPlaceholder("The thumbnail link here.")
-							.setValue(embedProfile.embeds[embedNumber].thumbnail || ""),
+							.setValue(
+								embedProfile.embeds?.[embedNumber].thumbnail?.url ?? "",
+							),
 					),
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("embedFooterText")
 							.setLabel("Footer Text")
 							.setRequired(false)
 							.setStyle(TextInputStyle.Short)
 							.setPlaceholder("Your footer text here.")
-							.setValue(embedProfile.embeds[embedNumber].footer?.text || ""),
+							.setValue(embedProfile.embeds?.[embedNumber].footer?.text ?? ""),
 					),
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("embedFooterIconURL")
 							.setLabel("Footer Icon")
@@ -70,7 +77,7 @@ export default {
 							.setStyle(TextInputStyle.Short)
 							.setPlaceholder("Your footer icon link here.")
 							.setValue(
-								embedProfile.embeds[embedNumber].footer?.icon_url || "",
+								embedProfile.embeds?.[embedNumber].footer?.icon_url ?? "",
 							),
 					),
 				),

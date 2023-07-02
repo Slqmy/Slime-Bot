@@ -1,40 +1,53 @@
-import {EmbedBuilder} from "discord.js";
-import {SuccessMessageBuilder} from "../../../classes.js";
+import {ErrorMessage, SuccessMessage} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Modal} from "types";
+import {APIEmbedFooter, Message} from "discord.js";
 
-export default {
-	data: {
-		name: "embedModal2",
-	},
-
+export const embedModal2: Modal = {
 	async execute(interaction) {
-		const embedMessage = interaction.message.embeds[0].data;
+		const embedMessage = (interaction.message as Message).embeds[0].data;
 
-		const count =
-			interaction.message.embeds[0].data.description.match(/\d+/)[0];
+		const count = (
+			/\d+/.exec(
+				(interaction.message as Message).embeds[0].data.description as string,
+			) as RegExpExecArray
+		)[0];
 
-		const embedIndex = embedMessage.footer.text.match(/\d+/)[0] - 1;
+		const embedIndex =
+			parseInt(
+				(
+					/\d+/.exec(
+						(embedMessage.footer as APIEmbedFooter).text,
+					) as RegExpExecArray
+				)[0],
+			) - 1;
 
 		const embed = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
+
+		if (!embed) {
+			return interaction.reply(new ErrorMessage("Couldn't find embed!"));
+		}
+
+		embed.embeds ??= [];
 
 		embed.embeds[embedIndex - 1] = {
 			...embed.embeds[embedIndex - 1],
-			...new EmbedBuilder({
+			...{
 				author: {
 					name: interaction.fields.getTextInputValue("embedAuthorName"),
 					url: interaction.fields.getTextInputValue("embedAuthorURL"),
-					iconURL: interaction.fields.getTextInputValue("embedAuthorIconURL"),
+					icon_url: interaction.fields.getTextInputValue("embedAuthorIconURL"),
 				},
-			}).data,
+			},
 		};
 
 		await EmbedSchema.updateOne(
 			{
 				author: interaction.user.id,
-				customID: count,
+				id: count,
 			},
 			{
 				embeds: embed.embeds,
@@ -42,7 +55,7 @@ export default {
 		);
 
 		await interaction.reply(
-			new SuccessMessageBuilder("Embed saved successfully", true),
+			new SuccessMessage("Embed saved successfully", true),
 		);
 	},
 };

@@ -4,34 +4,30 @@ import {
 	TextInputStyle,
 	ActionRowBuilder,
 } from "discord.js";
-import {ErrorMessage} from "../../../classes.js";
+import {ErrorMessage} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Button} from "types";
 
-export default {
-	data: {
-		name: "embedFieldsEdit",
-	},
+export const embedFieldsEdit: Button = {
 	async execute(interaction) {
 		const embed = interaction.message.embeds[0].data;
 
-		const customID = embed.description.match(/\d+/)[0];
+		const id = (/\d+/.exec(embed.description as string) as RegExpExecArray)[0];
 
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: customID,
+			id,
 		});
 
 		if (!embedProfile) {
-			return await interaction.reply(
-				new ErrorMessage("This embed does not exist!"),
-			);
+			return interaction.reply(new ErrorMessage("This embed does not exist!"));
 		}
 		await interaction.showModal(
 			new ModalBuilder()
 				.setCustomId("embedFieldsEdit")
 				.setTitle("Edit Field")
 				.addComponents(
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("fieldPosition")
 							.setLabel("Field Number")
@@ -39,7 +35,7 @@ export default {
 							.setStyle(TextInputStyle.Short)
 							.setPlaceholder("Which field would you like to edit?"),
 					),
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("fieldName")
 							.setLabel("Field Name")
@@ -47,7 +43,7 @@ export default {
 							.setStyle(TextInputStyle.Short)
 							.setPlaceholder("Your field name here."),
 					),
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("fieldValue")
 							.setLabel("Field Value")
@@ -55,7 +51,7 @@ export default {
 							.setStyle(TextInputStyle.Paragraph)
 							.setPlaceholder("Your field value here."),
 					),
-					new ActionRowBuilder().addComponents(
+					new ActionRowBuilder<TextInputBuilder>().addComponents(
 						new TextInputBuilder()
 							.setCustomId("fieldInline")
 							.setLabel("Inline")

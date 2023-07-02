@@ -1,27 +1,36 @@
-import {ErrorMessage, SuccessMessageBuilder} from "../../../classes.js";
+import {ErrorMessage, SuccessMessage} from "../../../utility.js";
 import EmbedSchema from "../../../schemas/EmbedSchema.js";
+import {Modal} from "types";
+import {GuildMember, Message} from "discord.js";
 
-export default {
-	data: {
-		name: "embedSend",
-	},
+export const embedSend: Modal = {
 	async execute(interaction) {
 		await interaction.deferReply({ephemeral: true});
-		const count =
-			interaction.message.embeds[0].data.description.match(/\d+/)[0];
+
+		const count = (
+			/\d+/.exec(
+				(interaction.message as Message).embeds[0].data.description as string,
+			) as RegExpExecArray
+		)[0];
 
 		const embedProfile = await EmbedSchema.findOne({
 			author: interaction.user.id,
-			customID: count,
+			id: count,
 		});
+
+		if (!embedProfile) {
+			return interaction.reply(new ErrorMessage("Couldn't find embed!"));
+		}
 
 		const channelInput = interaction.fields.getTextInputValue("channel");
 
 		const channelReg = new RegExp(`^.*${channelInput}.*$`, "i");
 
-		let channels = await interaction.member.guild.channels.fetch();
-
-		channels = [...channels.values()];
+		let channels = [
+			...(
+				await (interaction.member as GuildMember).guild.channels.fetch()
+			).values(),
+		];
 
 		let sendChannel = interaction.channel;
 
@@ -106,8 +115,8 @@ export default {
 				});
 
 				await interaction.editReply(
-					new SuccessMessageBuilder(
-						`Embed successfully sent in channel ${sendChannel}`,
+					new SuccessMessage(
+						`Embed successfully sent in channel <#${sendChannel.id}>`,
 					),
 				);
 			}

@@ -1,12 +1,10 @@
-import {SuccessMessageBuilder} from "../../../classes.js";
+import {Button} from "types";
+import {SuccessMessage} from "../../../utility.js";
 
-export default {
-	data: {
-		name: "embedDeletionNevermind",
-	},
+export const embedDeletionNevermind: Button = {
 	async execute(interaction) {
 		await interaction.reply(
-			new SuccessMessageBuilder("Successfully cancelled the deletion.", true),
+			new SuccessMessage("Successfully cancelled the deletion.", true),
 		);
 	},
 };
