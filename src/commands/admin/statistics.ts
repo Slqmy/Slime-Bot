@@ -1,10 +1,19 @@
 import {
 	ChannelType,
+	GuildMember,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from "discord.js";
-import {Command} from "types";
-import {ErrorMessage} from "utility";
+import GuildDataSchema, {
+	IGuildDataSchema,
+} from "../../schemas/GuildDataSchema.js";
+import {Command, MongooseDocument} from "types";
+import {
+	DefaultStatisticsChannelNames,
+	ErrorMessage,
+	SuccessMessage,
+	updateStatisticsChannel,
+} from "../../utility.js";
 
 export const statistics: Command = {
 	data: new SlashCommandBuilder()
@@ -42,7 +51,7 @@ export const statistics: Command = {
 									},
 									{
 										name: "🟢 Server uptime",
-										value: "serverUptime",
+										value: "minecraftServerUptime",
 									},
 								),
 						)
@@ -67,15 +76,68 @@ export const statistics: Command = {
 
 		switch (options.getSubcommand()) {
 			case "create":
-				const statisticType = options.getString("type", true);
+				const statisticType = options.getString(
+					"type",
+					true,
+				) as keyof typeof DefaultStatisticsChannelNames;
+
+				const minecraftChannel = options.getChannel("minecraft-server-channel");
+
+				if (
+					!minecraftChannel &&
+					[
+						"totalJoinedMinecraftPlayers",
+						"onlineMinecraftPlayers",
+						"minecraftServerUptime",
+					].includes(statisticType)
+				) {
+					return interaction.reply(
+						new ErrorMessage(
+							"Please provide a Minecraft server channel to use this statistic type!",
+						),
+					);
+				}
 
 				const statisticsChannel = await guild.channels.create({
-					name: "",
+					name: DefaultStatisticsChannelNames[statisticType],
 					type: ChannelType.GuildVoice,
 					permissionOverwrites: [
 						{id: guild.roles.everyone, deny: [PermissionFlagsBits.Connect]},
+						{
+							id: (guild.members.me as GuildMember).id,
+							allow: [PermissionFlagsBits.ManageChannels],
+						},
 					],
 				});
+
+				const guildData = (await GuildDataSchema.findOne({
+					id: guild.id,
+				})) as MongooseDocument<IGuildDataSchema>;
+
+				guildData.statisticsChannels ??= {};
+
+				guildData.statisticsChannels[statisticsChannel.id] = {
+					type: statisticType,
+				};
+
+				if (minecraftChannel) {
+					guildData.statisticsChannels[statisticsChannel.id].extraData = {
+						minecraftServerChannelID: minecraftChannel.id,
+					};
+				}
+
+				await GuildDataSchema.updateOne(
+					{id: guild.id},
+					{statisticsChannels: guildData.statisticsChannels},
+				);
+
+				updateStatisticsChannel(statisticsChannel, client);
+
+				await interaction.reply(
+					new SuccessMessage(
+						`Successfully created the statistics channel in <#${statisticsChannel.id}>.`,
+					),
+				);
 
 				break;
 		}
