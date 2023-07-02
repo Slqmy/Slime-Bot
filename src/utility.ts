@@ -5,6 +5,7 @@ import {
 	APIEmbedFooter,
 	APIEmbedImage,
 	APISelectMenuOption,
+	ActionRow,
 	ActionRowBuilder,
 	AttachmentBuilder,
 	AutocompleteInteraction,
@@ -23,9 +24,12 @@ import {
 	InteractionType,
 	Message,
 	MessageReaction,
+	ModalSubmitInteraction,
 	PartialMessageReaction,
 	PermissionsBitField,
 	StringSelectMenuBuilder,
+	StringSelectMenuComponent,
+	StringSelectMenuInteraction,
 	TextChannel,
 	User,
 	VoiceChannel,
@@ -39,6 +43,7 @@ import Decimal from "decimal.js";
 import canvacord from "canvacord";
 import chalk from "chalk";
 import {readdirSync} from "fs";
+import EmbedSchema from "./schemas/EmbedSchema.js";
 
 const {whiteBright, bold} = chalk;
 
@@ -636,17 +641,15 @@ console.log = (...data) => {
 	data = data.map((value) => {
 		if (typeof value !== "string") return value;
 
-		const ansiControlCharactersOrWhitespaceMatch = (
-			new RegExp(`^(${ANSIControlCharactersRegExpString}|\\s|$1)+`).exec(
-				value,
-			) as RegExpExecArray
-		)[0];
+		const ansiControlCharactersOrWhitespaceMatch = new RegExp(
+			`^(${ANSIControlCharactersRegExpString}|\\s|$1)+`,
+		).exec(value)?.[0];
 
 		const date = new Date(Date.now());
 
 		return `${value.slice(
 			0,
-			ansiControlCharactersOrWhitespaceMatch.length,
+			ansiControlCharactersOrWhitespaceMatch?.length ?? 0,
 		)}${`[${date.getHours().toString().padStart(2, "0")}:${date
 			.getMinutes()
 			.toString()
@@ -654,7 +657,7 @@ console.log = (...data) => {
 			.getSeconds()
 			.toString()
 			.padStart(2, "0")}]`} ${value.slice(
-			ansiControlCharactersOrWhitespaceMatch.length,
+			ansiControlCharactersOrWhitespaceMatch?.length ?? 0,
 		)}`;
 	});
 
@@ -869,6 +872,23 @@ export const checkPermissions = async (
  */
 export const addSuffix = (number: number): "s" | "" =>
 	Math.abs(number) === 1 ? "" : "s";
+
+/**
+ * Returns the appropriate ending for a number.
+ * @param {number} number The number to find the ending for.
+ * @returns {"st" | "nd" | "rd" | "th"} The appropriate ending for the provided number.
+ * @example
+ * `You are currently editing your ${count}${addNumberSuffix(count)} embed.`;
+ */
+export const addNumberSuffix = (
+	number: number | string,
+): "st" | "nd" | "rd" | "th" => {
+	number = `${number}`;
+	if (number.endsWith("1") && !number.endsWith("11")) return "st";
+	if (number.endsWith("2") && !number.endsWith("12")) return "nd";
+	if (number.endsWith("3") && !number.endsWith("13")) return "rd";
+	return "th";
+};
 
 export const capitaliseFirstLetter = (string: string) =>
 	`${string[0]?.toUpperCase() ?? ""}${string.slice(1)}`;
@@ -1179,39 +1199,206 @@ export const updateStatisticsChannel = async (
 		id: guild.id,
 	})) as MongooseDocument<IGuildDataSchema>;
 
-	const {type, extraData} = guildData.statisticsChannels[guild.id];
+	if (!guildData.statisticsChannels) return;
 
-	let data: number;
+	const {type, extraData} = guildData.statisticsChannels[statisticsChannel.id];
+
+	let data = 0;
+	let minecraftServerChannelID;
+	let minecraftChannel;
+
+	if (
+		typeof extraData === "object" &&
+		extraData &&
+		Object.hasOwn(extraData, "minecraftServerChannelID")
+	) {
+		minecraftServerChannelID = (
+			extraData as {
+				minecraftServerChannelID: string;
+			}
+		).minecraftServerChannelID;
+	}
+
+	if (minecraftServerChannelID)
+		minecraftChannel = (await client.channels.fetch(
+			minecraftServerChannelID,
+		)) as TextChannel;
 
 	switch (type) {
 		case "totalDiscordMembers":
-			data = guild.memberCount;
+			data = [...(await guild.members.fetch()).values()].filter(
+				(member) => !member.user.bot,
+			).length;
 
 			break;
 		case "onlineDiscordMembers":
 			data = [...(await guild.members.fetch()).values()].filter(
-				(member) => !member.presence || member.presence.status === "online",
+				(member) => !member.user.bot && member.presence?.status === "online",
 			).length;
 
 			break;
 		case "totalJoinedMinecraftPlayers":
+			data = parseInt(
+				(
+					/\d+(?= unique players ever joined)/.exec(
+						(minecraftChannel as TextChannel).topic as string,
+					) as RegExpExecArray
+				)[0],
+			);
+
 			break;
 		case "onlineMinecraftPlayers":
+			data = parseInt(
+				/\d+(?=\/100 players online)/.exec(
+					(minecraftChannel as TextChannel).topic as string,
+				)?.[0] ?? "0",
+			);
+
 			break;
 		case "minecraftServerUptime":
+			data = parseInt(
+				/\d+(?= minutes)/.exec(
+					(minecraftChannel as TextChannel).topic as string,
+				)?.[0] ?? "0",
+			);
+
 			break;
 	}
 
-	if (!/d/.test(statisticsChannel.name)) {
+	if (!/\d/.test(statisticsChannel.name)) {
 		statisticsChannel.name =
 			DefaultStatisticsChannelNames[
 				type as keyof typeof DefaultStatisticsChannelNames
 			];
 	}
 
-	await statisticsChannel.setName(
-		statisticsChannel.name.replace(/\d+/, `${data}`),
-	);
+	if (data === 0 && type === "minecraftServerUptime") {
+		statisticsChannel.name = "🔴 Offline";
+	}
+
+	if (
+		statisticsChannel.name.replace(/\d+/, `${data}`) !== statisticsChannel.name
+	) {
+		await statisticsChannel.setName(
+			statisticsChannel.name.replace(/\d+/, `${data}`),
+		);
+	}
+};
+
+/**
+ * Limits the amount of characters a string can have and adds a nice representation of how many characters are not shown (never exceeds the limit of characters, even with the added text).
+ * @param {string} string The string to limit the amount of characters of.
+ * @param {number} allowedCharacters The amount of allowed characters that can be shown, includes the extra text ("..." or "... x more character(s)").
+ * @param {boolean?} simple The mode to limit the number of characters with. Default is "normal". Simple mode will not show how many remaining characters are not shown.
+ * @returns {string} A cut version of the string as well as a number representing how many characters are not shown.
+ * @example
+ * // A string is too long to fit on one line of an embed:
+ *
+ * const {EmbedBuilder} = require("discord.js")
+ *
+ * // Normal mode:
+ * new EmbedBuilder().setDescription(cut("https://cdn.discordapp.com/attachments/883754224905769051/1056534040611659797/poll-image.png", 61))
+ *
+ * // Expected output: "https://cdn.discordapp.com/attachments/883754224905769051 ...".
+ *
+ * // Simple mode:
+ * new EmbedBuilder().setDescription(cut("https://cdn.discordapp.com/attachments/883754224905769051/1056534040611659797/poll-image.png", 61, false))
+ *
+ * // Expected output: "https://cdn.discordapp.com/attachment ... 31 more characters.".
+ */
+export const cut = (
+	string: string,
+	allowedCharacters: number,
+	simple = true,
+): string => {
+	const remainingChars = string.length - allowedCharacters;
+
+	const output = `${string.slice(
+		0,
+		allowedCharacters -
+			(simple
+				? 4
+				: 21 + `${remainingChars}`.length + addSuffix(remainingChars).length),
+	)} ...${
+		simple
+			? ""
+			: ` ${remainingChars} more character${addSuffix(remainingChars)}.`
+	}`;
+
+	if (allowedCharacters < output.length) {
+		throw new Error(
+			`Not enough allowed characters, running the function will return "${output}".`,
+		);
+	}
+
+	return string.length > allowedCharacters ? output : string;
+};
+
+/**
+ * Returns a colour emoji based on a given hex colour code.
+ * @param {string} hex The colour code to convert to an emoji.
+ * @returns {"⬜"|"⬛"|"🟨"|"🟫"|"🟪"|"🟧"|"🟥"|"🟦"|"🟩"} The colour emoji corresponding to the hex colour code.
+ * @example
+ * colourMatch("#111111"); // Returns "⬛".
+ * colourMatch("#1133ff"); // Returns "🟦".
+ */
+export const colourMatch = (
+	hex: string,
+): "⬜" | "⬛" | "🟨" | "🟫" | "🟪" | "🟧" | "🟥" | "🟦" | "🟩" => {
+	hex = `${hex}`.replace(/^0x|^#/, "");
+
+	const red = hex.slice(0, 2);
+	const redBaseTen = parseInt(red, 16);
+
+	const green = hex.slice(2, 4);
+	const greenBaseTen = parseInt(green, 16);
+
+	const blue = hex.slice(4, 6);
+	const blueBaseTen = parseInt(blue, 16);
+
+	if (redBaseTen >= 200 && greenBaseTen >= 200 && blueBaseTen >= 200)
+		return "⬜";
+
+	if (
+		(redBaseTen <= 40 && greenBaseTen <= 40 && blueBaseTen <= 40) ||
+		Math.abs(
+			Math.max(redBaseTen, greenBaseTen, blueBaseTen) -
+				Math.min(redBaseTen, blueBaseTen, greenBaseTen),
+		) <= 5
+	)
+		return "⬛";
+
+	if (Math.abs(redBaseTen - greenBaseTen) <= 3 && blueBaseTen <= 160)
+		return "🟨";
+
+	if (blueBaseTen <= 30 && Math.abs(redBaseTen - greenBaseTen) <= 70)
+		return "🟫";
+
+	if (
+		greenBaseTen <= 150 &&
+		Math.abs(redBaseTen - blueBaseTen) >= 50 &&
+		Math.abs(redBaseTen - blueBaseTen) <= 125
+	)
+		return "🟪";
+
+	if (
+		redBaseTen >= 160 &&
+		blueBaseTen <= 100 &&
+		Math.abs(redBaseTen - greenBaseTen) <= 150 &&
+		Math.abs(redBaseTen - greenBaseTen) >= 50
+	)
+		return "🟧";
+
+	if (Math.max(redBaseTen, greenBaseTen, blueBaseTen) === redBaseTen)
+		return "🟥";
+
+	if (Math.max(redBaseTen, greenBaseTen, blueBaseTen) === blueBaseTen)
+		return "🟦";
+
+	if (Math.max(redBaseTen, greenBaseTen, blueBaseTen) === greenBaseTen)
+		return "🟩";
+
+	return "⬛";
 };
 
 // ! Classes
@@ -1320,10 +1507,32 @@ export class ErrorMessage {
  * A class to create a poll message based on a command, the poll message, or a reaction.
  */
 export class PollMessage {
-	emojis: (string | null)[];
-	options: (string | null)[];
+	emojis: [
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+	];
+	options: [
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+		(string | null)?,
+	];
 	content?: string;
-	embeds: APIEmbed[];
+	embeds: [APIEmbed?];
 	files: (string | AttachmentBuilder)[];
 	constructor() {
 		this.emojis = [];
@@ -1688,7 +1897,9 @@ export class PollMessage {
 		);
 
 		this.files.push(attachment);
-		this.embeds[0].thumbnail = {url: `attachment://${attachmentName}`};
+		(this.embeds[0] as APIEmbed).thumbnail = {
+			url: `attachment://${attachmentName}`,
+		};
 
 		return this;
 	}
@@ -1705,7 +1916,11 @@ export class LevelLeaderboardMessage {
 		this.embeds = [{}];
 	}
 	async create(
-		interaction: ChatInputCommandInteraction | ButtonInteraction,
+		interaction:
+			| ChatInputCommandInteraction
+			| ButtonInteraction
+			| StringSelectMenuInteraction
+			| ModalSubmitInteraction,
 		pageFunction: (page: number) => number = (page) => page,
 	) {
 		const {guild} = interaction;
@@ -1733,24 +1948,32 @@ export class LevelLeaderboardMessage {
 					(userExperienceData?.[a.id]?.experience ?? 0),
 			);
 
-		const pageNumber =
-			interaction instanceof ChatInputCommandInteraction
-				? interaction.options.getNumber("page") ?? 1
-				: pageFunction(
-						parseInt(
-							(
-								/\d+/.exec(
-									(interaction.message.embeds[0].data.footer as APIEmbedFooter)
-										.text,
-								) as RegExpExecArray
-							)[0],
-						),
-				  );
+		const pages = Math.ceil(guildMembers.length / 5);
 
-		const pageLevels = guildMembers.slice(
-			5 * (pageNumber - 1),
-			5 * pageNumber + 1,
+		const pageNumber = Math.floor(
+			Math.max(
+				Math.min(
+					interaction instanceof ChatInputCommandInteraction
+						? interaction.options.getNumber("page") ?? 1
+						: pageFunction(
+								parseInt(
+									(
+										/(?<=« )\d+(?= »)/.exec(
+											(
+												(interaction.message as Message)
+													.components[1] as ActionRow<StringSelectMenuComponent>
+											).components[0].data.placeholder as string,
+										) as RegExpExecArray
+									)[0],
+								),
+						  ),
+					pages,
+				),
+				1,
+			),
 		);
+
+		const pageLevels = guildMembers.slice(5 * (pageNumber - 1), 5 * pageNumber);
 
 		if (!pageLevels.length) {
 			this.embeds = new ErrorMessage("This page does not exist!").embeds;
@@ -1760,7 +1983,7 @@ export class LevelLeaderboardMessage {
 		const canvas = createCanvas(934, pageLevels.length * 282);
 		const context = canvas.getContext("2d");
 
-		let index = 0;
+		let index = 5 * (pageNumber - 1);
 
 		// For loop with an index has to be used here because of async functions.
 		for await (const guildMember of pageLevels) {
@@ -1789,7 +2012,7 @@ export class LevelLeaderboardMessage {
 				.setDiscriminator(guildMember.user.discriminator)
 				.build();
 
-			context.drawImage(await loadImage(levelCard), 0, index * 282);
+			context.drawImage(await loadImage(levelCard), 0, (index % 5) * 282);
 
 			index++;
 		}
@@ -1806,11 +2029,11 @@ export class LevelLeaderboardMessage {
 		selectMenuOptions = selectMenuOptions
 			.filter((choice) => parseInt(choice.value) > 0)
 			.reverse()
-			.slice(0, Math.ceil(pageLevels.length / 5));
+			.slice(0, pages);
 
 		this.embeds = [{color: Colours.Default, image: {url: ""}}];
 
-		if (pageLevels.length || true) {
+		if (pages !== 1) {
 			this.components = [
 				new ActionRowBuilder<ButtonBuilder>().setComponents(
 					new ButtonBuilder()
@@ -1846,14 +2069,8 @@ export class LevelLeaderboardMessage {
 							`${pageNumber - 2 > 0 ? `${pageNumber - 2} ` : ""}${
 								pageNumber - 1 ? `${pageNumber - 1} ` : ""
 							}« ${pageNumber} »${
-								pageNumber + 1 < Math.ceil(guild.members.cache.size / 5)
-									? ` ${pageNumber + 1}`
-									: ""
-							} ${
-								pageNumber + 2 < Math.ceil(guild.members.cache.size / 5)
-									? ` ${pageNumber + 2}`
-									: ""
-							}`,
+								pageNumber + 1 <= pages ? ` ${pageNumber + 1}` : ""
+							} ${pageNumber + 2 <= pages ? ` ${pageNumber + 2}` : ""}`,
 						)
 						.setOptions(...selectMenuOptions)
 						.setMaxValues(1)
@@ -1871,6 +2088,289 @@ export class LevelLeaderboardMessage {
 		(
 			this.embeds[0].image as APIEmbedImage
 		).url = `attachment://${attachmentName}`;
+
+		return this;
+	}
+}
+
+export class EmbedsMessageBuilder {
+	embeds: [APIEmbed];
+	components:
+		| []
+		| [ActionRowBuilder<StringSelectMenuBuilder>]
+		| [ActionRowBuilder<ButtonBuilder>]
+		| [
+				ActionRowBuilder<StringSelectMenuBuilder>,
+				ActionRowBuilder<ButtonBuilder>,
+		  ];
+
+	constructor() {
+		this.embeds = [{}];
+		this.components = [];
+	}
+
+	async create(
+		interaction: ChatInputCommandInteraction | ButtonInteraction,
+		client: BotClient,
+		pageFunction: (page: number) => number,
+	) {
+		let embedArray = await EmbedSchema.find({author: interaction.user.id});
+		const count = embedArray.length;
+
+		const page = pageFunction(
+			(interaction instanceof ChatInputCommandInteraction
+				? interaction.options.getNumber("page")
+				: null) ?? 1, // ! TODO: Add page from embed.
+		);
+
+		embedArray = embedArray.slice(25 * (page - 1), 25 * page);
+
+		this.embeds = [
+			{
+				title: `${interaction.user.username}'s Embed Builders`,
+				color: Colours.Lime,
+				description: `> You have \`${count}\` active embed builder${addSuffix(
+					count,
+				)}. Use \`/embed create\` to ${
+					count === 0 ? "start creating embeds" : "create more"
+				}.\n\n${embedArray
+					.map((embed) => `**${embed.id}** - ${embed.name}`)
+					.join("\n")}`,
+				footer:
+					count > 25
+						? {
+								text: `Page ${page}/${Math.ceil(count / 25)}`,
+						  }
+						: undefined,
+				timestamp: new Date(Date.now()).toISOString(),
+				author: {
+					name: client.user.username,
+					icon_url: client.user.displayAvatarURL(DisplayAvatarURLOptions),
+				},
+			},
+		];
+
+		this.components = [];
+
+		if (embedArray.length) {
+			this.components = [
+				new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+					new StringSelectMenuBuilder()
+						.setCustomId("embeds")
+						.setMinValues(1)
+						.setMaxValues(1)
+						.setOptions(
+							embedArray.map((embed) => ({
+								label: `${embed.id} - ${embed.name}`,
+								value: embed.id,
+								description: `Embeds: ${
+									embed.embeds?.length ?? 0
+								}, Components: ${embed.components?.length ?? 0}, Files: ${
+									embed.files?.length ?? 0
+								}`,
+								emoji: "🎨",
+							})),
+						)
+						.setPlaceholder("🎨 Select an embed..."),
+				),
+			];
+		}
+
+		if (count > 25) {
+			(
+				this.components as unknown as
+					| [ActionRowBuilder<ButtonBuilder>]
+					| [
+							ActionRowBuilder<StringSelectMenuBuilder>,
+							ActionRowBuilder<ButtonBuilder>,
+					  ]
+			).push(
+				new ActionRowBuilder<ButtonBuilder>()
+					.addComponents(
+						new ButtonBuilder()
+							.setCustomId("embedsMenuBack")
+							.setEmoji("◀")
+							.setStyle(ButtonStyle.Secondary)
+							.setDisabled(page === 1),
+					)
+					.addComponents(
+						new ButtonBuilder()
+							.setCustomId("embedsMenuForward")
+							.setEmoji("▶")
+							.setStyle(ButtonStyle.Secondary)
+							.setDisabled(page === Math.ceil(count / 25)),
+					),
+			);
+		}
+
+		return this;
+	}
+}
+
+export class EmbedMessageBuilder {
+	embeds: [APIEmbed];
+	components?: [
+		ActionRowBuilder<ButtonBuilder>,
+		ActionRowBuilder<ButtonBuilder>,
+		ActionRowBuilder<StringSelectMenuBuilder>,
+	];
+
+	constructor() {
+		this.embeds = [{}];
+	}
+
+	async create(
+		interaction: ChatInputCommandInteraction,
+		client: BotClient,
+		id: string,
+		description: string,
+	) {
+		let embedArray = await EmbedSchema.find({author: interaction.user.id});
+		const embedProfile = embedArray[parseInt(id) - 1];
+
+		console.log(embedArray, id);
+
+		const page = Math.ceil(embedProfile.id / 25);
+		embedArray = embedArray.slice(25 * (page - 1), 25 * page);
+
+		description += `\n\n**📝 Content:**\n${
+			embedProfile.content === ""
+				? "*No content*"
+				: cut(`"${embedProfile.content}"`, 64)
+		}`;
+
+		description += "\n\n**🎨 Embeds:**\n";
+		for (const embed of embedProfile?.embeds ?? []) {
+			const properties =
+				Object.values(embed).filter((value) => value).length - 1;
+
+			description += `*${embed.title}*\n> \`${properties}\` Propert${
+				properties === 1 ? "y" : "ies"
+			}\n> Description: ${cut(
+				embed?.description ?? "",
+				61,
+			)}\n> Colour: \`${colourMatch(
+				embed.color?.toString(16) ?? "#000000",
+			)} ${embed.color?.toString(16)}\`\n`;
+		}
+
+		if (!embedProfile.embeds?.length) description += "*No embeds*\n";
+
+		description += "\n**🗃 Files:**\n";
+		for (const file of embedProfile?.files ?? []) {
+			description += `*${file.name}*\n> Link: [${cut(file.link, 67)}](${
+				file.link
+			})\n> Type: ${file.type}\n> Size: ${(file.size / 1000000).toPrecision(
+				1,
+			)} MB\n\n`;
+		}
+		if (!embedProfile.files?.length) description += "*No files*\n";
+
+		description += "\n**📋 Components:**";
+		for (const actionRow of embedProfile.components ?? []) {
+			description += `\n*Action Row - ${
+				actionRow.components.length
+			} component${addSuffix(actionRow.components.length)}*\n`;
+			for (const component of actionRow.components) {
+				description += `> ${
+					component.data.type === 2 ? "⏸️ Button" : "📋 Select Menu"
+				} - ${
+					component instanceof ButtonBuilder
+						? component.data.label
+						: component.data.placeholder
+				}\n`;
+			}
+			if (!actionRow.components.length) description += "*No components*\n";
+		}
+		if (!embedProfile.components?.length) description += "\n*No components*";
+
+		this.embeds = [
+			{
+				title: `🎨 Embed Builder - ${embedProfile.name}`,
+				description: `> ${description}`,
+				color: embedProfile.embeds?.[0]?.color ?? Colours.Lime,
+				author: {
+					name: client.user.username,
+					icon_url: client.user.displayAvatarURL(DisplayAvatarURLOptions),
+				},
+				timestamp: new Date(Date.now()).toISOString(),
+				footer: {
+					text: `Editing Embed Builder ${embedProfile.id}`,
+					icon_url:
+						"https://cdn.discordapp.com/attachments/1020058739526619186/1051111672938496070/pen_2.png",
+				},
+			},
+		];
+
+		this.components = [
+			new ActionRowBuilder<ButtonBuilder>().addComponents(
+				new ButtonBuilder()
+					.setCustomId("embedBackBack")
+					.setLabel("Back")
+					.setEmoji("⏪")
+					.setStyle(ButtonStyle.Primary),
+				new ButtonBuilder()
+					.setCustomId("embedHelp")
+					.setLabel("Help")
+					.setEmoji("❓")
+					.setStyle(ButtonStyle.Success),
+				new ButtonBuilder()
+					.setCustomId("embedSend")
+					.setLabel("Send")
+					.setEmoji("💬")
+					.setStyle(ButtonStyle.Success),
+				new ButtonBuilder()
+					.setCustomId("embedPreview")
+					.setLabel("Preview")
+					.setEmoji("👥")
+					.setStyle(ButtonStyle.Primary),
+				new ButtonBuilder()
+					.setCustomId("embedDelete")
+					.setLabel("Delete Embed")
+					.setEmoji("🗑")
+					.setStyle(ButtonStyle.Danger),
+			),
+			new ActionRowBuilder<ButtonBuilder>().addComponents(
+				new ButtonBuilder()
+					.setCustomId("embedEditEmbeds")
+					.setLabel("Edit Embeds")
+					.setEmoji("📝")
+					.setStyle(ButtonStyle.Secondary),
+				new ButtonBuilder()
+					.setCustomId("embedEditFiles")
+					.setLabel("Edit Files")
+					.setEmoji("📝")
+					.setStyle(ButtonStyle.Secondary),
+				new ButtonBuilder()
+					.setCustomId("embedEditComponents")
+					.setLabel("Edit Components")
+					.setEmoji("📝")
+					.setStyle(ButtonStyle.Secondary),
+				new ButtonBuilder()
+					.setCustomId("embedEditContent")
+					.setLabel("Edit Content")
+					.setEmoji("📝")
+					.setStyle(ButtonStyle.Secondary),
+			),
+			new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+				new StringSelectMenuBuilder()
+					.setCustomId("embeds")
+					.setMinValues(1)
+					.setMaxValues(1)
+					.setOptions(
+						embedArray.map((embed) => ({
+							label: `${embed.id} - ${embed.name}`,
+							value: `${embed.id}`,
+							description: `Embeds: ${embed.embeds?.length ?? 0}, Components: ${
+								embed.components?.length ?? 0
+							}, Files: ${embed.files?.length ?? 0}`,
+							default: embed.id === embedProfile.id,
+							emoji: "🎨",
+						})),
+					)
+					.setPlaceholder("🎨 Select an embed..."),
+			),
+		];
 
 		return this;
 	}
@@ -2051,7 +2551,7 @@ export enum DefaultStatisticsChannelNames {
 	onlineDiscordMembers = "Online: 0",
 	totalJoinedMinecraftPlayers = "Total Joined: 0",
 	onlineMinecraftPlayers = "Players Online: 0",
-	minecraftServerUptime = "🟢 Server online: 10 min.",
+	minecraftServerUptime = "🟢 Online: 0 min",
 }
 
 // ! Objects
