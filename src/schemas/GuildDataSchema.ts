@@ -59,8 +59,8 @@ export interface IGuildDataSchema {
 			lastMessageTimestamp?: number;
 		};
 	};
-	statisticsChannels: {
-		[key: string]: {type: string; extraData: unknown};
+	statisticsChannels?: {
+		[key: string]: {type: string; extraData?: unknown};
 	};
 }
 
