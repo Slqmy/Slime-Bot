@@ -29,5 +29,8 @@ export const ready: ClientEvent<"ready"> = {
 
 		await client.checkTemporaryData();
 		setInterval(client.checkTemporaryData, 10000);
+
+		await client.updateStatisticsChannels();
+		setInterval(client.updateStatisticsChannels, 600000);
 	},
 };
