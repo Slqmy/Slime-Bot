@@ -31,7 +31,7 @@ export const count: Command = {
 						title: "🔢 Counting Channels",
 						description: `${channels.map(
 							(channel) =>
-								`<#${channel.channelID}> - \`${channel.count}\`${
+								`<#${channel.channelID}> - \`${channel.count ?? 0}\`${
 									guildData.settings?.counting?.disabled
 										? `\n\n> ${Emojis.Warning} Note: the counting channels are currently disabled.`
 										: ""

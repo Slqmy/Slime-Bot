@@ -17,6 +17,7 @@ import {
 	ChatInputCommandInteraction,
 	ColorResolvable,
 	Colors,
+	EmbedBuilder,
 	Guild,
 	GuildChannel,
 	GuildMember,
@@ -44,7 +45,7 @@ import Decimal from "decimal.js";
 import canvacord from "canvacord";
 import chalk from "chalk";
 import {readdirSync} from "fs";
-import EmbedSchema from "./schemas/EmbedSchema.js";
+import EmbedSchema, {IEmbedSchema} from "./schemas/EmbedSchema.js";
 
 const {whiteBright, bold} = chalk;
 
@@ -1587,12 +1588,11 @@ export class PollMessage {
 		(string | null)?,
 	];
 	content?: string;
-	embeds: [APIEmbed?];
+	embeds?: [APIEmbed];
 	files: (string | AttachmentBuilder)[];
 	constructor() {
 		this.emojis = [];
 		this.options = [];
-		this.embeds = [];
 		this.files = [];
 	}
 	async create(
@@ -1952,7 +1952,7 @@ export class PollMessage {
 		);
 
 		this.files.push(attachment);
-		(this.embeds[0] as APIEmbed).thumbnail = {
+		this.embeds[0].thumbnail = {
 			url: `attachment://${attachmentName}`,
 		};
 
@@ -2436,14 +2436,36 @@ export class EmbedMessageBuilder {
 }
 
 class EmbedClassBuilder {
-	class: unknown;
+	class: new () => {
+		embeds: APIEmbed[];
+		components: ActionRowBuilder[];
+	};
 	constructor(
 		name: string,
 		emoji: string,
 		titleEmoji: string,
-		descriptionFunction: (data: any, selected?: boolean) => string,
+		descriptionFunction: (
+			data:
+				| EmbedBuilder["data"]
+				| {
+						link: string;
+						name: string;
+						size: number;
+						type: string;
+				  }
+				| ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>,
+			selected?: boolean,
+		) => string,
 		selectMenuOptionFunction: (
-			data: unknown,
+			data:
+				| EmbedBuilder["data"]
+				| {
+						link: string;
+						name: string;
+						size: number;
+						type: string;
+				  }
+				| ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>,
 			index: number,
 		) => {
 			label: string;
@@ -2455,42 +2477,85 @@ class EmbedClassBuilder {
 		this.class = class {
 			embeds: APIEmbed[];
 			components: ActionRowBuilder[];
-			constructor(embedData, selected: number, client: BotClient) {
+
+			constructor() {
+				this.embeds = [];
+				this.components = [];
+			}
+
+			async create(
+				interaction: ButtonInteraction,
+				id: string,
+				selected: number,
+				client: BotClient,
+			) {
+				const embedData = (await EmbedSchema.findOne({
+					author: interaction.user.id,
+					id,
+				})) as MongooseDocument<IEmbedSchema>;
+
 				let description = `> Currently editing your \`${
 					embedData.id
 				}${addNumberSuffix(
 					embedData.id,
 				)}\` embed builder. Edit it's ${name}s here.`;
 
-				embedData[`${name}s`].forEach((type, index) => {
-					description += `\n\n${index === selected ? "```md\n" : ""}${
-						index + 1
-					}. ${cut(
-						type.name ?? type.title ?? type.label,
-						61 - 2 - `${index + 1}`.length,
-					)}${
-						index === selected
-							? `\n====${"=".repeat(
-									(type.name ?? type.title ?? type.label).length -
-										2 +
-										`${index + 1}`.length,
-							  )}\n<SELECTED>`.slice(0, 62)
-							: ""
-					}\n${
-						index === selected
-							? descriptionFunction(type, true)
-									.replace(/>/g, "-")
-									.replace(/`/g, "")
-							: descriptionFunction(type)
-					}${index === selected ? "```" : ""}`;
-				});
+				(
+					embedData as unknown as {
+						[key: string]: (
+							| EmbedBuilder["data"]
+							| {link: string; name: string; size: number; type: string}
+							| ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>
+						)[];
+					}
+				)[`${name}s`].forEach(
+					(
+						type:
+							| EmbedBuilder["data"]
+							| {link: string; name: string; size: number; type: string}
+							| ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>,
+						index: number,
+					) => {
+						description += `\n\n${index === selected ? "```md\n" : ""}${
+							index + 1
+						}. ${cut(
+							type.name ?? type.title ?? type.label,
+							61 - 2 - `${index + 1}`.length,
+						)}${
+							index === selected
+								? `\n====${"=".repeat(
+										(type.name ?? type.title ?? type.label).length -
+											2 +
+											`${index + 1}`.length,
+								  )}\n<SELECTED>`.slice(0, 62)
+								: ""
+						}\n${
+							index === selected
+								? descriptionFunction(type, true)
+										.replace(/>/g, "-")
+										.replace(/`/g, "")
+								: descriptionFunction(type)
+						}${index === selected ? "```" : ""}`;
+					},
+				);
 
-				if (!embedData[`${name}s`].length) description += `\n\n*No ${name}s*`;
+				if (
+					!(
+						embedData as unknown as {
+							[key: string]: (
+								| EmbedBuilder["data"]
+								| {link: string; name: string; size: number; type: string}
+								| ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>
+							)[];
+						}
+					)[`${name}s`].length
+				)
+					description += `\n\n*No ${name}s*`;
 
 				this.embeds = [
 					{
 						title: `${titleEmoji} ${embedData.name} - Editing ${name}s`,
-						color: embedData.embeds[0]?.color ?? Colours.Lime,
+						color: embedData.embeds?.[0]?.color ?? Colours.Lime,
 						author: {
 							name: client.user.username,
 							icon_url: client.user.displayAvatarURL(DisplayAvatarURLOptions),
@@ -2574,11 +2639,26 @@ class EmbedClassBuilder {
 								.setCustomId("embedEdit")
 								.setPlaceholder(`${emoji} Edit ${name}...`)
 								.setOptions(
-									embedData[`${name}s`].map((type, index) => ({
-										...selectMenuOptionFunction(type, index),
-										default: index === selected,
-										emoji,
-									})),
+									embedData[`${name}s`].map(
+										(
+											type:
+												| EmbedBuilder["data"]
+												| {
+														link: string;
+														name: string;
+														size: number;
+														type: string;
+												  }
+												| ActionRowBuilder<
+														ButtonBuilder | StringSelectMenuBuilder
+												  >,
+											index: number,
+										) => ({
+											...selectMenuOptionFunction(type, index),
+											default: index === selected,
+											emoji,
+										}),
+									),
 								)
 								.setMinValues(1)
 								.setMaxValues(1),

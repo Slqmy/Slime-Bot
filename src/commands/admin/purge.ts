@@ -255,7 +255,7 @@ export const purge: Command = {
 			}
 		}
 
-		let messageNumber = options.getInteger("count", true);
+		const messageNumber = options.getNumber("count", true);
 
 		const user = options.getUser("user");
 		const match = options.getString("match");
