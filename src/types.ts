@@ -17,9 +17,12 @@ import {
 import mongoose, {Document} from "mongoose";
 
 /**
- * A type for the bot client. Extends the default Discord JS client class with the necessary methods used by the code.
+ * A type for the bot client. Extends the default `discord.js` `client` type with the methods and properties used in this code.
  */
 export type BotClient = Client & {
+ /*
+  * The client user, this variable is equal to `undefined` if the client hasn't logged in yet.
+  */
 	user: ClientUser;
 	commands: Collection<string, AnyCommand>;
 	commandArray: (
