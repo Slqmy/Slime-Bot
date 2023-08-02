@@ -7,7 +7,7 @@ import {
 	inlineCode,
 } from "discord.js";
 import {AutoCompleteCommand} from "types";
-import {Colours} from "utility";
+import {Colours} from "../../utility.js";
 
 export const emoji: AutoCompleteCommand = {
 	data: new SlashCommandBuilder()
@@ -39,7 +39,11 @@ export const emoji: AutoCompleteCommand = {
 					option
 						.setName("server")
 						.setDescription("The id of the server to upload the emoji.")
-						.setRequired(true),
+						.setRequired(true)
+						.setChoices(
+							{name: "The Slimy Swamp", value: "1109899305168420884"},
+							{name: "Emoji Server", value: "1122162791088926831"},
+						),
 				),
 		)
 		.setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
@@ -60,7 +64,8 @@ export const emoji: AutoCompleteCommand = {
 		const filtered = emojis.filter((emoji) =>
 			emoji.name.startsWith(focusedValue),
 		);
-		return await interaction.respond(filtered);
+
+		return interaction.respond(filtered.slice(0, 25));
 	},
 	async execute(interaction, client) {
 		const emojiGuild = await client.guilds.fetch("1122162791088926831");
@@ -73,7 +78,7 @@ export const emoji: AutoCompleteCommand = {
 				);
 
 				if (!emoji)
-					return await interaction.reply({
+					return interaction.reply({
 						content: "That emoji does not exist!",
 						ephemeral: true,
 					});
@@ -82,7 +87,7 @@ export const emoji: AutoCompleteCommand = {
 					.setDescription(`Formatted emoji: ${inlineCode(emoji.toString())}`)
 					.setColor(Colours.Transparent);
 
-				return await interaction.reply({
+				return interaction.reply({
 					embeds: [embed],
 				});
 			case "set":
@@ -91,7 +96,7 @@ export const emoji: AutoCompleteCommand = {
 				);
 
 				if (!emojiToSet)
-					return await interaction.reply({
+					return interaction.reply({
 						content: "That emoji id is invalid!",
 						ephemeral: true,
 					});
@@ -100,26 +105,39 @@ export const emoji: AutoCompleteCommand = {
 					interaction.options.getString("server") as string,
 				);
 
-				if (!guildToSet)
+				if (!guildToSet) {
 					return await interaction.reply({
 						content: "That guild id is invalid!",
 						ephemeral: true,
 					});
+				}
+
+				if (
+					guildToSet.emojis.cache.find(
+						(emoji) => emoji.name === emojiToSet.name,
+					)
+				) {
+					return interaction.reply({
+						content: "There is already an emoji with that name in that server!",
+						ephemeral: true,
+					});
+				}
 
 				const newEmoji = await guildToSet.emojis.create({
 					attachment: emojiToSet.url,
 					name: emojiToSet.name as string,
 				});
 
-				if (newEmoji)
-					return await interaction.reply({
+				if (newEmoji) {
+					return interaction.reply({
 						content: "Your new emoji has been created!",
 					});
-				else
-					return await interaction.reply({
+				} else {
+					return interaction.reply({
 						content: "There was an error trying to create your emoji!",
 						ephemeral: true,
 					});
+				}
 			default:
 				return;
 		}
